@@ -20,7 +20,7 @@ for undo, swapping sides, fullscreen and settings.
 
 - BWF rally scoring: 21 points, win by 2, capped at 30 (15- and 11-point formats too)
 - Best of 1, 3 or 5 games; the game winner serves first in the next game
-- Shows who serves and from which court (right on even score, left on odd)
+- Shuttle icon marks the serving team; the score call puts the server's score first, as umpires do
 - Optional spoken score calls ("11 9", "Game, Home") and beeps confirming each remote gesture,
   so you know the press registered without looking
 - Interval and "change ends" reminders
@@ -51,6 +51,15 @@ It's plain static files with no build step. A PWA needs HTTPS (or `localhost`):
 - **Locally:** `npm start` (serves on http://localhost:8080).
 
 When you change any app file, bump `VERSION` in `sw.js` so installed copies update.
+
+## Icons
+
+Vector icons from open-source sets, used under their licenses:
+
+- Shuttlecock (app icon, serve marker): [Boxicons](https://github.com/box-icons/boxicons-core), MIT
+- Settings, undo, swap, fullscreen: [Lucide](https://lucide.dev), ISC
+
+The PNG app icons in `icons/` are rendered from `icons/shuttlecock.svg`.
 
 ## Tests
 

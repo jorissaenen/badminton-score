@@ -1,6 +1,6 @@
 // Cache-first service worker so the scoreboard works offline in a sports hall.
 // Bump VERSION whenever any app file changes.
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = `badminton-score-${VERSION}`;
 const ASSETS = [
   './',
@@ -14,6 +14,7 @@ const ASSETS = [
   'icons/icon-512.png',
   'icons/icon-maskable-512.png',
   'icons/apple-touch-icon.png',
+  'icons/shuttlecock.svg',
 ];
 
 self.addEventListener('install', (event) => {

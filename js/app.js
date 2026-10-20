@@ -216,7 +216,6 @@ function render() {
     $(`games${t}`).innerHTML = '<i></i>'.repeat(won[t]);
     const section = document.querySelector(`.team[data-team="${t}"]`);
     section.classList.toggle('serving', !over && srv === t);
-    section.querySelector('.court').textContent = M.serviceCourt(g) === 'right' ? 'right court' : 'left court';
   }
 
   $('board').classList.toggle('swapped', settings.swapped);
@@ -254,6 +253,9 @@ $('swapBtn').addEventListener('click', () => {
 $('fsBtn').addEventListener('click', () => {
   if (document.fullscreenElement) document.exitFullscreen?.();
   else document.documentElement.requestFullscreen?.().catch(() => {});
+});
+document.addEventListener('fullscreenchange', () => {
+  $('fsBtn').querySelector('use').setAttribute('href', document.fullscreenElement ? '#i-minimize' : '#i-maximize');
 });
 
 // ---------- settings dialog ----------
