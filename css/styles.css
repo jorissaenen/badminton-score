@@ -215,11 +215,12 @@ body {
 .install-sheet {
   position: fixed;
   left: 50%;
-  bottom: calc(16px + env(safe-area-inset-bottom));
+  /* Sit above the bottom bar so its buttons stay usable. */
+  bottom: calc(76px + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   z-index: 5;
   width: min(440px, calc(100vw - 32px));
-  max-height: calc(100dvh - 32px);
+  max-height: calc(100dvh - 92px);
   overflow-y: auto;
   display: flex;
   gap: 16px;
