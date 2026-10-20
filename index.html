@@ -11,8 +11,8 @@
   <title>Badminton Score</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/shuttlecock.svg" type="image/svg+xml">
-  <link rel="icon" href="icons/icon-192.png" type="image/png">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" href="icons/shuttle-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/shuttle-apple-180.png">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -66,6 +66,9 @@
     </span>
   </footer>
 
+  <!-- Black cover for "screen sleep": OLED pixels are off when black, but the page keeps listening to the remote. -->
+  <div id="sleep" class="sleep" hidden></div>
+
   <dialog id="settings">
     <form method="dialog" class="settings-form" id="settingsForm">
       <h2>Settings</h2>
@@ -95,6 +98,7 @@
       </label>
       <label class="check"><input type="checkbox" name="voice"> Announce score out loud</label>
       <label class="check"><input type="checkbox" name="beep"> Beep on remote clicks</label>
+      <label class="check"><input type="checkbox" name="sleep"><span>Screen sleep<small>Black screen after 30 s; lights up on a remote press or score change</small></span></label>
 
       <details>
         <summary>Remote timing &amp; tester</summary>

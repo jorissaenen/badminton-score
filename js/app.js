@@ -14,7 +14,10 @@ const DEFAULT_SETTINGS = {
   swapped: false,
   longPressMs: DEFAULT_TIMING.longPressMs,
   doubleClickMs: DEFAULT_TIMING.doubleClickMs,
+  sleep: false,
 };
+
+const SLEEP_AFTER_MS = 30000;
 
 const $ = (id) => document.getElementById(id);
 
@@ -192,6 +195,7 @@ function onKey(e) {
   }
   // Stop Enter/Space from activating buttons and keys from scrolling the page.
   e.preventDefault();
+  wakeScreen();
   if (e.type === 'keydown') remote.press();
   else remote.release();
 }
@@ -204,6 +208,7 @@ window.addEventListener('blur', () => remote.reset());
 // ---------- rendering ----------
 
 function render() {
+  wakeScreen();
   const g = M.currentGame(match);
   const score = M.gameScore(g);
   const won = M.gamesWon(match, rules);
@@ -273,6 +278,7 @@ $('settingsBtn').addEventListener('click', () => {
   form.beep.checked = settings.beep;
   form.longPressMs.value = settings.longPressMs;
   form.doubleClickMs.value = settings.doubleClickMs;
+  form.sleep.checked = settings.sleep;
   $('keyTester').textContent = 'No key received yet';
   $('settings').showModal();
 });
@@ -292,6 +298,7 @@ function readForm() {
     beep: form.beep.checked,
     longPressMs: num(form.longPressMs.value, 300, 3000, DEFAULT_TIMING.longPressMs),
     doubleClickMs: num(form.doubleClickMs.value, 150, 1000, DEFAULT_TIMING.doubleClickMs),
+    sleep: form.sleep.checked,
   };
   remote.setTiming({ longPressMs: settings.longPressMs, doubleClickMs: settings.doubleClickMs });
   // A match that hasn't started yet can pick up new rules and first server right away.
@@ -314,6 +321,38 @@ $('resetBtn').addEventListener('click', () => {
   startNewMatch();
   $('settings').close();
 });
+
+// ---------- screen sleep ----------
+// Browsers can't switch the display off and back on, and a locked phone stops passing remote
+// key presses to the page. So the screen stays on (wake lock below) and "sleep" is a black
+// cover instead: on OLED screens black pixels are off, which looks and saves like real sleep.
+
+let sleepTimer = null;
+let swallowClick = false;
+
+function wakeScreen() {
+  $('sleep').hidden = true;
+  clearTimeout(sleepTimer);
+  if (settings.sleep) sleepTimer = setTimeout(sleepScreen, SLEEP_AFTER_MS);
+}
+
+function sleepScreen() {
+  if ($('settings').open) wakeScreen(); // never black out while editing settings
+  else $('sleep').hidden = false;
+}
+
+// A tap only wakes the screen; it must not also score or press a button underneath.
+document.addEventListener('pointerdown', (e) => {
+  swallowClick = !$('sleep').hidden;
+  if (swallowClick) e.preventDefault();
+  wakeScreen();
+}, true);
+document.addEventListener('click', (e) => {
+  if (!swallowClick) return;
+  swallowClick = false;
+  e.stopPropagation();
+}, true);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wakeScreen(); });
 
 // ---------- keep the screen on ----------
 

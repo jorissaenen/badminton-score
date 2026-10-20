@@ -25,6 +25,11 @@ for undo, swapping sides, fullscreen and settings.
   so you know the press registered without looking
 - Interval and "change ends" reminders
 - Keeps the screen awake, saves the match across reloads, works offline once loaded
+- Optional *screen sleep* (off by default): the screen goes black after 30 s without activity and
+  lights up for 30 s on every remote press or score change. A web app can't truly switch the
+  display off (and a locked phone stops passing remote presses to it), so the screen stays on
+  but fully black; on OLED screens black pixels are off, so it saves battery like real sleep.
+  On LCD screens the backlight stays on.
 
 ## Getting your remote to work
 
@@ -50,7 +55,13 @@ It's plain static files with no build step. A PWA needs HTTPS (or `localhost`):
   Then open the Pages URL on your phone and choose *Add to Home Screen* / *Install app*.
 - **Locally:** `npm start` (serves on http://localhost:8080).
 
-When you change any app file, bump `VERSION` in `sw.js` so installed copies update.
+When you change any app file, bump `VERSION` in `sw.js`. The service worker is network-first,
+so installed copies pick up changes on the next launch while online.
+
+If an installed app still shows an old icon: Android caches it with the home-screen shortcut.
+Uninstall the app, clear the site's data (Chrome → Settings → Site settings → All sites →
+the site → Delete data), then install again. On iOS/iPadOS remove the app, delete the site's data
+under Settings → Apps → Safari → Advanced → Website Data, and add it to the home screen again.
 
 ## Icons
 
