@@ -32,12 +32,11 @@ browser tab that supports it; the installed app already opens fullscreen.
   Settings → Text-to-speech output → Speech Services by Google → install English voice data.
 - Interval and "change ends" reminders
 - Keeps the screen awake, saves the match across reloads, works offline once loaded
-- Opened in a browser tab, it immediately offers to install itself: a one-tap *Install* button
-  where the browser allows it (Chrome, Edge, Samsung Internet, Vivaldi on Android and desktop),
-  otherwise numbered step-by-step taps for the browser in use. iPhone/iPad never allow one-tap
-  installs, and some browsers (like Vivaldi on iPhone) hide their name from websites, so on phones
-  the sheet has a browser picker. *Not now* hides it until the next visit; it's also under
-  ⚙ → *Install as app*. Never shown inside the installed app.
+- Opened in a browser tab, it immediately offers to install itself. Where the browser allows it
+  (Chrome, Edge, Samsung Internet, Vivaldi on Android and desktop) that's a one-tap *Install*
+  button. Otherwise (always on iPhone/iPad) the visitor picks their browser and gets numbered
+  steps for exactly that browser, with a picture of each button to tap. *Not now* hides it until
+  the next visit; it's also under ⚙ → *Install as app*. Never shown inside the installed app.
 - Optional *screen sleep* (off by default): the screen goes black after 30 s without activity and
   lights up for 30 s on every remote press or score change. A web app can't truly switch the
   display off (and a locked phone stops passing remote presses to it), so the screen stays on

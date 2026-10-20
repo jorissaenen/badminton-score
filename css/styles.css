@@ -212,89 +212,127 @@ body {
 .sleep[hidden] { display: none; }
 @keyframes fade-to-black { from { opacity: 0; } }
 
-.install-sheet {
+.install-overlay {
   position: fixed;
-  left: 50%;
-  /* Sit above the bottom bar so its buttons stay usable. */
-  bottom: calc(76px + env(safe-area-inset-bottom));
-  transform: translateX(-50%);
+  inset: 0;
   z-index: 5;
-  width: min(440px, calc(100vw - 32px));
-  max-height: calc(100dvh - 92px);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.65);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.install-overlay[hidden] { display: none; }
+.install-card {
+  position: relative;
+  width: min(460px, 100%);
+  max-height: calc(100dvh - 32px);
   overflow-y: auto;
-  display: flex;
-  gap: 16px;
-  padding: 20px;
+  padding: 24px;
   background: var(--surface);
   color: var(--fg);
   border: 1px solid #333;
-  border-radius: 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-  animation: sheet-in 0.3s ease-out;
+  border-radius: 28px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.7);
+  animation: card-in 0.25s ease-out;
 }
-.install-sheet[hidden] { display: none; }
-@keyframes sheet-in { from { opacity: 0; transform: translate(-50%, 24px); } }
+@keyframes card-in { from { opacity: 0; transform: translateY(16px) scale(0.98); } }
+.install-close { position: absolute; top: 12px; right: 12px; width: 40px; height: 40px; }
+.install-close svg { width: 20px; height: 20px; }
+.install-head { display: flex; align-items: center; gap: 14px; padding-right: 36px; }
 .install-icon { width: 56px; height: 56px; border-radius: 14px; flex: none; border: 1px solid #333; }
-.install-body { flex: 1; min-width: 0; }
-.install-body h2 { margin: 2px 32px 6px 0; font-size: 1.15rem; font-weight: 600; letter-spacing: -0.02em; }
-.install-body p { margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.4; }
-.install-close { position: absolute; top: 8px; right: 8px; width: 36px; height: 36px; }
-.install-close svg { width: 18px; height: 18px; }
-.install-choices { margin-top: 14px; }
-.install-choices[hidden] { display: none; }
-.install-choices > span { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 6px; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip {
+.install-head h2 { margin: 0 0 4px; font-size: 1.3rem; font-weight: 700; letter-spacing: -0.02em; }
+.install-head p { margin: 0; color: var(--muted); font-size: 0.92rem; line-height: 1.4; }
+
+.install-section { margin-top: 22px; }
+.install-section[hidden] { display: none; }
+.install-section h3 { margin: 0 0 12px; font-size: 1.1rem; font-weight: 600; letter-spacing: -0.01em; }
+
+.browser-list { display: flex; flex-direction: column; gap: 8px; }
+.browser-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
   font: inherit;
-  font-size: 0.85rem;
-  padding: 5px 12px;
-  border-radius: 999px;
-  border: 1px solid #3a3a3a;
-  background: transparent;
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-align: left;
   color: var(--fg);
+  background: var(--field);
+  border: 1px solid #2e2e2e;
+  border-radius: 16px;
   cursor: pointer;
 }
-.chip[aria-pressed="true"] { background: var(--white); color: var(--black); border-color: var(--white); font-weight: 600; }
+.browser-choice:active { background: #262626; }
+.browser-choice .tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--black);
+  background: var(--white);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.browser-choice .chevron { margin-left: auto; color: var(--muted); font-size: 1.4rem; line-height: 1; }
 
-.install-steps {
-  margin: 14px 0 0;
-  padding: 0;
-  list-style: none;
-  counter-reset: step;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.link-btn {
+  font: inherit;
   font-size: 0.95rem;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  margin-bottom: 8px;
+  cursor: pointer;
+}
+
+.install-steps { margin: 0; padding: 0; list-style: none; counter-reset: step; display: flex; flex-direction: column; gap: 10px; }
+.install-steps li {
+  counter-increment: step;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  background: var(--field);
+  border-radius: 16px;
+  font-size: 1.05rem;
   line-height: 1.35;
 }
-.install-steps[hidden] { display: none; }
-.install-steps li { display: flex; align-items: flex-start; gap: 10px; counter-increment: step; }
 .install-steps li::before {
   content: counter(step);
   flex: none;
-  width: 22px;
-  height: 22px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--white);
   color: var(--black);
-  font-size: 0.8rem;
+  font-size: 1rem;
   font-weight: 700;
   display: grid;
   place-items: center;
 }
-.install-steps li > svg, .install-steps .step-badge { flex: none; width: 20px; height: 20px; margin-top: 1px; }
-.install-steps .step-badge {
+.install-steps .step-text { flex: 1; min-width: 0; }
+.install-steps strong { font-weight: 700; }
+.install-steps small { display: block; color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+/* Picture of the button to tap. */
+.install-steps .key {
+  flex: none;
+  width: 40px;
+  height: 40px;
   display: grid;
   place-items: center;
-  border-radius: 6px;
-  background: #ef3939;
-  color: #fff;
-  font-weight: 800;
-  font-size: 0.75rem;
+  border-radius: 10px;
+  border: 1px solid #3a3a3a;
+  background: #0d0d0d;
 }
-.install-steps strong { font-weight: 700; }
-.install-steps small { display: block; color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
-.install-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.install-steps .key svg { width: 22px; height: 22px; }
+.install-steps .key.vivaldi { background: #ef3939; border-color: #ef3939; color: #fff; font-weight: 800; font-size: 1.05rem; }
+
+.install-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
 .install-buttons .btn[hidden] { display: none; }
 .small-btn svg { width: 16px; height: 16px; vertical-align: -3px; margin-right: 4px; }
 .small-btn[hidden] { display: none; }

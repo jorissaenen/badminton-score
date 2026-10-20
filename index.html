@@ -73,23 +73,41 @@
   </footer>
 
   <!-- Shown in a browser tab only: how to install the scoreboard as an app. -->
-  <aside id="installSheet" class="install-sheet" hidden aria-labelledby="installTitle">
-    <button type="button" class="btn icon install-close" id="installClose" title="Close" tabindex="-1"><svg><use href="#i-close"/></svg></button>
-    <img src="icons/shuttle-192.png" alt="" class="install-icon">
-    <div class="install-body">
-      <h2 id="installTitle">Install Badminton Score</h2>
-      <p>Get it on your home screen: opens fullscreen, works offline and keeps the remote working best.</p>
-      <div class="install-choices">
-        <span>Your browser</span>
-        <div id="installChoices" class="chips"></div>
-      </div>
-      <ol id="installSteps" class="install-steps" hidden></ol>
-      <div class="install-buttons">
+  <div id="installSheet" class="install-overlay" hidden>
+    <div class="install-card" id="installCard" role="dialog" aria-modal="true" aria-labelledby="installTitle">
+      <button type="button" class="btn icon install-close" id="installClose" title="Close" tabindex="-1"><svg><use href="#i-close"/></svg></button>
+      <header class="install-head">
+        <img src="icons/shuttle-192.png" alt="" class="install-icon">
+        <div>
+          <h2 id="installTitle">Install the app</h2>
+          <p>Opens fullscreen, works offline and keeps the remote working best.</p>
+        </div>
+      </header>
+
+      <!-- Step 1: which browser? -->
+      <section id="installPick" class="install-section">
+        <h3>Which browser are you using?</h3>
+        <div id="installChoices" class="browser-list"></div>
+      </section>
+
+      <!-- Step 2: steps for the chosen browser -->
+      <section id="installGuide" class="install-section" hidden>
+        <button type="button" class="link-btn" id="installBack" tabindex="-1">‹ Choose another browser</button>
+        <h3 id="installGuideTitle"></h3>
+        <ol id="installSteps" class="install-steps"></ol>
+      </section>
+
+      <!-- One tap, where the browser allows it -->
+      <section id="installOneTap" class="install-section" hidden>
+        <h3>Add it to your home screen with one tap.</h3>
+      </section>
+
+      <footer class="install-buttons">
         <button type="button" class="btn outline" id="installLater" tabindex="-1">Not now</button>
         <button type="button" class="btn primary" id="installBtn" tabindex="-1" hidden>Install</button>
-      </div>
+      </footer>
     </div>
-  </aside>
+  </div>
 
   <!-- Black cover for "screen sleep": OLED pixels are off when black, but the page keeps listening to the remote. -->
   <div id="sleep" class="sleep" hidden></div>

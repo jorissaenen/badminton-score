@@ -134,14 +134,21 @@ const DESKTOP = {
 };
 
 export const BROWSER_NAMES = {
-  safari: 'Safari', chrome: 'Chrome', vivaldi: 'Vivaldi', edge: 'Edge', firefox: 'Firefox', samsung: 'Samsung', other: 'Other',
+  safari: 'Safari', chrome: 'Chrome', vivaldi: 'Vivaldi', edge: 'Edge', firefox: 'Firefox',
+  samsung: 'Samsung Internet', other: 'Another browser',
 };
 
-// Browsers the visitor can pick from on this OS (empty: no picker).
-export function browserChoices(os) {
-  if (os === 'ios' || os === 'ipados') return ['safari', 'chrome', 'vivaldi', 'edge', 'firefox', 'other'];
-  if (os === 'android') return ['chrome', 'samsung', 'vivaldi', 'edge', 'firefox', 'other'];
-  return [];
+// Browsers the visitor can choose from on this OS, the detected one first.
+export function browserChoices(os, detected = null) {
+  let list;
+  if (os === 'ios' || os === 'ipados') list = ['safari', 'chrome', 'vivaldi', 'edge', 'firefox', 'other'];
+  else if (os === 'android') list = ['chrome', 'samsung', 'vivaldi', 'edge', 'firefox', 'other'];
+  else if (os === 'macos') list = ['safari', 'chrome', 'edge', 'vivaldi'];
+  else list = ['chrome', 'edge', 'vivaldi'];
+  if (detected && list.includes(detected) && detected !== 'other') {
+    list = [detected, ...list.filter((b) => b !== detected)];
+  }
+  return list;
 }
 
 // Steps for this OS and browser, or null when the browser can't install apps at all.
@@ -164,76 +171,101 @@ function formatted(text) {
   });
 }
 
-function stepIcon(icon) {
+// Small picture of the button the visitor has to tap.
+function keyPicture(icon) {
   if (!icon) return null;
+  const key = document.createElement('span');
+  key.className = 'key';
+  key.setAttribute('aria-hidden', 'true');
   if (icon === 'vivaldi') {
-    const badge = document.createElement('span');
-    badge.className = 'step-badge';
-    badge.textContent = 'V';
-    return badge;
+    key.classList.add('vivaldi');
+    key.textContent = 'V';
+    return key;
   }
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('aria-hidden', 'true');
   const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
   use.setAttribute('href', `#${icon}`);
   svg.append(use);
-  return svg;
+  key.append(svg);
+  return key;
 }
 
-export function setupInstallPrompt({ sheet, steps, choices, installBtn, laterBtn, closeBtn, settingsBtn }) {
+export function setupInstallPrompt(root, settingsBtn) {
   if (isInstalled()) return;
+  const el = (id) => root.querySelector(`#${id}`);
   const platform = detectPlatform({
     userAgent: navigator.userAgent,
     platform: navigator.platform,
     maxTouchPoints: navigator.maxTouchPoints,
   });
-  const options = browserChoices(platform.os);
-  let browser = options.length && !options.includes(platform.browser) ? 'other' : platform.browser;
+  const canInstallHere = Boolean(manualSteps(platform)); // false e.g. for Firefox on desktop
   let deferred = null;
 
   function dismissedThisVisit() {
     try { return sessionStorage.getItem(DISMISS_KEY) === '1'; } catch { return false; }
   }
 
-  function render() {
-    const manual = deferred ? null : manualSteps({ os: platform.os, browser });
-    installBtn.hidden = !deferred;
+  function showView(view) {
+    el('installPick').hidden = view !== 'pick';
+    el('installGuide').hidden = view !== 'guide';
+    el('installOneTap').hidden = view !== 'onetap';
+    el('installBtn').hidden = view !== 'onetap';
+    el('installLater').textContent = view === 'guide' ? 'Close' : 'Not now';
+    el('installCard').scrollTop = 0;
+  }
 
-    steps.replaceChildren(...(manual ?? []).map((step) => {
+  function showPicker() {
+    el('installChoices').replaceChildren(...browserChoices(platform.os, platform.browser).map((b, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.tabIndex = -1;
+      btn.className = 'browser-choice';
+      btn.append(BROWSER_NAMES[b]);
+      if (i === 0 && b === platform.browser) {
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.textContent = 'Detected';
+        btn.append(tag);
+      }
+      const chevron = document.createElement('span');
+      chevron.className = 'chevron';
+      chevron.textContent = '›';
+      btn.append(chevron);
+      btn.addEventListener('click', () => showGuide(b));
+      return btn;
+    }));
+    showView('pick');
+  }
+
+  function showGuide(browser) {
+    const steps = manualSteps({ os: platform.os, browser }) ?? [];
+    el('installGuideTitle').textContent = browser === 'other' ? 'Install from your browser' : `Install with ${BROWSER_NAMES[browser]}`;
+    el('installSteps').replaceChildren(...steps.map((step) => {
       const li = document.createElement('li');
-      const icon = stepIcon(step.icon);
-      const body = document.createElement('span');
-      body.append(...formatted(step.text));
+      const text = document.createElement('span');
+      text.className = 'step-text';
+      text.append(...formatted(step.text));
       if (step.note) {
         const note = document.createElement('small');
         note.append(...formatted(step.note));
-        body.append(note);
+        text.append(note);
       }
-      li.append(...(icon ? [icon] : []), body);
+      const key = keyPicture(step.icon);
+      li.append(text, ...(key ? [key] : []));
       return li;
     }));
-    steps.hidden = !manual;
-
-    choices.replaceChildren(...options.map((b) => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.tabIndex = -1;
-      chip.className = 'chip';
-      chip.textContent = BROWSER_NAMES[b];
-      chip.setAttribute('aria-pressed', String(b === browser));
-      chip.addEventListener('click', () => { browser = b; render(); });
-      return chip;
-    }));
-    choices.parentElement.hidden = Boolean(deferred) || options.length === 0;
-    return Boolean(deferred || manual);
+    showView('guide');
   }
 
   function show() {
-    if (render()) sheet.hidden = false;
+    if (deferred) showView('onetap');
+    else if (canInstallHere) showPicker();
+    else return;
+    root.hidden = false;
   }
 
   function hide(dismiss) {
-    sheet.hidden = true;
+    root.hidden = true;
     if (dismiss) {
       try { sessionStorage.setItem(DISMISS_KEY, '1'); } catch { /* ignore */ }
     }
@@ -243,7 +275,8 @@ export function setupInstallPrompt({ sheet, steps, choices, installBtn, laterBtn
     e.preventDefault(); // we show our own prompt
     deferred = e;
     settingsBtn.hidden = false;
-    if (!sheet.hidden || !dismissedThisVisit()) show(); // upgrade the open sheet to one-tap install
+    // Upgrade to one-tap install, unless the visitor is already reading instructions.
+    if (root.hidden ? !dismissedThisVisit() : el('installGuide').hidden) show();
   });
   window.addEventListener('appinstalled', () => {
     deferred = null;
@@ -251,7 +284,7 @@ export function setupInstallPrompt({ sheet, steps, choices, installBtn, laterBtn
     hide(false);
   });
 
-  installBtn.addEventListener('click', async () => {
+  el('installBtn').addEventListener('click', async () => {
     if (!deferred) return;
     const e = deferred;
     deferred = null;
@@ -259,11 +292,13 @@ export function setupInstallPrompt({ sheet, steps, choices, installBtn, laterBtn
     const { outcome } = await e.userChoice.catch(() => ({ outcome: 'dismissed' }));
     hide(outcome !== 'accepted');
   });
-  laterBtn.addEventListener('click', () => hide(true));
-  closeBtn.addEventListener('click', () => hide(true));
+  el('installBack').addEventListener('click', showPicker);
+  el('installLater').addEventListener('click', () => hide(true));
+  el('installClose').addEventListener('click', () => hide(true));
+  root.addEventListener('click', (e) => { if (e.target === root) hide(true); }); // tap outside the card
   settingsBtn.addEventListener('click', show);
 
   // Show straight away when the site is opened in a browser.
-  settingsBtn.hidden = !manualSteps({ os: platform.os, browser });
+  settingsBtn.hidden = !canInstallHere;
   if (!dismissedThisVisit()) show();
 }

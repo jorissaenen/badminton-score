@@ -394,15 +394,7 @@ if ('serviceWorker' in navigator) {
 
 // ---------- install prompt (browser tabs only) ----------
 
-setupInstallPrompt({
-  sheet: $('installSheet'),
-  steps: $('installSteps'),
-  choices: $('installChoices'),
-  installBtn: $('installBtn'),
-  laterBtn: $('installLater'),
-  closeBtn: $('installClose'),
-  settingsBtn: $('installFromSettings'),
-});
+setupInstallPrompt($('installSheet'), $('installFromSettings'));
 // The settings entry opens the install sheet, so close settings first.
 $('installFromSettings').addEventListener('click', () => $('settings').close(), true);
 

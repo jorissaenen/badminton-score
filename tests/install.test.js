@@ -41,5 +41,7 @@ test('detects Vivaldi when it identifies itself, and offers a browser picker on 
   assert.deepEqual(detectPlatform({ userAgent: vivaios }), { os: 'ios', browser: 'vivaldi' });
   assert.ok(browserChoices('ios').includes('vivaldi'));
   assert.ok(browserChoices('android').includes('samsung'));
-  assert.deepEqual(browserChoices('windows'), []);
+  assert.equal(browserChoices('ios', 'firefox')[0], 'firefox', 'detected browser listed first');
+  assert.equal(browserChoices('ios', 'other')[0], 'safari');
+  assert.ok(browserChoices('macos').includes('safari'));
 });
