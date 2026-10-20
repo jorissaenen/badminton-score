@@ -1,0 +1,62 @@
+# Badminton Score
+
+An offline-capable PWA scoreboard for badminton, operated with a cheap Bluetooth camera
+shutter remote (the "AB Shutter3" kind) so you can keep score without walking to the phone.
+
+## Remote controls
+
+| Remote              | Action                                   |
+|---------------------|------------------------------------------|
+| 1 click             | Point for the home team                  |
+| 2 clicks            | Point for the away team                  |
+| Long press (≥0.8 s) | Remove the last point                    |
+| Long press after a game ends | Start the next game (or a new match once the match is won) |
+
+While a game is over, clicks are ignored, so a stray press can't start the next game.
+You can also tap a team's half of the screen to give it a point, and use the bar buttons
+for undo, swapping sides, fullscreen and settings.
+
+## Features
+
+- BWF rally scoring: 21 points, win by 2, capped at 30 (15- and 11-point formats too)
+- Best of 1, 3 or 5 games; the game winner serves first in the next game
+- Shows who serves and from which court (right on even score, left on odd)
+- Optional spoken score calls ("11 9", "Game, Home") and beeps confirming each remote gesture,
+  so you know the press registered without looking
+- Interval and "change ends" reminders
+- Keeps the screen awake, saves the match across reloads, works offline once loaded
+
+## Getting your remote to work
+
+A camera remote pairs as a Bluetooth keyboard and sends a key press (usually *Volume Up*,
+sometimes *Enter*). The app accepts any key, but the browser must receive it:
+
+1. Pair the remote in your phone's Bluetooth settings.
+2. Open the app, tap ⚙ → *Remote timing & tester* and press the remote. If a key shows up,
+   you're set.
+3. If long presses are read as clicks (or the other way round), adjust *Long press* and
+   *Double-click gap* in the same section.
+
+Platform notes: iOS/iPadOS doesn't pass volume keys to web pages, so on iPhone the remote
+only works if it sends a regular key such as Enter. Many remotes have a separate "Android"
+button that sends Enter — try both buttons in the tester. Some remotes send nothing while the
+button is held; on those, long press can't be detected and you'll need the on-screen ↶ button.
+
+## Running / hosting
+
+It's plain static files with no build step. A PWA needs HTTPS (or `localhost`):
+
+- **GitHub Pages:** repository Settings → Pages → deploy from branch `main`, folder `/`.
+  Then open the Pages URL on your phone and choose *Add to Home Screen* / *Install app*.
+- **Locally:** `npm start` (serves on http://localhost:8080).
+
+When you change any app file, bump `VERSION` in `sw.js` so installed copies update.
+
+## Tests
+
+```
+npm test
+```
+
+Unit tests cover the scoring rules (`js/match.js`) and the click/double-click/long-press
+recognizer (`js/gesture.js`).

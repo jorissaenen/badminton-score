@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0f3d2e">
+  <meta name="description" content="Badminton scoreboard controlled by a Bluetooth camera remote.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Badminton Score</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <main id="board" class="board">
+    <section class="team" data-team="0" aria-label="Home team">
+      <div class="team-head">
+        <span class="team-name" id="name0">Home</span>
+        <span class="games" id="games0" aria-label="Games won"></span>
+      </div>
+      <div class="score" id="score0">0</div>
+      <div class="serve" id="serve0" aria-hidden="true"><span class="shuttle">🏸</span> <span class="court"></span></div>
+    </section>
+    <section class="team" data-team="1" aria-label="Away team">
+      <div class="team-head">
+        <span class="team-name" id="name1">Away</span>
+        <span class="games" id="games1" aria-label="Games won"></span>
+      </div>
+      <div class="score" id="score1">0</div>
+      <div class="serve" id="serve1" aria-hidden="true"><span class="shuttle">🏸</span> <span class="court"></span></div>
+    </section>
+
+    <div id="gameover" class="gameover" hidden>
+      <div class="gameover-card">
+        <div class="gameover-title" id="gameoverTitle"></div>
+        <div class="gameover-sub" id="gameoverSub"></div>
+        <div class="gameover-hint">Long press the remote to <span id="gameoverAction">start the next game</span></div>
+        <button type="button" class="btn primary" id="nextBtn" tabindex="-1">Start next game</button>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </main>
+
+  <footer class="bar">
+    <span class="game-label" id="gameLabel">Game 1</span>
+    <span class="hint" id="hint">1 click: home · 2 clicks: away · hold: undo</span>
+    <span class="bar-buttons">
+      <button type="button" class="btn icon" id="undoBtn" title="Undo last point" tabindex="-1">↶</button>
+      <button type="button" class="btn icon" id="swapBtn" title="Swap sides on screen" tabindex="-1">⇄</button>
+      <button type="button" class="btn icon" id="fsBtn" title="Fullscreen" tabindex="-1">⛶</button>
+      <button type="button" class="btn icon" id="settingsBtn" title="Settings" tabindex="-1">⚙</button>
+    </span>
+  </footer>
+
+  <dialog id="settings">
+    <form method="dialog" class="settings-form" id="settingsForm">
+      <h2>Settings</h2>
+      <label>Home team (1 click)<input name="name0" maxlength="20" autocomplete="off"></label>
+      <label>Away team (2 clicks)<input name="name1" maxlength="20" autocomplete="off"></label>
+      <div class="row">
+        <label>Points per game
+          <select name="points">
+            <option value="21">21 (cap 30)</option>
+            <option value="15">15 (cap 20)</option>
+            <option value="11">11 (cap 15)</option>
+          </select>
+        </label>
+        <label>Match
+          <select name="bestOf">
+            <option value="1">1 game</option>
+            <option value="3">Best of 3</option>
+            <option value="5">Best of 5</option>
+          </select>
+        </label>
+      </div>
+      <label>First server of the match
+        <select name="firstServer">
+          <option value="0">Home</option>
+          <option value="1">Away</option>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" name="voice"> Announce score out loud</label>
+      <label class="check"><input type="checkbox" name="beep"> Beep on remote clicks</label>
+
+      <details>
+        <summary>Remote timing &amp; tester</summary>
+        <div class="row">
+          <label>Long press (ms)<input name="longPressMs" type="number" min="300" max="3000" step="50"></label>
+          <label>Double-click gap (ms)<input name="doubleClickMs" type="number" min="150" max="1000" step="25"></label>
+        </div>
+        <p class="small">Press your remote while this dialog is open to see what the browser receives:</p>
+        <output id="keyTester" class="tester">No key received yet</output>
+      </details>
+
+      <p class="small">Changing points or match length takes effect from a new match.</p>
+      <div class="dialog-buttons">
+        <button type="button" class="btn danger" id="resetBtn">New match</button>
+        <button type="submit" class="btn primary" value="save" autofocus>Done</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
