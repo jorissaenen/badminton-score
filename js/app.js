@@ -255,6 +255,18 @@ $('swapBtn').addEventListener('click', () => {
   save();
   render();
 });
+// Fullscreen only helps in a browser tab: the installed app already runs fullscreen,
+// and iPhone Safari doesn't support it for pages at all.
+const inInstalledApp = ['fullscreen', 'standalone'].some((m) => matchMedia(`(display-mode: ${m})`).matches)
+  || navigator.standalone === true;
+$('fsBtn').hidden = !document.fullscreenEnabled || inInstalledApp;
+$('fsBtn').addEventListener('click', () => {
+  if (document.fullscreenElement) document.exitFullscreen?.();
+  else document.documentElement.requestFullscreen?.().catch(() => {});
+});
+document.addEventListener('fullscreenchange', () => {
+  $('fsBtn').querySelector('use').setAttribute('href', document.fullscreenElement ? '#i-minimize' : '#i-maximize');
+});
 
 // ---------- settings dialog ----------
 

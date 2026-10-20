@@ -14,7 +14,8 @@ shutter remote (the "AB Shutter3" kind) so you can keep score without walking to
 
 While a game is over, clicks are ignored, so a stray press can't start the next game.
 You can also tap a team's half of the screen to give it a point, and use the bar buttons
-for undo, swapping sides and settings. Installed as an app, it opens fullscreen.
+for undo, swapping sides, fullscreen and settings. The fullscreen button only shows in a
+browser tab that supports it; the installed app already opens fullscreen.
 
 ## Features
 
@@ -68,7 +69,7 @@ under Settings → Apps → Safari → Advanced → Website Data, and add it to 
 Vector icons from open-source sets, used under their licenses:
 
 - Shuttlecock (app icon, serve marker): [Hugeicons](https://github.com/hugeicons/hugeicons-react) (free set), MIT
-- Settings, undo, swap: [Lucide](https://lucide.dev), ISC
+- Settings, undo, swap, fullscreen: [Lucide](https://lucide.dev), ISC
 
 The PNG app icons in `icons/` are rendered from `icons/shuttlecock.svg`.
 

@@ -151,6 +151,7 @@ body {
   color: var(--muted);
 }
 .btn.icon svg { width: 22px; height: 22px; }
+.btn.icon[hidden] { display: none; }
 .btn.icon:hover, .btn.icon:active { color: var(--fg); background: var(--field); }
 .btn.primary { background: var(--white); color: var(--black); }
 .btn.outline { background: transparent; border-color: #3a3a3a; }
