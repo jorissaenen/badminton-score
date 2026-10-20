@@ -56,7 +56,7 @@ When you change any app file, bump `VERSION` in `sw.js` so installed copies upda
 
 Vector icons from open-source sets, used under their licenses:
 
-- Shuttlecock (app icon, serve marker): [Boxicons](https://github.com/box-icons/boxicons-core), MIT
+- Shuttlecock (app icon, serve marker): [Hugeicons](https://github.com/hugeicons/hugeicons-react) (free set), MIT
 - Settings, undo, swap, fullscreen: [Lucide](https://lucide.dev), ISC
 
 The PNG app icons in `icons/` are rendered from `icons/shuttlecock.svg`.
