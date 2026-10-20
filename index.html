@@ -24,6 +24,10 @@
     <symbol id="i-swap" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 3L4 7l4 4M4 7h16m-4 14l4-4l-4-4m4 4H4"/></symbol>
     <symbol id="i-maximize" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3"/></symbol>
     <symbol id="i-minimize" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3m8 0v-3a2 2 0 0 1 2-2h3"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v13m4-9l-4-4l-4 4m-4 6v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></g></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M12 15V3m9 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10l5 5l5-5"/></g></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 6L6 18M6 6l12 12"/></symbol>
   </svg>
   <main id="board" class="board">
     <section class="team" data-team="0" aria-label="Home team">
@@ -65,6 +69,21 @@
       <button type="button" class="btn icon" id="settingsBtn" title="Settings" tabindex="-1"><svg><use href="#i-settings"/></svg></button>
     </span>
   </footer>
+
+  <!-- Shown in a browser tab only: how to install the scoreboard as an app. -->
+  <aside id="installSheet" class="install-sheet" hidden aria-labelledby="installTitle">
+    <button type="button" class="btn icon install-close" id="installClose" title="Close" tabindex="-1"><svg><use href="#i-close"/></svg></button>
+    <img src="icons/shuttle-192.png" alt="" class="install-icon">
+    <div class="install-body">
+      <h2 id="installTitle">Install Badminton Score</h2>
+      <p>Get it on your home screen: opens fullscreen, works offline and keeps the remote working best.</p>
+      <ol id="installSteps" class="install-steps" hidden></ol>
+      <div class="install-buttons">
+        <button type="button" class="btn outline" id="installLater" tabindex="-1">Not now</button>
+        <button type="button" class="btn primary" id="installBtn" tabindex="-1" hidden>Install</button>
+      </div>
+    </div>
+  </aside>
 
   <!-- Black cover for "screen sleep": OLED pixels are off when black, but the page keeps listening to the remote. -->
   <div id="sleep" class="sleep" hidden></div>
@@ -121,6 +140,7 @@
         <output id="keyTester" class="tester">No key received yet</output>
       </details>
 
+      <button type="button" class="btn outline small-btn" id="installFromSettings" hidden><svg aria-hidden="true"><use href="#i-download"/></svg> Install as app</button>
       <p class="small">Changing points or match length takes effect from a new match.</p>
       <div class="dialog-buttons">
         <button type="button" class="btn outline" id="resetBtn">New match</button>

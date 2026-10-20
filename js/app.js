@@ -1,6 +1,7 @@
 import * as M from './match.js';
 import { GestureRecognizer, DEFAULT_TIMING } from './gesture.js';
 import * as Audio from './audio.js';
+import { isInstalled, setupInstallPrompt } from './install.js';
 
 const STORAGE_KEY = 'badminton-score-v1';
 const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab']);
@@ -148,7 +149,7 @@ function continueAfterGame() {
   save();
   render();
   toast(`Game ${match.games.length}`);
-  say(`Game ${match.games.length}. ${settings.names[M.server(M.currentGame(match))]} to serve. Love all`);
+  say(`Game ${match.games.length}. ${settings.names[M.server(M.currentGame(match))]} to serve`);
 }
 
 function startNewMatch() {
@@ -157,7 +158,7 @@ function startNewMatch() {
   save();
   render();
   toast('New match');
-  say('New match. Love all');
+  say('New match');
 }
 
 // ---------- remote control ----------
@@ -248,9 +249,7 @@ $('swapBtn').addEventListener('click', () => {
 });
 // Fullscreen only helps in a browser tab: the installed app already runs fullscreen,
 // and iPhone Safari doesn't support it for pages at all.
-const inInstalledApp = ['fullscreen', 'standalone'].some((m) => matchMedia(`(display-mode: ${m})`).matches)
-  || navigator.standalone === true;
-$('fsBtn').hidden = !document.fullscreenEnabled || inInstalledApp;
+$('fsBtn').hidden = !document.fullscreenEnabled || isInstalled();
 $('fsBtn').addEventListener('click', () => {
   if (document.fullscreenElement) document.exitFullscreen?.();
   else document.documentElement.requestFullscreen?.().catch(() => {});
@@ -392,5 +391,18 @@ keepAwake();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
+
+// ---------- install prompt (browser tabs only) ----------
+
+setupInstallPrompt({
+  sheet: $('installSheet'),
+  steps: $('installSteps'),
+  installBtn: $('installBtn'),
+  laterBtn: $('installLater'),
+  closeBtn: $('installClose'),
+  settingsBtn: $('installFromSettings'),
+});
+// The settings entry opens the install sheet, so close settings first.
+$('installFromSettings').addEventListener('click', () => $('settings').close(), true);
 
 render();
