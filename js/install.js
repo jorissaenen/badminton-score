@@ -131,6 +131,12 @@ const DESKTOP = {
     { icon: null, text: 'In the menu bar, choose **File** → **Add to Dock**' },
     { icon: null, text: 'Click **Add**' },
   ],
+  // Firefox on a computer can't install web apps: point to a browser that can.
+  firefox: (os) => [
+    { icon: null, text: 'Firefox can’t install apps on a computer' },
+    { icon: null, text: os === 'macos' ? 'Open this page in **Safari**, **Chrome** or **Edge**' : 'Open this page in **Chrome** or **Edge**' },
+    { icon: null, text: 'Then follow the steps shown there' },
+  ],
 };
 
 export const BROWSER_NAMES = {
@@ -138,17 +144,23 @@ export const BROWSER_NAMES = {
   samsung: 'Samsung Internet', other: 'Another browser',
 };
 
-// Browsers the visitor can choose from on this OS, the detected one first.
-export function browserChoices(os, detected = null) {
+// Which browsers this could be. Vivaldi (and others) on iPhone and Android present themselves
+// to websites exactly like Chrome, so "Chrome" really means "Chrome or Vivaldi" there.
+export function likelyBrowsers({ os, browser }) {
+  if (browser === 'other') return [];
+  if (browser === 'chrome' && ['ios', 'ipados', 'android'].includes(os)) return ['chrome', 'vivaldi'];
+  return [browser];
+}
+
+// Browsers the visitor can choose from on this OS, the likely ones first.
+export function browserChoices(os, likely = []) {
   let list;
   if (os === 'ios' || os === 'ipados') list = ['safari', 'chrome', 'vivaldi', 'edge', 'firefox', 'other'];
   else if (os === 'android') list = ['chrome', 'samsung', 'vivaldi', 'edge', 'firefox', 'other'];
-  else if (os === 'macos') list = ['safari', 'chrome', 'edge', 'vivaldi'];
-  else list = ['chrome', 'edge', 'vivaldi'];
-  if (detected && list.includes(detected) && detected !== 'other') {
-    list = [detected, ...list.filter((b) => b !== detected)];
-  }
-  return list;
+  else if (os === 'macos') list = ['safari', 'chrome', 'edge', 'vivaldi', 'firefox'];
+  else list = ['chrome', 'edge', 'vivaldi', 'firefox'];
+  const first = likely.filter((b) => list.includes(b));
+  return [...first, ...list.filter((b) => !first.includes(b))];
 }
 
 // Steps for this OS and browser, or null when the browser can't install apps at all.
@@ -156,7 +168,8 @@ export function manualSteps({ os, browser }) {
   if (os === 'ios' || os === 'ipados') return (IOS[browser] ?? IOS.other)(os);
   if (os === 'android') return (ANDROID[browser] ?? ANDROID.other)(os);
   if (os === 'macos' && browser === 'safari') return DESKTOP.safari();
-  return DESKTOP[browser]?.() ?? null; // e.g. Firefox on desktop: no app install support
+  if (browser === 'safari') return null; // Safari outside Apple devices doesn't exist
+  return DESKTOP[browser]?.(os) ?? null;
 }
 
 // ---------- UI ----------
@@ -198,7 +211,7 @@ export function setupInstallPrompt(root, settingsBtn) {
     platform: navigator.platform,
     maxTouchPoints: navigator.maxTouchPoints,
   });
-  const canInstallHere = Boolean(manualSteps(platform)); // false e.g. for Firefox on desktop
+  const canInstallHere = Boolean(manualSteps(platform));
   let deferred = null;
 
   function dismissedThisVisit() {
@@ -215,13 +228,17 @@ export function setupInstallPrompt(root, settingsBtn) {
   }
 
   function showPicker() {
-    el('installChoices').replaceChildren(...browserChoices(platform.os, platform.browser).map((b, i) => {
+    const likely = likelyBrowsers(platform).filter((b) => browserChoices(platform.os).includes(b));
+    // One match: tag it. Several (Chrome or Vivaldi): say so, since websites can't tell them apart.
+    el('installHint').hidden = likely.length < 2;
+    el('installHint').textContent = `Looks like ${likely.map((b) => BROWSER_NAMES[b]).join(' or ')}: websites can\u2019t tell these apart.`;
+    el('installChoices').replaceChildren(...browserChoices(platform.os, likely).map((b) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.tabIndex = -1;
       btn.className = 'browser-choice';
       btn.append(BROWSER_NAMES[b]);
-      if (i === 0 && b === platform.browser) {
+      if (likely.length === 1 && b === likely[0]) {
         const tag = document.createElement('span');
         tag.className = 'tag';
         tag.textContent = 'Detected';
@@ -240,6 +257,7 @@ export function setupInstallPrompt(root, settingsBtn) {
   function showGuide(browser) {
     const steps = manualSteps({ os: platform.os, browser }) ?? [];
     el('installGuideTitle').textContent = browser === 'other' ? 'Install from your browser' : `Install with ${BROWSER_NAMES[browser]}`;
+    if (browser === 'firefox' && !['ios', 'ipados', 'android'].includes(platform.os)) el('installGuideTitle').textContent = 'Use another browser';
     el('installSteps').replaceChildren(...steps.map((step) => {
       const li = document.createElement('li');
       const text = document.createElement('span');

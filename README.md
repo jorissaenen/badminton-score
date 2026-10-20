@@ -30,6 +30,8 @@ browser tab that supports it; the installed app already opens fullscreen.
   For the best sound, install a high-quality voice on the device: on iPhone/iPad, Settings →
   Accessibility → Spoken Content → Voices → English → an *Enhanced* or *Premium* voice; on Android,
   Settings → Text-to-speech output → Speech Services by Google → install English voice data.
+- Umpire-style "game point" / "match point" calls, right after the server's score
+  ("20 game point 6", "29 match point all"), also shown on screen
 - Interval and "change ends" reminders
 - Keeps the screen awake, saves the match across reloads, works offline once loaded
 - Opened in a browser tab, it immediately offers to install itself. Where the browser allows it

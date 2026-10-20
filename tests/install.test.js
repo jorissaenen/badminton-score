@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { detectPlatform, manualSteps, browserChoices } from '../js/install.js';
+import { detectPlatform, manualSteps, browserChoices, likelyBrowsers } from '../js/install.js';
 
 const UA = {
   iphoneSafari: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
@@ -33,7 +33,7 @@ test('gives step-by-step guides per OS and browser', () => {
   assert.match(text(manualSteps({ os: 'ios', browser: 'other' })), /Safari/);
   assert.match(text(manualSteps({ os: 'android', browser: 'samsung' })), /Add page to.*Home screen/);
   assert.match(text(manualSteps({ os: 'macos', browser: 'safari' })), /Add to Dock/);
-  assert.equal(manualSteps(detectPlatform({ userAgent: UA.winFirefox })), null);
+  assert.match(text(manualSteps(detectPlatform({ userAgent: UA.winFirefox }))), /can’t install.*Chrome.*Edge/);
 });
 
 test('detects Vivaldi when it identifies itself, and offers a browser picker on phones', () => {
@@ -41,7 +41,14 @@ test('detects Vivaldi when it identifies itself, and offers a browser picker on 
   assert.deepEqual(detectPlatform({ userAgent: vivaios }), { os: 'ios', browser: 'vivaldi' });
   assert.ok(browserChoices('ios').includes('vivaldi'));
   assert.ok(browserChoices('android').includes('samsung'));
-  assert.equal(browserChoices('ios', 'firefox')[0], 'firefox', 'detected browser listed first');
-  assert.equal(browserChoices('ios', 'other')[0], 'safari');
+  assert.equal(browserChoices('ios', ['firefox'])[0], 'firefox', 'detected browser listed first');
+  assert.equal(browserChoices('ios', [])[0], 'safari');
+  // Vivaldi on iPhone/Android looks exactly like Chrome to websites.
+  const criOS = detectPlatform({ userAgent: UA.iphoneChrome });
+  assert.deepEqual(likelyBrowsers(criOS), ['chrome', 'vivaldi']);
+  assert.deepEqual(browserChoices('ios', likelyBrowsers(criOS)).slice(0, 2), ['chrome', 'vivaldi']);
+  assert.deepEqual(likelyBrowsers(detectPlatform({ userAgent: UA.androidChrome })), ['chrome', 'vivaldi']);
+  assert.deepEqual(likelyBrowsers(detectPlatform({ userAgent: UA.iphoneSafari })), ['safari']);
+  assert.deepEqual(likelyBrowsers(detectPlatform({ userAgent: UA.winEdge })), ['edge']);
   assert.ok(browserChoices('macos').includes('safari'));
 });

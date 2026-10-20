@@ -249,6 +249,8 @@ body {
 .install-section[hidden] { display: none; }
 .install-section h3 { margin: 0 0 12px; font-size: 1.1rem; font-weight: 600; letter-spacing: -0.01em; }
 
+.install-hint { margin: -4px 0 12px; color: var(--muted); font-size: 0.9rem; line-height: 1.4; }
+.install-hint[hidden] { display: none; }
 .browser-list { display: flex; flex-direction: column; gap: 8px; }
 .browser-choice {
   display: flex;

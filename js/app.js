@@ -82,14 +82,17 @@ function flash(team) {
   setTimeout(() => el.classList.remove('flash'), 180);
 }
 
-// Badminton call: server's score first.
+// Badminton call: server's score first, then "game point" / "match point" when it applies,
+// then the receiver's score ("20 match point 0", "29 game point all").
 function scoreCall() {
   const g = M.currentGame(match);
   const s = M.gameScore(g);
   const srv = M.server(g);
   const a = s[srv];
   const b = s[1 - srv];
-  return a === b ? `${a} all` : `${a} ${b}`;
+  const point = M.pointCall(match, rules);
+  const middle = point ? ` ${point} point ` : ' ';
+  return `${a}${middle}${a === b ? 'all' : b}`;
 }
 
 // ---------- actions ----------
@@ -122,6 +125,8 @@ function point(team) {
     say(`${scoreCall()}. Interval${changeEnds ? '. Change ends' : ''}`);
     return;
   }
+  const call = M.pointCall(match, rules);
+  if (call) toast(call === 'match' ? 'Match point' : 'Game point');
   say(scoreCall());
 }
 
@@ -389,6 +394,15 @@ keepAwake();
 // ---------- offline support ----------
 
 if ('serviceWorker' in navigator) {
+  // When a newer version takes over from an older one, reload once so the new version shows
+  // right away instead of on the next visit. The match is saved, so nothing is lost.
+  const updating = Boolean(navigator.serviceWorker.controller);
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!updating || reloaded) return;
+    reloaded = true;
+    location.reload();
+  });
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
 

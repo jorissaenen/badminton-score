@@ -61,3 +61,23 @@ test('next game: winner serves first; match ends at 2 games', () => {
   s = play(M.nextGame(s, R), times(1, 21));
   assert.equal(M.matchWinner(s, R), 1);
 });
+
+test('game point and match point (rules)', () => {
+  const alt = (n) => [...Array(n)].flatMap(() => [0, 1]);
+  let s = play(M.newMatch(), times(0, 19));
+  assert.equal(M.pointCall(s, R), null, '19-0');
+  assert.equal(M.pointCall(play(s, [0]), R), 'game', '20-0 in game 1');
+  assert.equal(M.pointCall(play(M.newMatch(), alt(20)), R), null, '20 all: nobody wins with one rally');
+  assert.equal(M.pointCall(play(M.newMatch(), [...alt(20), 1]), R), 'game', '20-21');
+  assert.equal(M.pointCall(play(M.newMatch(), alt(29)), R), 'game', '29 all');
+  assert.equal(M.pointCall(play(M.newMatch(), times(0, 21)), R), null, 'game over');
+
+  // Home won game 1: 20-0 in game 2 is match point for home, game point for away at 0-20.
+  const g2 = M.nextGame(play(M.newMatch(), times(0, 21)), R);
+  assert.equal(M.pointCall(play(g2, times(0, 20)), R), 'match');
+  assert.equal(M.pointCall(play(g2, times(1, 20)), R), 'game');
+  // 29 all in game 2: home's win would take the match, so it's match point.
+  assert.equal(M.pointCall(play(g2, alt(29)), R), 'match');
+  // Single-game match: every game point is a match point.
+  assert.equal(M.pointCall(play(M.newMatch(), times(1, 20)), { ...R, bestOf: 1 }), 'match');
+});

@@ -101,3 +101,20 @@ export function nextGame(state, rules) {
 export function isDecidingGame(state, rules) {
   return state.games.length === rules.bestOf;
 }
+
+// 'match' or 'game' when either side wins the game (or the match) with the next rally, else null.
+// Umpires call it right after the server's score: "20 game point 6", "29 match point all".
+export function pointCall(state, rules) {
+  if (isGameOver(state, rules)) return null;
+  const g = currentGame(state);
+  const won = gamesWon(state, rules);
+  const need = Math.ceil(rules.bestOf / 2);
+  let call = null;
+  for (const team of [0, 1]) {
+    const next = { ...g, rallies: [...g.rallies, team] };
+    if (gameWinner(next, rules) !== team) continue;
+    if (won[team] + 1 >= need) return 'match';
+    call = 'game';
+  }
+  return call;
+}
