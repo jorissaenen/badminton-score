@@ -7,8 +7,16 @@ export const INTERVAL_SECONDS = 60;
 export const BETWEEN_GAMES_SECONDS = 120;
 export const WARNING_SECONDS = 20;
 
+// Wrapped so they're never called as methods of another object: browsers throw
+// "Illegal invocation" when setInterval runs with a `this` other than the window.
+const realClock = {
+  now: () => Date.now(),
+  setInterval: (fn, ms) => setInterval(fn, ms),
+  clearInterval: (handle) => clearInterval(handle),
+};
+
 export class BreakTimer {
-  constructor({ onTick, onWarning, onEnd }, clock = { now: () => Date.now(), setInterval, clearInterval }) {
+  constructor({ onTick, onWarning, onEnd }, clock = realClock) {
     this.onTick = onTick;
     this.onWarning = onWarning;
     this.onEnd = onEnd;

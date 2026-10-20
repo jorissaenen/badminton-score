@@ -61,3 +61,13 @@ test('formats the clock', () => {
   assert.equal(formatClock(59), '0:59');
   assert.equal(formatClock(5), '0:05');
 });
+
+test('runs on the real clock (no fake timers)', async () => {
+  const ticks = [];
+  const t = new BreakTimer({ onTick: (left) => ticks.push(left) });
+  t.start('interval', 60);
+  await new Promise((r) => setTimeout(r, 1200));
+  t.stop();
+  assert.equal(ticks[0], 60);
+  assert.ok(ticks.includes(59), `counted down: ${ticks.join(',')}`);
+});
