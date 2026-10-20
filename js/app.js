@@ -255,13 +255,6 @@ $('swapBtn').addEventListener('click', () => {
   save();
   render();
 });
-$('fsBtn').addEventListener('click', () => {
-  if (document.fullscreenElement) document.exitFullscreen?.();
-  else document.documentElement.requestFullscreen?.().catch(() => {});
-});
-document.addEventListener('fullscreenchange', () => {
-  $('fsBtn').querySelector('use').setAttribute('href', document.fullscreenElement ? '#i-minimize' : '#i-maximize');
-});
 
 // ---------- settings dialog ----------
 
