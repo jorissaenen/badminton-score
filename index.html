@@ -97,6 +97,17 @@
         </select>
       </label>
       <label class="check"><input type="checkbox" name="voice"> Announce score out loud</label>
+      <div class="row" id="voiceRow">
+        <label>Voice<select name="voiceURI"></select></label>
+        <label class="narrow">Speed
+          <select name="speechRate">
+            <option value="0.9">Slow</option>
+            <option value="1">Normal</option>
+            <option value="1.1">Fast</option>
+          </select>
+        </label>
+      </div>
+      <button type="button" class="btn outline small-btn" id="testVoice">Test voice</button>
       <label class="check"><input type="checkbox" name="beep"> Beep on remote clicks</label>
       <label class="check"><input type="checkbox" name="sleep"><span>Screen sleep<small>Black screen after 30 s; lights up on a remote press or score change</small></span></label>
 

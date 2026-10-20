@@ -1,5 +1,6 @@
 import * as M from './match.js';
 import { GestureRecognizer, DEFAULT_TIMING } from './gesture.js';
+import * as Audio from './audio.js';
 
 const STORAGE_KEY = 'badminton-score-v1';
 const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab']);
@@ -15,6 +16,8 @@ const DEFAULT_SETTINGS = {
   longPressMs: DEFAULT_TIMING.longPressMs,
   doubleClickMs: DEFAULT_TIMING.doubleClickMs,
   sleep: false,
+  voiceURI: '', // '' = best available English voice
+  speechRate: 1,
 };
 
 const SLEEP_AFTER_MS = 30000;
@@ -48,32 +51,20 @@ function save() {
 
 // ---------- feedback: sound, speech, toast ----------
 
-let audioCtx = null;
 function beep(freq, count = 1) {
-  if (!settings.beep) return;
-  try {
-    audioCtx ??= new (window.AudioContext || window.webkitAudioContext)();
-    for (let i = 0; i < count; i++) {
-      const t = audioCtx.currentTime + i * 0.14;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.25, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-      osc.connect(gain).connect(audioCtx.destination);
-      osc.start(t);
-      osc.stop(t + 0.11);
-    }
-  } catch { /* no audio available */ }
+  if (settings.beep) Audio.beep(freq, count);
 }
 
 function say(text) {
-  if (!settings.voice || !('speechSynthesis' in window)) return;
-  speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.rate = 1.05;
-  speechSynthesis.speak(u);
+  if (settings.voice) Audio.say(text, { voiceURI: settings.voiceURI, rate: settings.speechRate });
 }
+
+// Audio may only start after a user gesture; a remote press or tap counts.
+function startAudio() {
+  Audio.keepOutputAwake(settings.voice);
+}
+window.addEventListener('keydown', startAudio);
+document.addEventListener('pointerdown', startAudio);
 
 let toastTimer = null;
 function toast(text) {
@@ -284,6 +275,8 @@ $('settingsBtn').addEventListener('click', () => {
   form.longPressMs.value = settings.longPressMs;
   form.doubleClickMs.value = settings.doubleClickMs;
   form.sleep.checked = settings.sleep;
+  fillVoices();
+  form.speechRate.value = settings.speechRate;
   $('keyTester').textContent = 'No key received yet';
   $('settings').showModal();
 });
@@ -304,7 +297,10 @@ function readForm() {
     longPressMs: num(form.longPressMs.value, 300, 3000, DEFAULT_TIMING.longPressMs),
     doubleClickMs: num(form.doubleClickMs.value, 150, 1000, DEFAULT_TIMING.doubleClickMs),
     sleep: form.sleep.checked,
+    voiceURI: form.voiceURI.value,
+    speechRate: Number(form.speechRate.value) || 1,
   };
+  Audio.keepOutputAwake(settings.voice);
   remote.setTiming({ longPressMs: settings.longPressMs, doubleClickMs: settings.doubleClickMs });
   // A match that hasn't started yet can pick up new rules and first server right away.
   if (match.games.length === 1 && match.games[0].rallies.length === 0) {
@@ -314,6 +310,22 @@ function readForm() {
   save();
   render();
 }
+
+function fillVoices() {
+  const select = form.voiceURI;
+  const list = Audio.sortedVoices();
+  const best = Audio.bestVoice(list);
+  select.replaceChildren(new Option(best ? `Automatic (${best.name})` : 'Automatic', ''));
+  for (const v of list) select.add(new Option(`${v.name} – ${v.lang}${v.localService ? '' : ' (online)'}`, v.voiceURI));
+  select.value = list.some((v) => v.voiceURI === settings.voiceURI) ? settings.voiceURI : '';
+  $('voiceRow').hidden = !Audio.speechSupported();
+}
+Audio.onVoicesChanged(() => { if ($('settings').open) fillVoices(); });
+
+$('testVoice').addEventListener('click', () => {
+  Audio.keepOutputAwake(true);
+  Audio.say('11 9. Interval', { voiceURI: form.voiceURI.value, rate: Number(form.speechRate.value) || 1 });
+});
 
 $('settings').addEventListener('close', () => {
   readForm();

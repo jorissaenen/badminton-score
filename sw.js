@@ -1,7 +1,7 @@
 // Network-first service worker: always serve the latest version when online, and fall back
 // to the cached copy offline (or when the sports-hall network is too slow to answer).
 // Bump VERSION whenever any app file changes.
-const VERSION = 'v7';
+const VERSION = 'v8';
 const CACHE = `badminton-score-${VERSION}`;
 const NETWORK_TIMEOUT_MS = 3000;
 const ASSETS = [
@@ -11,6 +11,7 @@ const ASSETS = [
   'js/app.js',
   'js/match.js',
   'js/gesture.js',
+  'js/audio.js',
   'manifest.webmanifest',
   'icons/shuttle-192.png',
   'icons/shuttle-512.png',

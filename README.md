@@ -23,7 +23,13 @@ browser tab that supports it; the installed app already opens fullscreen.
 - Best of 1, 3 or 5 games; the game winner serves first in the next game
 - Shuttle icon marks the serving team; the score call puts the server's score first, as umpires do
 - Optional spoken score calls ("11 9", "Game, Home") and beeps confirming each remote gesture,
-  so you know the press registered without looking
+  so you know the press registered without looking. The app picks the best English voice on the
+  device (choose another and test it under ⚙ → Voice), speaks after the beep instead of over it,
+  and keeps the audio output awake so the first syllable isn't lost.
+
+  For the best sound, install a high-quality voice on the device: on iPhone/iPad, Settings →
+  Accessibility → Spoken Content → Voices → English → an *Enhanced* or *Premium* voice; on Android,
+  Settings → Text-to-speech output → Speech Services by Google → install English voice data.
 - Interval and "change ends" reminders
 - Keeps the screen awake, saves the match across reloads, works offline once loaded
 - Optional *screen sleep* (off by default): the screen goes black after 30 s without activity and
