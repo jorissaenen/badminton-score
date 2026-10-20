@@ -181,6 +181,20 @@ body {
 .gameover-title { font-size: clamp(1.6rem, 6vmin, 2.8rem); font-weight: 700; letter-spacing: -0.03em; }
 .gameover-sub { font-size: clamp(1.1rem, 4vmin, 1.8rem); margin: 8px 0 16px; font-variant-numeric: tabular-nums; color: #bdbdbd; word-spacing: 0.4em; }
 .gameover-hint { color: var(--muted); margin-bottom: 16px; }
+.break-clock {
+  font-size: clamp(3rem, 16vmin, 7rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  margin: 8px 0 12px;
+}
+/* During an interval, tapping a team behind the countdown still scores (and ends the interval). */
+#interval { pointer-events: none; background: rgba(0, 0, 0, 0.25); -webkit-backdrop-filter: none; backdrop-filter: none; }
+#interval .gameover-card { pointer-events: auto; }
+.break-timer { display: flex; align-items: baseline; justify-content: center; gap: 12px; color: var(--muted); font-size: 1rem; text-transform: uppercase; letter-spacing: 0.12em; }
+.break-timer[hidden] { display: none; }
+.break-timer .break-clock { font-size: clamp(2.2rem, 10vmin, 4.5rem); color: var(--fg); letter-spacing: -0.04em; text-transform: none; margin: 4px 0 10px; }
 
 .toast {
   position: absolute;
@@ -373,6 +387,7 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); -webkit-backdrop-filter: blur
 .settings-form select { text-overflow: ellipsis; min-width: 0; }
 .small-btn { align-self: flex-start; padding: 8px 16px; font-size: 0.9rem; }
 .small { font-size: 0.85rem; color: var(--muted); margin: 0; }
+.small.about { font-size: 0.75rem; opacity: 0.8; }
 details summary { cursor: pointer; color: var(--fg); }
 details[open] { display: flex; flex-direction: column; gap: 10px; }
 .tester { display: block; font-family: ui-monospace, monospace; background: var(--field); padding: 8px 10px; border-radius: 12px; min-height: 2.4em; }

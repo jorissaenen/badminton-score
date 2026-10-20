@@ -49,10 +49,20 @@
       <div class="games" id="games1" aria-label="Games won"></div>
     </section>
 
+    <div id="interval" class="gameover" hidden>
+      <div class="gameover-card">
+        <div class="gameover-title" id="intervalTitle">Interval</div>
+        <div class="break-clock" id="intervalClock">1:00</div>
+        <div class="gameover-hint">The next point you score ends the interval</div>
+        <button type="button" class="btn primary" id="resumeBtn" tabindex="-1">Resume now</button>
+      </div>
+    </div>
+
     <div id="gameover" class="gameover" hidden>
       <div class="gameover-card">
         <div class="gameover-title" id="gameoverTitle"></div>
         <div class="gameover-sub" id="gameoverSub"></div>
+        <div class="break-timer" id="breakTimer" hidden>Break <span class="break-clock" id="breakClock">2:00</span></div>
         <div class="gameover-hint">Long press the remote to <span id="gameoverAction">start the next game</span></div>
         <button type="button" class="btn primary" id="nextBtn" tabindex="-1">Start next game</button>
       </div>
@@ -153,6 +163,7 @@
       </div>
       <button type="button" class="btn outline small-btn" id="testVoice">Test voice</button>
       <label class="check"><input type="checkbox" name="beep"> Beep on remote clicks</label>
+      <label class="check"><input type="checkbox" name="intervals"><span>Intervals &amp; breaks<small>Official timing: 60 s interval at 11 and 2 min between games, with a countdown, a “20 seconds” call and a beep at the end</small></span></label>
       <label class="check"><input type="checkbox" name="sleep"><span>Screen sleep<small>Black screen after 30 s; lights up on a remote press or score change</small></span></label>
 
       <details>
@@ -167,6 +178,7 @@
 
       <button type="button" class="btn outline small-btn" id="installFromSettings" hidden><svg aria-hidden="true"><use href="#i-download"/></svg> Install as app</button>
       <p class="small">Changing points or match length takes effect from a new match.</p>
+      <p class="small about" id="aboutLine"></p>
       <div class="dialog-buttons">
         <button type="button" class="btn outline" id="resetBtn">New match</button>
         <button type="submit" class="btn primary" value="save" autofocus>Done</button>

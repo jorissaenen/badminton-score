@@ -8,6 +8,13 @@
 
 const DISMISS_KEY = 'badminton-score-install-dismissed';
 
+// What the install offer decided, shown in settings to help diagnose "the pop-up doesn't appear".
+const status = { platform: null, installed: false, oneTap: false, dismissed: false, shown: false };
+
+export function installStatus() {
+  return { ...status };
+}
+
 // ---------- detection (pure, so it can be unit-tested) ----------
 
 export function isInstalled(win = globalThis) {
@@ -204,13 +211,15 @@ function keyPicture(icon) {
 }
 
 export function setupInstallPrompt(root, settingsBtn) {
-  if (isInstalled()) return;
-  const el = (id) => root.querySelector(`#${id}`);
   const platform = detectPlatform({
     userAgent: navigator.userAgent,
     platform: navigator.platform,
     maxTouchPoints: navigator.maxTouchPoints,
   });
+  status.platform = platform;
+  status.installed = isInstalled();
+  if (status.installed) return;
+  const el = (id) => root.querySelector(`#${id}`);
   const canInstallHere = Boolean(manualSteps(platform));
   let deferred = null;
 
@@ -280,6 +289,7 @@ export function setupInstallPrompt(root, settingsBtn) {
     else if (canInstallHere) showPicker();
     else return;
     root.hidden = false;
+    status.shown = true;
   }
 
   function hide(dismiss) {
@@ -292,6 +302,7 @@ export function setupInstallPrompt(root, settingsBtn) {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault(); // we show our own prompt
     deferred = e;
+    status.oneTap = true;
     settingsBtn.hidden = false;
     // Upgrade to one-tap install, unless the visitor is already reading instructions.
     if (root.hidden ? !dismissedThisVisit() : el('installGuide').hidden) show();
@@ -318,5 +329,6 @@ export function setupInstallPrompt(root, settingsBtn) {
 
   // Show straight away when the site is opened in a browser.
   settingsBtn.hidden = !canInstallHere;
-  if (!dismissedThisVisit()) show();
+  status.dismissed = dismissedThisVisit();
+  if (!status.dismissed) show();
 }

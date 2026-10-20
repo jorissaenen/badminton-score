@@ -32,7 +32,12 @@ browser tab that supports it; the installed app already opens fullscreen.
   Settings → Text-to-speech output → Speech Services by Google → install English voice data.
 - Umpire-style "game point" / "match point" calls, right after the server's score
   ("20 game point 6", "29 match point all"), also shown on screen
-- Interval and "change ends" reminders
+- Optional *Intervals & breaks* (off by default) with the official timing: a 60-second interval
+  when the leader reaches 11 (with "change ends" in the deciding game) and a 2-minute break
+  between games. A countdown shows on screen, "20 seconds" is called 20 seconds before the end
+  (as umpires do), and a beep plus the score call ("11 6, play") marks the end. Scoring the next
+  point ends an interval early.
+- Settings show the app version and what was detected about the device, for troubleshooting
 - Keeps the screen awake, saves the match across reloads, works offline once loaded
 - Opened in a browser tab, it immediately offers to install itself. Where the browser allows it
   (Chrome, Edge, Samsung Internet, Vivaldi on Android and desktop) that's a one-tap *Install*

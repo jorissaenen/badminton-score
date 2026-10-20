@@ -1,7 +1,8 @@
 import * as M from './match.js';
 import { GestureRecognizer, DEFAULT_TIMING } from './gesture.js';
 import * as Audio from './audio.js';
-import { isInstalled, setupInstallPrompt } from './install.js';
+import { isInstalled, setupInstallPrompt, installStatus } from './install.js';
+import { BreakTimer, INTERVAL_SECONDS, BETWEEN_GAMES_SECONDS, formatClock } from './breaks.js';
 
 const STORAGE_KEY = 'badminton-score-v1';
 const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab']);
@@ -17,6 +18,7 @@ const DEFAULT_SETTINGS = {
   longPressMs: DEFAULT_TIMING.longPressMs,
   doubleClickMs: DEFAULT_TIMING.doubleClickMs,
   sleep: false,
+  intervals: false, // official breaks: 60 s at 11, 120 s between games
   voiceURI: '', // '' = best available English voice
   speechRate: 1,
 };
@@ -91,7 +93,8 @@ function scoreCall() {
   const a = s[srv];
   const b = s[1 - srv];
   const point = M.pointCall(match, rules);
-  const middle = point ? ` ${point} point ` : ' ';
+  // The commas make the voice pause: "20, match point, 0" instead of one rushed phrase.
+  const middle = point ? `, ${point} point, ` : ' ';
   return `${a}${middle}${a === b ? 'all' : b}`;
 }
 
@@ -103,6 +106,7 @@ function point(team) {
     beep(220);
     return;
   }
+  stopBreak(); // the next rally ends an interval early
   const before = Math.max(...M.gameScore(M.currentGame(match)));
   match = M.addPoint(match, team, rules);
   save();
@@ -112,17 +116,22 @@ function point(team) {
   if (M.isGameOver(match, rules)) {
     const s = M.gameScore(M.currentGame(match));
     const result = `${Math.max(...s)} ${Math.min(...s)}`;
-    if (M.matchWinner(match, rules) !== null) say(`Game and match, ${settings.names[team]}. ${result}`);
-    else say(`Game, ${settings.names[team]}. ${result}`);
+    if (M.matchWinner(match, rules) !== null) {
+      say(`Game and match, ${settings.names[team]}. ${result}`);
+    } else {
+      say(`Game, ${settings.names[team]}. ${result}`);
+      if (settings.intervals) startBreak('game', BETWEEN_GAMES_SECONDS);
+    }
     return;
   }
 
   const after = Math.max(...M.gameScore(M.currentGame(match)));
   const mid = Math.ceil(rules.points / 2);
-  if (before < mid && after === mid && rules.points >= 15) {
+  if (settings.intervals && before < mid && after === mid && rules.points >= 15) {
     const changeEnds = M.isDecidingGame(match, rules);
-    toast(changeEnds ? 'Interval – change ends' : 'Interval');
+    $('intervalTitle').textContent = changeEnds ? 'Interval · Change ends' : 'Interval';
     say(`${scoreCall()}. Interval${changeEnds ? '. Change ends' : ''}`);
+    startBreak('interval', INTERVAL_SECONDS);
     return;
   }
   const call = M.pointCall(match, rules);
@@ -137,6 +146,7 @@ function undoPoint() {
     beep(220);
     return;
   }
+  stopBreak();
   match = M.undo(match);
   save();
   render();
@@ -146,6 +156,7 @@ function undoPoint() {
 
 function continueAfterGame() {
   if (!M.isGameOver(match, rules)) return;
+  stopBreak();
   if (M.matchWinner(match, rules) !== null) {
     startNewMatch();
     return;
@@ -158,12 +169,50 @@ function continueAfterGame() {
 }
 
 function startNewMatch() {
+  stopBreak();
   rules = rulesFrom(settings);
   match = M.newMatch(settings.firstServer);
   save();
   render();
   toast('New match');
   say('New match');
+}
+
+// ---------- intervals and breaks (optional, official timings) ----------
+
+const breaks = new BreakTimer({
+  onTick(left, kind) {
+    $(kind === 'interval' ? 'intervalClock' : 'breakClock').textContent = formatClock(left);
+  },
+  onWarning() {
+    // Umpires call "20 seconds" twice, 20 seconds before the end of a break.
+    wakeScreen();
+    Audio.beep(660);
+    say('20 seconds. … 20 seconds');
+  },
+  onEnd(kind) {
+    wakeScreen();
+    Audio.beep(880, 3); // always, even with click beeps off: this beep is the point of the timer
+    if (kind === 'interval') {
+      $('interval').hidden = true;
+      say(`${scoreCall()}. Play`);
+    } else {
+      $('breakClock').textContent = 'Time';
+      say(`Time. Start game ${match.games.length + 1}`);
+    }
+  },
+});
+
+function startBreak(kind, seconds) {
+  if (kind === 'interval') $('interval').hidden = false;
+  else $('breakTimer').hidden = false;
+  breaks.start(kind, seconds);
+}
+
+function stopBreak() {
+  breaks.stop();
+  $('interval').hidden = true;
+  $('breakTimer').hidden = true;
 }
 
 // ---------- remote control ----------
@@ -247,6 +296,10 @@ for (const section of document.querySelectorAll('.team')) {
 }
 $('undoBtn').addEventListener('click', undoPoint);
 $('nextBtn').addEventListener('click', continueAfterGame);
+$('resumeBtn').addEventListener('click', () => {
+  stopBreak();
+  say(`${scoreCall()}. Play`);
+});
 $('swapBtn').addEventListener('click', () => {
   settings.swapped = !settings.swapped;
   save();
@@ -279,11 +332,25 @@ $('settingsBtn').addEventListener('click', () => {
   form.longPressMs.value = settings.longPressMs;
   form.doubleClickMs.value = settings.doubleClickMs;
   form.sleep.checked = settings.sleep;
+  form.intervals.checked = settings.intervals;
   fillVoices();
   form.speechRate.value = settings.speechRate;
   $('keyTester').textContent = 'No key received yet';
+  showAbout();
   $('settings').showModal();
 });
+
+// Version and detection details, to help when something doesn't show up on a device.
+async function showAbout() {
+  const s = installStatus();
+  let version = '?';
+  try {
+    version = (await caches.keys()).find((k) => k.startsWith('badminton-score-'))?.replace('badminton-score-', '') ?? 'not cached';
+  } catch { /* caches unavailable */ }
+  const where = s.installed ? 'installed app' : 'browser tab';
+  const offer = s.installed ? '' : ` · install offer: ${s.oneTap ? 'one-tap' : 'steps'}${s.shown ? ', shown' : ''}${s.dismissed ? ', dismissed this visit' : ''}`;
+  $('aboutLine').textContent = `Version ${version} · ${s.platform?.os ?? '?'} / ${s.platform?.browser ?? '?'} · ${where}${offer}`;
+}
 
 function readForm() {
   const num = (v, lo, hi, dflt) => {
@@ -301,6 +368,7 @@ function readForm() {
     longPressMs: num(form.longPressMs.value, 300, 3000, DEFAULT_TIMING.longPressMs),
     doubleClickMs: num(form.doubleClickMs.value, 150, 1000, DEFAULT_TIMING.doubleClickMs),
     sleep: form.sleep.checked,
+    intervals: form.intervals.checked,
     voiceURI: form.voiceURI.value,
     speechRate: Number(form.speechRate.value) || 1,
   };
@@ -358,7 +426,8 @@ function wakeScreen() {
 }
 
 function sleepScreen() {
-  if ($('settings').open) wakeScreen(); // never black out while editing settings
+  // Never black out while editing settings or while a break is counting down.
+  if ($('settings').open || breaks.running) wakeScreen();
   else $('sleep').hidden = false;
 }
 
