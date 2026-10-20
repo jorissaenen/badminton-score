@@ -1,6 +1,6 @@
 // Cache-first service worker so the scoreboard works offline in a sports hall.
 // Bump VERSION whenever any app file changes.
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE = `badminton-score-${VERSION}`;
 const ASSETS = [
   './',

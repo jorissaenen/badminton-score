@@ -57,6 +57,8 @@ body {
   min-width: 0;
   cursor: pointer;
   transition: filter 0.15s;
+  /* Size the text to this panel, whatever the orientation. */
+  container-type: size;
 }
 .team[data-team="0"] { background: var(--home); }
 .team[data-team="1"] { background: var(--away); }
@@ -71,6 +73,7 @@ body {
 
 .team-name {
   font-size: clamp(1.2rem, 5vmin, 2.6rem);
+  font-size: clamp(1rem, min(9cqh, 8cqw), 3.5rem);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -87,13 +90,16 @@ body {
 
 .score {
   font-size: clamp(6rem, 38vmin, 30rem);
+  /* Two tabular digits are ~1.3em wide; leave room above/below for name and serve line. */
+  font-size: min(64cqh, 62cqw);
   font-weight: 800;
-  line-height: 1;
+  line-height: 0.95;
   font-variant-numeric: tabular-nums;
 }
 
 .serve {
   font-size: clamp(1rem, 4vmin, 2rem);
+  font-size: clamp(0.9rem, min(7cqh, 6cqw), 2.5rem);
   color: var(--accent);
   visibility: hidden;
 }
@@ -197,3 +203,13 @@ details summary { cursor: pointer; color: var(--fg); }
 details[open] { display: flex; flex-direction: column; gap: 10px; }
 .tester { display: block; font-family: ui-monospace, monospace; background: #0b1a14; padding: 8px 10px; border-radius: 8px; min-height: 2.4em; }
 .dialog-buttons { display: flex; justify-content: space-between; gap: 12px; margin-top: 4px; }
+
+/* Phones held sideways: every pixel of height counts. */
+@media (orientation: landscape) and (max-height: 500px) {
+  .team { padding: 4px 12px; }
+  .bar { padding: 4px 12px calc(4px + env(safe-area-inset-bottom)); font-size: 0.85rem; }
+  .btn.icon { width: 36px; height: 36px; font-size: 1.1rem; }
+  .gameover-card { padding: 14px 20px; }
+  .gameover-sub { margin: 4px 0 8px; }
+  .gameover-hint { margin-bottom: 10px; }
+}
