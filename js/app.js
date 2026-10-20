@@ -397,6 +397,7 @@ if ('serviceWorker' in navigator) {
 setupInstallPrompt({
   sheet: $('installSheet'),
   steps: $('installSteps'),
+  choices: $('installChoices'),
   installBtn: $('installBtn'),
   laterBtn: $('installLater'),
   closeBtn: $('installClose'),

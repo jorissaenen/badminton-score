@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { detectPlatform, manualSteps } from '../js/install.js';
+import { detectPlatform, manualSteps, browserChoices } from '../js/install.js';
 
 const UA = {
   iphoneSafari: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
@@ -24,11 +24,22 @@ test('detects OS and browser', () => {
   assert.deepEqual(detectPlatform({ userAgent: UA.winEdge }), { os: 'windows', browser: 'edge' });
 });
 
-test('gives platform-specific steps, none where install is unsupported', () => {
-  assert.match(manualSteps({ os: 'ios', browser: 'safari' })[0][1], /bottom/);
-  assert.match(manualSteps({ os: 'ipados', browser: 'safari' })[0][1], /top right/);
-  assert.match(manualSteps({ os: 'ios', browser: 'chrome' }).at(-1)[1], /Safari/);
-  assert.match(manualSteps({ os: 'android', browser: 'samsung' })[1][1], /Home screen/);
-  assert.match(manualSteps({ os: 'macos', browser: 'safari' })[0][1], /Add to Dock/);
+const text = (steps) => steps.map((s) => s.text + (s.note ?? '')).join(' | ');
+
+test('gives step-by-step guides per OS and browser', () => {
+  assert.match(text(manualSteps({ os: 'ios', browser: 'safari' })), /Share.*bottom.*Add to Home Screen.*Open as Web App/);
+  assert.match(text(manualSteps({ os: 'ipados', browser: 'safari' })), /top right/);
+  assert.match(text(manualSteps({ os: 'ios', browser: 'vivaldi' })), /Vivaldi.*Share Page.*Add to Home Screen/);
+  assert.match(text(manualSteps({ os: 'ios', browser: 'other' })), /Safari/);
+  assert.match(text(manualSteps({ os: 'android', browser: 'samsung' })), /Add page to.*Home screen/);
+  assert.match(text(manualSteps({ os: 'macos', browser: 'safari' })), /Add to Dock/);
   assert.equal(manualSteps(detectPlatform({ userAgent: UA.winFirefox })), null);
+});
+
+test('detects Vivaldi when it identifies itself, and offers a browser picker on phones', () => {
+  const vivaios = UA.iphoneChrome + ' VivaiOS/VivaldiVersion/7.9';
+  assert.deepEqual(detectPlatform({ userAgent: vivaios }), { os: 'ios', browser: 'vivaldi' });
+  assert.ok(browserChoices('ios').includes('vivaldi'));
+  assert.ok(browserChoices('android').includes('samsung'));
+  assert.deepEqual(browserChoices('windows'), []);
 });
