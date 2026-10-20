@@ -209,6 +209,11 @@ function startBreak(kind, seconds) {
   breaks.start(kind, seconds);
 }
 
+function endInterval() {
+  stopBreak();
+  say(`${scoreCall()}. Play`);
+}
+
 function stopBreak() {
   breaks.stop();
   $('interval').hidden = true;
@@ -224,6 +229,7 @@ const remote = new GestureRecognizer((gesture) => {
   else if (gesture === 'long') {
     beep(440);
     if (over) continueAfterGame();
+    else if (breaks.running) endInterval();
     else undoPoint();
   }
 }, { longPressMs: settings.longPressMs, doubleClickMs: settings.doubleClickMs });
@@ -296,10 +302,7 @@ for (const section of document.querySelectorAll('.team')) {
 }
 $('undoBtn').addEventListener('click', undoPoint);
 $('nextBtn').addEventListener('click', continueAfterGame);
-$('resumeBtn').addEventListener('click', () => {
-  stopBreak();
-  say(`${scoreCall()}. Play`);
-});
+$('resumeBtn').addEventListener('click', endInterval);
 $('swapBtn').addEventListener('click', () => {
   settings.swapped = !settings.swapped;
   save();

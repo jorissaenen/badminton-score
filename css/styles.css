@@ -192,9 +192,9 @@ body {
 /* During an interval, tapping a team behind the countdown still scores (and ends the interval). */
 #interval { pointer-events: none; background: rgba(0, 0, 0, 0.25); -webkit-backdrop-filter: none; backdrop-filter: none; }
 #interval .gameover-card { pointer-events: auto; }
-.break-timer { display: flex; align-items: baseline; justify-content: center; gap: 12px; color: var(--muted); font-size: 1rem; text-transform: uppercase; letter-spacing: 0.12em; }
+.break-timer { display: flex; flex-direction: column; align-items: center; margin-top: 8px; }
+.break-label { color: var(--muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.14em; }
 .break-timer[hidden] { display: none; }
-.break-timer .break-clock { font-size: clamp(2.2rem, 10vmin, 4.5rem); color: var(--fg); letter-spacing: -0.04em; text-transform: none; margin: 4px 0 10px; }
 
 .toast {
   position: absolute;
