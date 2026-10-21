@@ -231,7 +231,7 @@ function stopBreak() {
 
 // ---------- remote control ----------
 
-const remote = new GestureRecognizer((gesture) => {
+function onGesture(gesture) {
   const over = M.isGameOver(match, rules);
   if (gesture === 'single') { beep(880); point(0); }
   else if (gesture === 'double') { beep(660, 2); point(1); }
@@ -241,7 +241,17 @@ const remote = new GestureRecognizer((gesture) => {
     else if (breaks.running) endInterval();
     else undoPoint();
   }
-}, { longPressMs: settings.longPressMs, doubleClickMs: settings.doubleClickMs });
+}
+
+const timing = () => ({ longPressMs: settings.longPressMs, doubleClickMs: settings.doubleClickMs });
+const remote = new GestureRecognizer(onGesture, timing());
+// A mouse never auto-repeats, so it needs no release grace; a fast double click must stay a double click.
+const mouseRemote = new GestureRecognizer(onGesture, { ...timing(), releaseGraceMs: 0 });
+
+function resetRemotes() {
+  remote.reset();
+  mouseRemote.reset();
+}
 
 function describeKey(e) {
   return `${e.type}: key="${e.key}" code="${e.code}"${e.repeat ? ' (repeat)' : ''}`;
@@ -263,8 +273,29 @@ function onKey(e) {
 
 window.addEventListener('keydown', onKey);
 window.addEventListener('keyup', onKey);
+
+// A mouse can stand in for the remote: the wheel button and the thumb (back/forward) buttons
+// act like the remote's single button. The left button keeps working as a normal tap.
+const MOUSE_REMOTE_BUTTONS = { 1: 'middle (wheel)', 3: 'back (thumb)', 4: 'forward (thumb)' };
+
+function onMouseButton(e) {
+  if (!(e.button in MOUSE_REMOTE_BUTTONS)) return;
+  e.preventDefault(); // no autoscroll, no browser back/forward
+  if (e.type !== 'pointerdown' && e.type !== 'pointerup') return;
+  if ($('settings').open) {
+    $('keyTester').textContent = `${e.type === 'pointerdown' ? 'down' : 'up'}: mouse button ${MOUSE_REMOTE_BUTTONS[e.button]}`;
+    return;
+  }
+  wakeScreen();
+  startAudio();
+  if (e.type === 'pointerdown') mouseRemote.press();
+  else mouseRemote.release();
+}
+for (const type of ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'auxclick']) {
+  window.addEventListener(type, onMouseButton, { capture: true });
+}
 // Losing focus mid-press would otherwise leave the button "held" forever.
-window.addEventListener('blur', () => remote.reset());
+window.addEventListener('blur', resetRemotes);
 
 // ---------- rendering ----------
 
@@ -363,7 +394,7 @@ document.addEventListener('fullscreenchange', () => {
 const form = $('settingsForm');
 
 $('settingsBtn').addEventListener('click', () => {
-  remote.reset();
+  resetRemotes();
   form.name0.value = settings.names[0];
   form.name1.value = settings.names[1];
   form.points.value = settings.points;
@@ -417,7 +448,8 @@ function readForm() {
     speechRate: Number(form.speechRate.value) || 1,
   };
   Audio.keepOutputAwake(settings.voice);
-  remote.setTiming({ longPressMs: settings.longPressMs, doubleClickMs: settings.doubleClickMs });
+  remote.setTiming(timing());
+  mouseRemote.setTiming(timing());
   // A match that hasn't started yet can pick up new rules and first server right away.
   if (match.games.length === 1 && match.games[0].rallies.length === 0) {
     rules = rulesFrom(settings);
@@ -451,7 +483,7 @@ $('testVoice').addEventListener('click', () => {
 
 $('settings').addEventListener('close', () => {
   readForm();
-  remote.reset();
+  resetRemotes();
 });
 
 $('resetBtn').addEventListener('click', () => {
