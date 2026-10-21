@@ -3,6 +3,9 @@ import { GestureRecognizer, DEFAULT_TIMING } from './gesture.js';
 import * as Audio from './audio.js';
 import { isInstalled, setupInstallPrompt, installStatus } from './install.js';
 import { BreakTimer, INTERVAL_SECONDS, BETWEEN_GAMES_SECONDS, formatClock } from './breaks.js';
+import { watchLayout } from './layout.js';
+
+watchLayout();
 
 const STORAGE_KEY = 'badminton-score-v1';
 const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab']);
@@ -19,6 +22,7 @@ const DEFAULT_SETTINGS = {
   doubleClickMs: DEFAULT_TIMING.doubleClickMs,
   sleep: false,
   intervals: false, // official breaks: 60 s at 11, 120 s between games
+  autoEnds: true, // swap the scores on screen when the teams change ends
   voiceURI: '', // '' = best available English voice
   speechRate: 1,
 };
@@ -134,6 +138,10 @@ function point(team) {
     startBreak('interval', INTERVAL_SECONDS);
     return;
   }
+  if (settings.autoEnds && before < mid && after === mid && M.isDecidingGame(match, rules)) {
+    say(`${scoreCall()}. Change ends`);
+    return;
+  }
   const call = M.pointCall(match, rules);
   if (call) toast(call === 'match' ? 'Match point' : 'Game point');
   say(scoreCall());
@@ -165,7 +173,8 @@ function continueAfterGame() {
   save();
   render();
   toast(`Game ${match.games.length}`);
-  say(`Game ${match.games.length}. ${settings.names[M.server(M.currentGame(match))]} to serve`);
+  const ends = settings.autoEnds ? 'Change ends. ' : '';
+  say(`Game ${match.games.length}. ${ends}${settings.names[M.server(M.currentGame(match))]} to serve`);
 }
 
 function startNewMatch() {
@@ -259,8 +268,37 @@ window.addEventListener('blur', () => remote.reset());
 
 // ---------- rendering ----------
 
+let sidesShown = null;
+let endsTimer = null;
+
+// Put each team's score on the side of the screen where the team stands. When the teams change
+// ends, the panels slide across (where the browser supports view transitions) and a banner says so.
+function showSides(swapped, endsChangedNow) {
+  const board = $('board');
+  const changed = sidesShown !== null && swapped !== sidesShown;
+  sidesShown = swapped;
+  if (!changed) {
+    board.classList.toggle('swapped', swapped);
+    return;
+  }
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (document.startViewTransition && !calm) document.startViewTransition(() => board.classList.toggle('swapped', swapped));
+  else board.classList.toggle('swapped', swapped);
+  if (settings.autoEnds && endsChangedNow) {
+    $('changeEnds').hidden = false;
+    clearTimeout(endsTimer);
+    endsTimer = setTimeout(() => { $('changeEnds').hidden = true; }, 3500);
+  }
+}
+
+// Only a real change of ends gets the banner, not the manual swap button or a settings change.
+let lastEnds = null;
+
 function render() {
   wakeScreen();
+  const ends = M.endsChanged(match, rules);
+  const endsChangedNow = lastEnds !== null && ends !== lastEnds;
+  lastEnds = ends;
   const g = M.currentGame(match);
   const score = M.gameScore(g);
   const won = M.gamesWon(match, rules);
@@ -275,7 +313,8 @@ function render() {
     section.classList.toggle('serving', !over && srv === t);
   }
 
-  $('board').classList.toggle('swapped', settings.swapped);
+  showSides(settings.swapped !== (settings.autoEnds && ends), endsChangedNow);
+  $('gameoverEnds').hidden = !over || !settings.autoEnds || M.matchWinner(match, rules) !== null;
   $('gameLabel').textContent = rules.bestOf > 1 ? `Game ${match.games.length}` : 'Game';
   $('hint').textContent = `1 click: ${settings.names[0]} · 2 clicks: ${settings.names[1]} · hold: undo`;
 
@@ -336,6 +375,7 @@ $('settingsBtn').addEventListener('click', () => {
   form.doubleClickMs.value = settings.doubleClickMs;
   form.sleep.checked = settings.sleep;
   form.intervals.checked = settings.intervals;
+  form.autoEnds.checked = settings.autoEnds;
   fillVoices();
   form.speechRate.value = settings.speechRate;
   $('keyTester').textContent = 'No key received yet';
@@ -372,6 +412,7 @@ function readForm() {
     doubleClickMs: num(form.doubleClickMs.value, 150, 1000, DEFAULT_TIMING.doubleClickMs),
     sleep: form.sleep.checked,
     intervals: form.intervals.checked,
+    autoEnds: form.autoEnds.checked,
     voiceURI: form.voiceURI.value,
     speechRate: Number(form.speechRate.value) || 1,
   };

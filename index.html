@@ -14,6 +14,8 @@
   <link rel="icon" href="icons/shuttle-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icons/shuttle-apple-180.png">
   <link rel="stylesheet" href="css/styles.css">
+  <!-- Pick the first layout before anything is drawn; js/layout.js keeps it up to date. -->
+  <script>document.documentElement.classList.toggle('landscape', innerWidth > innerHeight); document.documentElement.classList.toggle('short', innerWidth > innerHeight && innerHeight <= 500);</script>
 </head>
 <body>
   <!-- Icons: shuttlecock from Hugeicons (MIT), UI icons from Lucide (ISC). See README. -->
@@ -63,10 +65,13 @@
         <div class="gameover-title" id="gameoverTitle"></div>
         <div class="gameover-sub" id="gameoverSub"></div>
         <div class="break-timer" id="breakTimer" hidden><span class="break-label">Break</span><span class="break-clock" id="breakClock">2:00</span></div>
+        <div class="gameover-ends" id="gameoverEnds" hidden><svg aria-hidden="true"><use href="#i-swap"/></svg> Teams change ends</div>
         <div class="gameover-hint">Long press the remote to <span id="gameoverAction">start the next game</span></div>
         <button type="button" class="btn primary" id="nextBtn" tabindex="-1">Start next game</button>
       </div>
     </div>
+
+    <div id="changeEnds" class="change-ends" role="status" hidden><svg aria-hidden="true"><use href="#i-swap"/></svg><span>Change ends</span></div>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
   </main>
@@ -163,6 +168,7 @@
       </div>
       <button type="button" class="btn outline small-btn" id="testVoice">Test voice</button>
       <label class="check"><input type="checkbox" name="beep"> Beep on remote clicks</label>
+      <label class="check"><input type="checkbox" name="autoEnds"><span>Change ends automatically<small>Swaps the scores on screen when the teams change ends: after each game and at 11 in the deciding game</small></span></label>
       <label class="check"><input type="checkbox" name="intervals"><span>Intervals &amp; breaks<small>Official timing: 60 s interval at 11 and 2 min between games, with a countdown, a “20 seconds” call and a beep at the end</small></span></label>
       <label class="check"><input type="checkbox" name="sleep"><span>Screen sleep<small>Black screen after 30 s; lights up on a remote press or score change</small></span></label>
 

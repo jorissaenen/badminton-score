@@ -37,6 +37,9 @@ browser tab that supports it; the installed app already opens fullscreen.
   between games. A countdown shows on screen, "20 seconds" is called 20 seconds before the end
   (as umpires do, twice), and a beep plus the score call ("11 6, play") marks the end. A long press or the next point
   ends an interval early.
+- *Change ends automatically* (on by default): after each game, and at 11 in the deciding game,
+  the scores swap sides on screen so each team's score stays on its own side of the court. A
+  "Change ends" banner and call announce it. The ⇄ button still lines the screen up with the court.
 - Settings show the app version and what was detected about the device, for troubleshooting
 - Keeps the screen awake, saves the match across reloads, works offline once loaded
 - Opened in a browser tab, it immediately offers to install itself. Where the browser allows it

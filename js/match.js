@@ -118,3 +118,13 @@ export function pointCall(state, rules) {
   }
   return call;
 }
+
+// Players change ends after every game, and in the deciding game when the leader reaches the
+// midpoint (11 in a 21-point game). True when the teams stand on the opposite ends from where
+// they started the match.
+export function endsChanged(state, rules) {
+  let changes = state.games.length - 1;
+  const g = currentGame(state);
+  if (isDecidingGame(state, rules) && Math.max(...gameScore(g)) >= Math.ceil(rules.points / 2)) changes++;
+  return changes % 2 === 1;
+}
