@@ -130,65 +130,102 @@
 
   <dialog id="settings">
     <form method="dialog" class="settings-form" id="settingsForm">
-      <h2>Settings</h2>
-      <label>Home team (1 click)<input name="name0" maxlength="20" autocomplete="off"></label>
-      <label>Away team (2 clicks)<input name="name1" maxlength="20" autocomplete="off"></label>
-      <div class="row">
-        <label>Points per game
-          <select name="points">
-            <option value="21">21 (cap 30)</option>
-            <option value="15">15 (cap 20)</option>
-            <option value="11">11 (cap 15)</option>
-          </select>
-        </label>
-        <label>Match
-          <select name="bestOf">
-            <option value="1">1 game</option>
-            <option value="3">Best of 3</option>
-            <option value="5">Best of 5</option>
-          </select>
-        </label>
-      </div>
-      <label>First server of the match
-        <select name="firstServer">
-          <option value="0">Home</option>
-          <option value="1">Away</option>
-        </select>
-      </label>
-      <label class="check"><input type="checkbox" name="voice"> Announce score out loud</label>
-      <div class="row" id="voiceRow">
-        <label>Voice<select name="voiceURI"></select></label>
-        <label class="narrow">Speed
-          <select name="speechRate">
-            <option value="0.9">Slow</option>
-            <option value="1">Normal</option>
-            <option value="1.1">Fast</option>
-          </select>
-        </label>
-      </div>
-      <button type="button" class="btn outline small-btn" id="testVoice">Test voice</button>
-      <label class="check"><input type="checkbox" name="beep"> Beep on remote clicks</label>
-      <label class="check"><input type="checkbox" name="autoEnds"><span>Change ends automatically<small>Swaps the scores on screen when the teams change ends: after each game and at 11 in the deciding game</small></span></label>
-      <label class="check"><input type="checkbox" name="intervals"><span>Intervals &amp; breaks<small>Official timing: 60 s interval at 11 and 2 min between games, with a countdown, a “20 seconds” call and a beep at the end</small></span></label>
-      <label class="check"><input type="checkbox" name="sleep"><span>Screen sleep<small>Black screen after 30 s; lights up on a remote press or score change</small></span></label>
+      <header class="settings-head"><h2>Settings</h2></header>
 
-      <details>
-        <summary>Remote timing &amp; tester</summary>
-        <div class="row">
-          <label>Long press (ms)<input name="longPressMs" type="number" min="300" max="3000" step="50"></label>
-          <label>Double-click gap (ms)<input name="doubleClickMs" type="number" min="150" max="1000" step="25"></label>
-        </div>
-        <p class="small">Press your remote while this dialog is open to see what the browser receives:</p>
-        <output id="keyTester" class="tester">No key received yet</output>
-      </details>
+      <div class="settings-body">
+        <section class="group">
+          <h3>Teams</h3>
+          <div class="card">
+            <label class="field"><span>Home team <small>· 1 click</small></span><input name="name0" maxlength="20" autocomplete="off"></label>
+            <label class="field"><span>Away team <small>· 2 clicks</small></span><input name="name1" maxlength="20" autocomplete="off"></label>
+            <label class="field">First server of the match
+              <select name="firstServer">
+                <option value="0">Home</option>
+                <option value="1">Away</option>
+              </select>
+            </label>
+          </div>
+        </section>
 
-      <button type="button" class="btn outline small-btn" id="installFromSettings" hidden><svg aria-hidden="true"><use href="#i-download"/></svg> Install as app</button>
-      <p class="small">Changing points or match length takes effect from a new match.</p>
-      <p class="small about" id="aboutLine"></p>
-      <div class="dialog-buttons">
+        <section class="group">
+          <h3>Match rules</h3>
+          <div class="card">
+            <div class="row">
+              <label class="field">Points per game
+                <select name="points">
+                  <option value="21">21 (cap 30)</option>
+                  <option value="15">15 (cap 20)</option>
+                  <option value="11">11 (cap 15)</option>
+                </select>
+              </label>
+              <label class="field">Match
+                <select name="bestOf">
+                  <option value="1">1 game</option>
+                  <option value="3">Best of 3</option>
+                  <option value="5">Best of 5</option>
+                </select>
+              </label>
+            </div>
+            <p class="note">Points and match length apply from the next new match.</p>
+            <label class="switch"><span>Change ends automatically<small>Swaps the scores on screen after each game and at 11 in the deciding game</small></span><input type="checkbox" name="autoEnds"></label>
+            <label class="switch"><span>Intervals &amp; breaks<small>60 s interval at 11 and 2 min between games, with countdown, “20 seconds” call and end beep</small></span><input type="checkbox" name="intervals"></label>
+          </div>
+        </section>
+
+        <section class="group">
+          <h3>Voice &amp; sound</h3>
+          <div class="card">
+            <label class="switch"><span>Announce score out loud<small>Umpire-style calls: “20, game point, 18”</small></span><input type="checkbox" name="voice"></label>
+            <div class="voice-options" id="voiceRow">
+              <div class="row">
+                <label class="field">Voice<select name="voiceURI"></select></label>
+                <label class="field narrow">Speed
+                  <select name="speechRate">
+                    <option value="0.9">Slow</option>
+                    <option value="1">Normal</option>
+                    <option value="1.1">Fast</option>
+                  </select>
+                </label>
+              </div>
+              <button type="button" class="btn outline small-btn" id="testVoice">Test voice</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="group">
+          <h3>Remote control</h3>
+          <div class="card">
+            <ul class="gestures">
+              <li><span>1 click</span>Point for home</li>
+              <li><span>2 clicks</span>Point for away</li>
+              <li><span>Long press</span>Undo · next game · end interval</li>
+            </ul>
+            <label class="switch"><span>Beep on remote clicks<small>Confirms each press without looking</small></span><input type="checkbox" name="beep"></label>
+            <div class="row">
+              <label class="field">Long press (ms)<input name="longPressMs" type="number" min="300" max="3000" step="50"></label>
+              <label class="field">Double-click (ms)<input name="doubleClickMs" type="number" min="150" max="1000" step="25"></label>
+            </div>
+            <div class="field"><span>Tester <small>· press the remote now</small></span>
+              <output id="keyTester" class="tester">No key received yet</output>
+            </div>
+          </div>
+        </section>
+
+        <section class="group">
+          <h3>Screen &amp; app</h3>
+          <div class="card">
+            <label class="switch"><span>Screen sleep<small>Black screen after 30 s; lights up on a remote press or score change</small></span><input type="checkbox" name="sleep"></label>
+            <button type="button" class="btn outline small-btn" id="installFromSettings" hidden><svg aria-hidden="true"><use href="#i-download"/></svg> Install as app</button>
+          </div>
+        </section>
+
+        <p class="about" id="aboutLine"></p>
+      </div>
+
+      <footer class="dialog-buttons">
         <button type="button" class="btn outline" id="resetBtn">New match</button>
         <button type="submit" class="btn primary" value="save" autofocus>Done</button>
-      </div>
+      </footer>
     </form>
   </dialog>
 

@@ -434,9 +434,15 @@ function fillVoices() {
   select.replaceChildren(new Option(best ? `Automatic (${best.name})` : 'Automatic', ''));
   for (const v of list) select.add(new Option(`${v.name} – ${v.lang}${v.localService ? '' : ' (online)'}`, v.voiceURI));
   select.value = list.some((v) => v.voiceURI === settings.voiceURI) ? settings.voiceURI : '';
-  $('voiceRow').hidden = !Audio.speechSupported();
+  updateVoiceOptions();
 }
 Audio.onVoicesChanged(() => { if ($('settings').open) fillVoices(); });
+
+// Voice choice only matters while announcements are on.
+function updateVoiceOptions() {
+  $('voiceRow').hidden = !Audio.speechSupported() || !form.voice.checked;
+}
+form.voice.addEventListener('change', updateVoiceOptions);
 
 $('testVoice').addEventListener('click', () => {
   Audio.keepOutputAwake(true);
