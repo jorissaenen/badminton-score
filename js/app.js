@@ -23,6 +23,7 @@ const DEFAULT_SETTINGS = {
   sleep: false,
   intervals: false, // official breaks: 60 s at 11, 120 s between games
   autoEnds: true, // swap the scores on screen when the teams change ends
+  screenRemote: false, // the whole scoreboard acts as the remote button
   voiceURI: '', // '' = best available English voice
   speechRate: 1,
 };
@@ -368,8 +369,33 @@ function render() {
 // ---------- on-screen controls ----------
 
 for (const section of document.querySelectorAll('.team')) {
-  section.addEventListener('click', () => point(Number(section.dataset.team)));
+  section.addEventListener('click', () => {
+    if (!settings.screenRemote) point(Number(section.dataset.team));
+  });
 }
+
+// "Use the screen as remote": a tap anywhere on the scoreboard is a press of the remote button
+// (1 tap home, 2 taps away, hold to undo). Handy to try the remote gestures with a finger or a
+// mouse: on iPhone a mouse only ever arrives as a plain tap.
+let screenPressed = false;
+$('board').addEventListener('pointerdown', (e) => {
+  if (!settings.screenRemote || e.button !== 0 || !e.target.closest('.team')) return;
+  screenPressed = true;
+  mouseRemote.press();
+});
+for (const type of ['pointerup', 'pointercancel']) {
+  window.addEventListener(type, () => {
+    if (!screenPressed) return;
+    screenPressed = false;
+    mouseRemote.release();
+  });
+}
+
+// The tester also shows taps and clicks on it, to see what a mouse really sends on this device.
+$('keyTester').addEventListener('pointerdown', (e) => {
+  const kind = e.pointerType === 'mouse' ? 'mouse' : e.pointerType === 'pen' ? 'pen' : 'touch';
+  $('keyTester').textContent = `pointerdown: ${kind}, button ${e.button}`;
+});
 $('undoBtn').addEventListener('click', undoPoint);
 $('nextBtn').addEventListener('click', continueAfterGame);
 $('resumeBtn').addEventListener('click', endInterval);
@@ -407,6 +433,7 @@ $('settingsBtn').addEventListener('click', () => {
   form.sleep.checked = settings.sleep;
   form.intervals.checked = settings.intervals;
   form.autoEnds.checked = settings.autoEnds;
+  form.screenRemote.checked = settings.screenRemote;
   fillVoices();
   form.speechRate.value = settings.speechRate;
   $('keyTester').textContent = 'No key received yet';
@@ -444,6 +471,7 @@ function readForm() {
     sleep: form.sleep.checked,
     intervals: form.intervals.checked,
     autoEnds: form.autoEnds.checked,
+    screenRemote: form.screenRemote.checked,
     voiceURI: form.voiceURI.value,
     speechRate: Number(form.speechRate.value) || 1,
   };

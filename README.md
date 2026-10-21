@@ -55,11 +55,12 @@ browser tab that supports it; the installed app already opens fullscreen.
 
 ## Getting your remote to work
 
-**No camera remote at hand?** A Bluetooth mouse works as a stand-in: its wheel button (press the
-wheel) and thumb buttons act like the remote's button (click, double-click, long press). The left
-button stays a normal tap. A plain Bluetooth keyboard works too: every key acts as the remote.
-On Android the mouse's *back* thumb button may be taken by the system as "back"; use the wheel
-button or the *forward* thumb button instead.
+**No camera remote at hand?** Turn on ⚙ → Remote control → *Use the screen as remote*: a tap
+anywhere on the scores then acts like the remote button (1 tap home, 2 taps away, hold to undo),
+with a finger or a mouse. On a computer or Android, a Bluetooth mouse's wheel and thumb buttons
+also act as the remote. On iPhone they don't: iOS turns every mouse click into a plain tap
+(AssistiveTouch) and keeps the extra buttons for itself. A Bluetooth keyboard works everywhere:
+every key acts as the remote. Tap the tester box in settings to see what the device sends.
 
 A camera remote pairs as a Bluetooth keyboard and sends a key press (usually *Volume Up*,
 sometimes *Enter*). The app accepts any key, but the browser must receive it:
