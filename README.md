@@ -62,6 +62,13 @@ also act as the remote. On iPhone they don't: iOS turns every mouse click into a
 (AssistiveTouch) and keeps the extra buttons for itself. A Bluetooth keyboard works everywhere:
 every key acts as the remote. Tap the tester box in settings to see what the device sends.
 
+**Earbuds as the remote:** turn on ⚙ → Remote control → *Headphone controls*. Earbud media
+commands then act as the remote: play/pause = home point, next track = away point, previous track
+= undo (set which tap sends which command in the earbuds' own app). The app plays an inaudible
+audio loop so the phone sends those commands to it, and shows the score in the Now Playing panel.
+Volume buttons (including "remote shutter" buttons on earbud cases, which press Volume Up) can't
+be used: iOS never passes volume keys to a web page.
+
 A camera remote pairs as a Bluetooth keyboard and sends a key press (usually *Volume Up*,
 sometimes *Enter*). The app accepts any key, but the browser must receive it:
 

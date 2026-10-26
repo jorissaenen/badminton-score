@@ -4,6 +4,7 @@ import * as Audio from './audio.js';
 import { isInstalled, setupInstallPrompt, installStatus } from './install.js';
 import { BreakTimer, INTERVAL_SECONDS, BETWEEN_GAMES_SECONDS, formatClock } from './breaks.js';
 import { watchLayout } from './layout.js';
+import { createMediaRemote, mediaControlsSupported } from './media.js';
 
 watchLayout();
 
@@ -24,6 +25,7 @@ const DEFAULT_SETTINGS = {
   intervals: false, // official breaks: 60 s at 11, 120 s between games
   autoEnds: true, // swap the scores on screen when the teams change ends
   screenRemote: false, // the whole scoreboard acts as the remote button
+  headphones: false, // earbud play/pause, next and previous track act as the remote
   voiceURI: '', // '' = best available English voice
   speechRate: 1,
 };
@@ -70,6 +72,7 @@ function say(text) {
 // Audio may only start after a user gesture; a remote press or tap counts.
 function startAudio() {
   Audio.keepOutputAwake(settings.voice);
+  mediaRemote.resume(); // headphone controls need a tap or key press before audio may start
 }
 window.addEventListener('keydown', startAudio);
 document.addEventListener('pointerdown', startAudio);
@@ -232,6 +235,18 @@ function stopBreak() {
 
 // ---------- remote control ----------
 
+// Earbud media commands map onto the remote gestures: play/pause = 1 click, next track = 2 clicks,
+// previous track = long press. The earbuds already tell taps apart, so each command acts at once.
+const MEDIA_GESTURES = { playpause: 'single', next: 'double', previous: 'long' };
+const mediaRemote = createMediaRemote((action) => {
+  if ($('settings').open) {
+    $('keyTester').textContent = `headphones: ${{ playpause: 'play/pause', next: 'next track', previous: 'previous track' }[action]}`;
+    return;
+  }
+  wakeScreen();
+  onGesture(MEDIA_GESTURES[action]);
+});
+
 function onGesture(gesture) {
   const over = M.isGameOver(match, rules);
   if (gesture === 'single') { beep(880); point(0); }
@@ -349,6 +364,8 @@ function render() {
   $('gameoverEnds').hidden = !over || !settings.autoEnds || M.matchWinner(match, rules) !== null;
   $('gameLabel').textContent = rules.bestOf > 1 ? `Game ${match.games.length}` : 'Game';
   $('hint').textContent = `1 click: ${settings.names[0]} · 2 clicks: ${settings.names[1]} · hold: undo`;
+  // Shown in the phone's Now Playing panel and lock screen while headphone controls are on.
+  mediaRemote.show(`${settings.names[0]} ${score[0]} – ${score[1]} ${settings.names[1]}`, rules.bestOf > 1 ? `Game ${match.games.length}` : 'Badminton');
 
   const overlay = $('gameover');
   overlay.hidden = !over;
@@ -434,6 +451,8 @@ $('settingsBtn').addEventListener('click', () => {
   form.intervals.checked = settings.intervals;
   form.autoEnds.checked = settings.autoEnds;
   form.screenRemote.checked = settings.screenRemote;
+  form.headphones.checked = settings.headphones;
+  $('headphonesRow').hidden = !mediaControlsSupported();
   fillVoices();
   form.speechRate.value = settings.speechRate;
   $('keyTester').textContent = 'No key received yet';
@@ -472,6 +491,7 @@ function readForm() {
     intervals: form.intervals.checked,
     autoEnds: form.autoEnds.checked,
     screenRemote: form.screenRemote.checked,
+    headphones: form.headphones.checked,
     voiceURI: form.voiceURI.value,
     speechRate: Number(form.speechRate.value) || 1,
   };
@@ -483,6 +503,7 @@ function readForm() {
     rules = rulesFrom(settings);
     match = M.newMatch(settings.firstServer);
   }
+  mediaRemote.enable(settings.headphones);
   save();
   render();
 }
@@ -503,6 +524,8 @@ function updateVoiceOptions() {
   $('voiceRow').hidden = !Audio.speechSupported() || !form.voice.checked;
 }
 form.voice.addEventListener('change', updateVoiceOptions);
+// Start or stop right on the switch: starting audio is only allowed during a tap.
+form.headphones.addEventListener('change', () => mediaRemote.enable(form.headphones.checked));
 
 $('testVoice').addEventListener('click', () => {
   Audio.keepOutputAwake(true);
@@ -584,6 +607,9 @@ if ('serviceWorker' in navigator) {
   });
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
+
+// Headphone controls come back after a reload; audio starts on the first tap or key press.
+mediaRemote.enable(settings.headphones);
 
 // ---------- install prompt (browser tabs only) ----------
 

@@ -200,13 +200,14 @@
               <li><span>2 clicks</span>Point for away</li>
               <li><span>Long press</span>Undo · next game · end interval</li>
             </ul>
+            <label class="switch" id="headphonesRow"><span>Headphone controls<small>Earbud taps as the remote: play/pause = home point, next track = away point, previous track = undo. Plays inaudible audio so the phone sends them to the app</small></span><input type="checkbox" name="headphones"></label>
             <label class="switch"><span>Use the screen as remote<small>Tap anywhere on the scores like the remote button: 1 tap home, 2 taps away, hold to undo. Works with a finger or a mouse</small></span><input type="checkbox" name="screenRemote"></label>
             <label class="switch"><span>Beep on remote clicks<small>Confirms each press without looking</small></span><input type="checkbox" name="beep"></label>
             <div class="row">
               <label class="field">Long press (ms)<input name="longPressMs" type="number" min="300" max="3000" step="50"></label>
               <label class="field">Double-click (ms)<input name="doubleClickMs" type="number" min="150" max="1000" step="25"></label>
             </div>
-            <div class="field"><span>Tester <small>· press the remote, or tap/click this box</small></span>
+            <div class="field"><span>Tester <small>· press the remote or an earbud, or tap this box</small></span>
               <output id="keyTester" class="tester">No key received yet</output>
             </div>
           </div>
