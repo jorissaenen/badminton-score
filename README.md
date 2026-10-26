@@ -69,6 +69,12 @@ audio loop so the phone sends those commands to it, and shows the score in the N
 Volume buttons (including "remote shutter" buttons on earbud cases, which press Volume Up) can't
 be used: iOS never passes volume keys to a web page.
 
+A smartwatch's music controls (Apple Watch Now Playing, Wear OS media controls, Garmin music
+controls) send the same commands, so with *Headphone controls* on, the watch works as the remote
+too. Some watches (seen with a Garmin) send one press several times; the same command arriving
+again within 1.5 s counts as one press. The tester in settings lists the last few commands
+received, with the time between them, including repeats it ignored.
+
 A camera remote pairs as a Bluetooth keyboard and sends a key press (usually *Volume Up*,
 sometimes *Enter*). The app accepts any key, but the browser must receive it:
 

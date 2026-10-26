@@ -4,7 +4,7 @@ import * as Audio from './audio.js';
 import { isInstalled, setupInstallPrompt, installStatus } from './install.js';
 import { BreakTimer, INTERVAL_SECONDS, BETWEEN_GAMES_SECONDS, formatClock } from './breaks.js';
 import { watchLayout } from './layout.js';
-import { createMediaRemote, mediaControlsSupported } from './media.js';
+import { createMediaRemote, createRepeatFilter, mediaControlsSupported } from './media.js';
 
 watchLayout();
 
@@ -237,12 +237,29 @@ function stopBreak() {
 
 // Earbud media commands map onto the remote gestures: play/pause = 1 click, next track = 2 clicks,
 // previous track = long press. The earbuds already tell taps apart, so each command acts at once.
+// Repeats of one press are dropped (see createRepeatFilter). The last few commands are kept so
+// the tester can show what a watch or earbuds actually sent, even after the settings were closed.
 const MEDIA_GESTURES = { playpause: 'single', next: 'double', previous: 'long' };
+const MEDIA_NAMES = { playpause: 'play/pause', next: 'next track', previous: 'previous track' };
+const isMediaRepeat = createRepeatFilter();
+const mediaLog = [];
+
+function mediaLogText() {
+  return 'headphones / watch: ' + mediaLog.map((m, i) => {
+    const gap = i ? ` +${((m.at - mediaLog[i - 1].at) / 1000).toFixed(1)}s` : '';
+    return `${MEDIA_NAMES[m.action]}${gap}${m.repeat ? ' (repeat, ignored)' : ''}`;
+  }).join(' · ');
+}
+
 const mediaRemote = createMediaRemote((action) => {
+  const repeat = isMediaRepeat(action);
+  mediaLog.push({ action, repeat, at: performance.now() });
+  if (mediaLog.length > 6) mediaLog.shift();
   if ($('settings').open) {
-    $('keyTester').textContent = `headphones: ${{ playpause: 'play/pause', next: 'next track', previous: 'previous track' }[action]}`;
+    $('keyTester').textContent = mediaLogText();
     return;
   }
+  if (repeat) return;
   wakeScreen();
   onGesture(MEDIA_GESTURES[action]);
 });
@@ -455,7 +472,7 @@ $('settingsBtn').addEventListener('click', () => {
   $('headphonesRow').hidden = !mediaControlsSupported();
   fillVoices();
   form.speechRate.value = settings.speechRate;
-  $('keyTester').textContent = 'No key received yet';
+  $('keyTester').textContent = mediaLog.length ? mediaLogText() : 'No key received yet';
   showAbout();
   $('settings').showModal();
 });

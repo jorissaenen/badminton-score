@@ -24,6 +24,24 @@ export function mediaControlsSupported() {
   return 'mediaSession' in navigator;
 }
 
+// Some controllers deliver one press as a stream of identical commands (seen with a Garmin
+// watch's music controls). No one scores twice for the same team within a second or so, so
+// the same command arriving again less than REPEAT_GAP_MS after the previous copy is a repeat.
+// The gap is measured from the latest copy, so a long burst still counts as one press.
+export const REPEAT_GAP_MS = 1500;
+
+export function createRepeatFilter(gapMs = REPEAT_GAP_MS, now = () => performance.now()) {
+  let last = null;
+  let lastAt = -Infinity;
+  return (action) => {
+    const t = now();
+    const repeat = action === last && t - lastAt < gapMs;
+    last = action;
+    lastAt = t;
+    return repeat;
+  };
+}
+
 // onAction receives 'playpause', 'next' or 'previous'.
 export function createMediaRemote(onAction) {
   const session = navigator.mediaSession;
