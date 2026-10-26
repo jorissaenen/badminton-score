@@ -46,7 +46,8 @@ export function createRepeatFilter(gapMs = REPEAT_GAP_MS, now = () => performanc
 export function createMediaRemote(onAction) {
   const session = navigator.mediaSession;
   let audio = null;
-  let enabled = false;
+  let controls = false; // earbud / watch commands go to onAction
+  let display = false; // title and artist show in Now Playing and on the lock screen
 
   function keepPlaying() {
     audio?.play().catch(() => {});
@@ -55,13 +56,14 @@ export function createMediaRemote(onAction) {
 
   // iOS ignores handlers registered before the audio became Now Playing, so (re)register them
   // every time playback starts. Seek handlers are cleared so earbuds send next/previous track.
+  // Without controls, play and pause only keep the audio going, so the score stays on the lock screen.
   function registerHandlers() {
-    if (!enabled) return;
+    if (!audio) return;
     const handlers = {
-      play: () => { keepPlaying(); onAction('playpause'); },
-      pause: () => { keepPlaying(); onAction('playpause'); },
-      nexttrack: () => onAction('next'),
-      previoustrack: () => onAction('previous'),
+      play: () => { keepPlaying(); if (controls) onAction('playpause'); },
+      pause: () => { keepPlaying(); if (controls) onAction('playpause'); },
+      nexttrack: controls ? () => onAction('next') : null,
+      previoustrack: controls ? () => onAction('previous') : null,
       seekforward: null,
       seekbackward: null,
     };
@@ -77,32 +79,45 @@ export function createMediaRemote(onAction) {
     }
   }
 
+  // Either feature needs the audio loop running, which is what makes the phone show Now Playing.
+  const active = () => controls || display;
+
+  function update() {
+    if (active()) {
+      if (!audio) {
+        audio = new Audio(silentLoopUrl());
+        audio.loop = true; // never "ends", so iOS keeps the audio session open
+        audio.setAttribute('playsinline', '');
+        audio.addEventListener('playing', registerHandlers);
+      }
+      keepPlaying();
+      registerHandlers();
+    } else {
+      audio?.pause();
+      clearHandlers();
+      session.metadata = null;
+      session.playbackState = 'none';
+    }
+  }
+
   return {
     // Turning on needs a user gesture (a tap or key press) before audio may start;
     // call resume() from such a gesture if the first attempt was blocked.
-    enable(on) {
+    setControls(on) {
       if (!mediaControlsSupported()) return;
-      enabled = on;
-      if (on) {
-        if (!audio) {
-          audio = new Audio(silentLoopUrl());
-          audio.loop = true; // never "ends", so iOS keeps the audio session open
-          audio.setAttribute('playsinline', '');
-          audio.addEventListener('playing', registerHandlers);
-        }
-        keepPlaying();
-      } else {
-        audio?.pause();
-        clearHandlers();
-        session.metadata = null;
-        session.playbackState = 'none';
-      }
+      controls = on;
+      update();
+    },
+    setDisplay(on) {
+      if (!mediaControlsSupported()) return;
+      display = on;
+      update();
     },
     resume() {
-      if (enabled && audio?.paused) keepPlaying();
+      if (active() && audio?.paused) keepPlaying();
     },
     show(title, artist) {
-      if (!enabled || typeof MediaMetadata === 'undefined') return;
+      if (!active() || typeof MediaMetadata === 'undefined') return;
       session.metadata = new MediaMetadata({
         title,
         artist,

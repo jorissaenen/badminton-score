@@ -26,6 +26,7 @@ const DEFAULT_SETTINGS = {
   autoEnds: true, // swap the scores on screen when the teams change ends
   screenRemote: false, // the whole scoreboard acts as the remote button
   headphones: false, // earbud play/pause, next and previous track act as the remote
+  lockScreen: false, // the score shows in the lock screen's music panel
   voiceURI: '', // '' = best available English voice
   speechRate: 1,
 };
@@ -358,6 +359,13 @@ function showSides(swapped, endsChangedNow) {
 // Only a real change of ends gets the banner, not the manual swap button or a settings change.
 let lastEnds = null;
 
+// The score in the phone's Now Playing panel and on the lock screen, while headphone controls
+// or the lock screen score is on.
+function showNowPlaying() {
+  const score = M.gameScore(M.currentGame(match));
+  mediaRemote.show(`${settings.names[0]} ${score[0]} – ${score[1]} ${settings.names[1]}`, rules.bestOf > 1 ? `Game ${match.games.length}` : 'Badminton');
+}
+
 function render() {
   wakeScreen();
   const ends = M.endsChanged(match, rules);
@@ -381,8 +389,7 @@ function render() {
   $('gameoverEnds').hidden = !over || !settings.autoEnds || M.matchWinner(match, rules) !== null;
   $('gameLabel').textContent = rules.bestOf > 1 ? `Game ${match.games.length}` : 'Game';
   $('hint').textContent = `1 click: ${settings.names[0]} · 2 clicks: ${settings.names[1]} · hold: undo`;
-  // Shown in the phone's Now Playing panel and lock screen while headphone controls are on.
-  mediaRemote.show(`${settings.names[0]} ${score[0]} – ${score[1]} ${settings.names[1]}`, rules.bestOf > 1 ? `Game ${match.games.length}` : 'Badminton');
+  showNowPlaying();
 
   const overlay = $('gameover');
   overlay.hidden = !over;
@@ -469,7 +476,9 @@ $('settingsBtn').addEventListener('click', () => {
   form.autoEnds.checked = settings.autoEnds;
   form.screenRemote.checked = settings.screenRemote;
   form.headphones.checked = settings.headphones;
+  form.lockScreen.checked = settings.lockScreen;
   $('headphonesRow').hidden = !mediaControlsSupported();
+  $('lockScreenRow').hidden = !mediaControlsSupported();
   fillVoices();
   form.speechRate.value = settings.speechRate;
   $('keyTester').textContent = mediaLog.length ? mediaLogText() : 'No key received yet';
@@ -509,6 +518,7 @@ function readForm() {
     autoEnds: form.autoEnds.checked,
     screenRemote: form.screenRemote.checked,
     headphones: form.headphones.checked,
+    lockScreen: form.lockScreen.checked,
     voiceURI: form.voiceURI.value,
     speechRate: Number(form.speechRate.value) || 1,
   };
@@ -520,7 +530,8 @@ function readForm() {
     rules = rulesFrom(settings);
     match = M.newMatch(settings.firstServer);
   }
-  mediaRemote.enable(settings.headphones);
+  mediaRemote.setControls(settings.headphones);
+  mediaRemote.setDisplay(settings.lockScreen);
   save();
   render();
 }
@@ -542,7 +553,11 @@ function updateVoiceOptions() {
 }
 form.voice.addEventListener('change', updateVoiceOptions);
 // Start or stop right on the switch: starting audio is only allowed during a tap.
-form.headphones.addEventListener('change', () => mediaRemote.enable(form.headphones.checked));
+form.headphones.addEventListener('change', () => mediaRemote.setControls(form.headphones.checked));
+form.lockScreen.addEventListener('change', () => {
+  mediaRemote.setDisplay(form.lockScreen.checked);
+  showNowPlaying();
+});
 
 $('testVoice').addEventListener('click', () => {
   Audio.keepOutputAwake(true);
@@ -625,8 +640,10 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
 }
 
-// Headphone controls come back after a reload; audio starts on the first tap or key press.
-mediaRemote.enable(settings.headphones);
+// Headphone controls and the lock screen score come back after a reload; audio starts on the
+// first tap or key press.
+mediaRemote.setControls(settings.headphones);
+mediaRemote.setDisplay(settings.lockScreen);
 
 // ---------- install prompt (browser tabs only) ----------
 

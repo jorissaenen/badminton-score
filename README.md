@@ -41,6 +41,9 @@ browser tab that supports it; the installed app already opens fullscreen.
   the scores swap sides on screen so each team's score stays on its own side of the court. A
   "Change ends" banner and call announce it. The ⇄ button still lines the screen up with the court.
 - Settings show the app version and what was detected about the device, for troubleshooting
+- Optional *Score on lock screen* (off by default): the score shows in the lock screen's music panel
+  and the phone's Now Playing, without needing headphones. Like *Headphone controls* it plays
+  inaudible audio to keep that panel up, which uses a little battery
 - Keeps the screen awake, saves the match across reloads, works offline once loaded
 - Opened in a browser tab, it immediately offers to install itself. Where the browser allows it
   (Chrome, Edge, Samsung Internet, Vivaldi on Android and desktop) that's a one-tap *Install*
