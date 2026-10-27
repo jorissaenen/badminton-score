@@ -616,6 +616,19 @@ document.addEventListener('click', (e) => {
 }, true);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wakeScreen(); });
 
+// Switching to another app (or locking the phone) releases all audio, so Spotify, Instagram or
+// another app's microphone aren't blocked by the app's silent sounds. Coming back restarts them at
+// the first tap or remote press (iOS only allows starting audio from one).
+function releaseAudio() {
+  mediaRemote.suspend();
+  Audio.release();
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') releaseAudio();
+  else render(); // puts the score back in Now Playing
+});
+window.addEventListener('pagehide', releaseAudio);
+
 // ---------- keep the screen on ----------
 
 let wakeLock = null;

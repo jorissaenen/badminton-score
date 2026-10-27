@@ -83,6 +83,20 @@ export function keepOutputAwake(on) {
   } catch { /* no Web Audio */ }
 }
 
+// Give the phone's audio back when the app goes to the background: stop the keep-awake tone,
+// any speech, and suspend the audio context. Otherwise iOS treats the app as still playing, which
+// interrupts music apps and blocks other apps' microphones. Audio starts again on the next beep,
+// call or keepOutputAwake().
+export function release() {
+  clearTimeout(pending);
+  try {
+    if (speechSupported()) speechSynthesis.cancel();
+    keepAlive?.stop();
+    keepAlive = null;
+    if (ctx && ctx.state === 'running') ctx.suspend().catch(() => {});
+  } catch { /* no Web Audio */ }
+}
+
 export function beep(freq, count = 1) {
   try {
     const c = audioContext();

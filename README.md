@@ -116,7 +116,8 @@ under Settings → Apps → Safari → Advanced → Website Data, and add it to 
 Vector icons from open-source sets, used under their licenses:
 
 - Shuttlecock (app icon, serve marker): [Hugeicons](https://github.com/hugeicons/hugeicons-react) (free set), MIT
-- Settings, undo, swap, fullscreen: [Lucide](https://lucide.dev), ISC
+- Settings, undo, swap, fullscreen, pencil, dice: [Lucide](https://lucide.dev), ISC
+- Remote control: [Tabler Icons](https://tabler.io/icons), MIT
 
 The PNG app icons in `icons/` are rendered from `icons/shuttlecock.svg`.
 

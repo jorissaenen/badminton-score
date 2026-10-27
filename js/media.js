@@ -81,7 +81,7 @@ export function createMediaRemote(onAction) {
 
   function keepPlaying() {
     clearTimeout(resumeTimer);
-    if (!enabled) return;
+    if (!enabled || document.visibilityState === 'hidden') return; // never play in the background
     if (speaking()) {
       resumeTimer = setTimeout(keepPlaying, 300); // don't cut off the score call
       return;
@@ -90,8 +90,11 @@ export function createMediaRemote(onAction) {
     session.playbackState = 'playing';
   }
 
+  // In the background the app isn't in use: no command may score, beep or restart audio.
+  const background = () => document.visibilityState === 'hidden';
+
   function command(raw) {
-    const ignored = playPauseIgnoreReason({
+    const ignored = background() ? 'background' : playPauseIgnoreReason({
       raw,
       position: audio?.currentTime ?? 0,
       duration: audio?.duration ?? NaN,
@@ -113,8 +116,8 @@ export function createMediaRemote(onAction) {
     const handlers = {
       play: () => command('play'),
       pause: () => command('pause'),
-      nexttrack: () => onAction('next', { raw: 'nexttrack', ignored: null }),
-      previoustrack: () => onAction('previous', { raw: 'previoustrack', ignored: null }),
+      nexttrack: () => onAction('next', { raw: 'nexttrack', ignored: background() ? 'background' : null }),
+      previoustrack: () => onAction('previous', { raw: 'previoustrack', ignored: background() ? 'background' : null }),
       seekforward: null,
       seekbackward: null,
     };
@@ -154,6 +157,14 @@ export function createMediaRemote(onAction) {
     },
     resume() {
       if (enabled && audio?.paused) keepPlaying();
+    },
+    // In the background: stop the silent loop and leave Now Playing, so music apps and other apps'
+    // microphones aren't blocked. The handlers stay; resume() restarts on the next tap or press.
+    suspend() {
+      clearTimeout(resumeTimer);
+      audio?.pause();
+      session.playbackState = 'none';
+      session.metadata = null;
     },
     // Ignore media commands for a short while, e.g. around a beep, speech or screen tap.
     quiet(ms = 1500) {

@@ -68,7 +68,7 @@ export function createMatchSetup({ dialog, onStart, onDraw }) {
 
   for (const t of teams) {
     t.addEventListener('click', (e) => {
-      if (e.target.closest('input')) return; // typing a name doesn't pick the server
+      if (e.target.closest('.setup-name-row')) return; // editing a name doesn't pick the server
       setServer(Number(t.dataset.team));
     });
   }
