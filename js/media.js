@@ -47,10 +47,19 @@ export function createMediaRemote(onAction) {
   const session = navigator.mediaSession;
   let audio = null;
   let enabled = false;
+  // Until this time, media commands are ignored: the app itself just started speech or a beep,
+  // or the screen was tapped, and iOS may pause the silent loop because of that. Such a pause is
+  // not an earbud press, so it must not score a point.
+  let quietUntil = 0;
 
   function keepPlaying() {
     audio?.play().catch(() => {});
     session.playbackState = 'playing';
+  }
+
+  function command(action) {
+    keepPlaying(); // whatever iOS did, keep the loop running
+    if (Date.now() >= quietUntil) onAction(action);
   }
 
   // iOS ignores handlers registered before the audio became Now Playing, so (re)register them
@@ -58,8 +67,8 @@ export function createMediaRemote(onAction) {
   function registerHandlers() {
     if (!enabled) return;
     const handlers = {
-      play: () => { keepPlaying(); onAction('playpause'); },
-      pause: () => { keepPlaying(); onAction('playpause'); },
+      play: () => command('playpause'),
+      pause: () => command('playpause'),
       nexttrack: () => onAction('next'),
       previoustrack: () => onAction('previous'),
       seekforward: null,
@@ -100,6 +109,10 @@ export function createMediaRemote(onAction) {
     },
     resume() {
       if (enabled && audio?.paused) keepPlaying();
+    },
+    // Ignore media commands for a short while, e.g. around a beep, speech or screen tap.
+    quiet(ms = 1500) {
+      quietUntil = Math.max(quietUntil, Date.now() + ms);
     },
     show(title, artist) {
       if (!enabled || typeof MediaMetadata === 'undefined') return;

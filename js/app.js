@@ -62,16 +62,19 @@ function save() {
 // ---------- feedback: sound, speech, toast ----------
 
 function beep(freq, count = 1) {
+  mediaRemote.quiet(); // a beep can interrupt the audio session on iOS
   if (settings.beep) Audio.beep(freq, count);
 }
 
 function say(text) {
+  mediaRemote.quiet(); // speech can interrupt the audio session on iOS
   if (settings.voice) Audio.say(text, { voiceURI: settings.voiceURI, rate: settings.speechRate });
 }
 
 // Audio may only start after a user gesture; a remote press or tap counts.
 function startAudio() {
   Audio.keepOutputAwake(settings.voice);
+  mediaRemote.quiet(); // a tap on the screen is not an earbud press
   mediaRemote.resume(); // headphone controls need a tap or key press before audio may start
 }
 window.addEventListener('keydown', startAudio);
