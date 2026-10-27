@@ -7,31 +7,40 @@
 
 // Long on purpose: iOS can report a play/pause each time a loop starts over (a 2-second loop
 // produced one every ~1.9 s, each scoring a point), so restarts should be rare.
-export const LOOP_SECONDS = 600;
+export const LOOP_SECONDS = 180;
 
 function silentLoopUrl(seconds = LOOP_SECONDS, rate = 8000) {
-  // 8-bit mono WAV whose samples are 128 ± 1: far below hearing, but not "digital silence",
-  // which some systems skip when choosing what's Now Playing. 10 minutes is about 4.8 MB.
+  // 16-bit mono WAV whose samples are ±1 out of ±32767 (about -90 dB): inaudible, but not
+  // "digital silence", which some systems skip when choosing what's Now Playing. It must stay
+  // 16-bit: in 8-bit the same ±1 is only -42 dB, and alternating it is an audible 4 kHz whine.
+  // 3 minutes is about 2.9 MB.
   const samples = seconds * rate;
-  const buf = new ArrayBuffer(44 + samples);
+  const buf = new ArrayBuffer(44 + samples * 2);
   const v = new DataView(buf);
   const text = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
-  text(0, 'RIFF'); v.setUint32(4, 36 + samples, true); text(8, 'WAVE');
+  text(0, 'RIFF'); v.setUint32(4, 36 + samples * 2, true); text(8, 'WAVE');
   text(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
-  v.setUint32(24, rate, true); v.setUint32(28, rate, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
-  text(36, 'data'); v.setUint32(40, samples, true);
-  const data = new Uint8Array(buf, 44);
-  for (let i = 0; i < samples; i++) data[i] = i % 2 ? 129 : 127;
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  text(36, 'data'); v.setUint32(40, samples * 2, true);
+  const data = new Int16Array(buf, 44);
+  for (let i = 0; i < samples; i++) data[i] = i % 2 ? 1 : -1;
   return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
+
+// While the voice is speaking, iOS pauses the silent loop; restarting the loop then cuts the
+// speech off. So the loop waits until the voice is done.
+function speaking() {
+  const s = globalThis.speechSynthesis;
+  return Boolean(s && (s.speaking || s.pending));
 }
 
 // Decide whether a play/pause command is a real press. Returns null for a real press, or the
 // reason to ignore it. The app keeps the loop playing at all times, so a real press on earbuds
 // or a watch always arrives as 'pause'; a 'play' means the system restarted the sound itself.
-export function playPauseIgnoreReason({ raw, position, duration, now, quietUntil }) {
+export function playPauseIgnoreReason({ raw, position, duration, now, quietUntil, speaking = false }) {
   if (raw === 'play') return 'system play';
+  if (speaking || now < quietUntil) return 'own sound';
   if (position < 1 || (Number.isFinite(duration) && duration - position < 1)) return 'loop restart';
-  if (now < quietUntil) return 'own sound';
   return null;
 }
 
@@ -68,7 +77,15 @@ export function createMediaRemote(onAction) {
   // not an earbud press, so it must not score a point.
   let quietUntil = 0;
 
+  let resumeTimer = null;
+
   function keepPlaying() {
+    clearTimeout(resumeTimer);
+    if (!enabled) return;
+    if (speaking()) {
+      resumeTimer = setTimeout(keepPlaying, 300); // don't cut off the score call
+      return;
+    }
     audio?.play().catch(() => {});
     session.playbackState = 'playing';
   }
@@ -80,6 +97,7 @@ export function createMediaRemote(onAction) {
       duration: audio?.duration ?? NaN,
       now: Date.now(),
       quietUntil,
+      speaking: speaking(),
     });
     // Restart the loop only if the system really stopped it; calling play() on every command
     // could itself make the system report more play/pause commands.
@@ -127,6 +145,7 @@ export function createMediaRemote(onAction) {
         }
         keepPlaying();
       } else {
+        clearTimeout(resumeTimer);
         audio?.pause();
         clearHandlers();
         session.metadata = null;
