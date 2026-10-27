@@ -35,3 +35,14 @@ test('a different command is always a new press', () => {
   wait(100);
   assert.equal(isRepeat('playpause'), false);
 });
+
+test('only a pause away from a loop restart counts as a real play/pause press', async () => {
+  const { playPauseIgnoreReason } = await import('../js/media.js');
+  const base = { position: 120, duration: 600, now: 10_000, quietUntil: 0 };
+  assert.equal(playPauseIgnoreReason({ ...base, raw: 'pause' }), null, 'earbud press while playing');
+  assert.equal(playPauseIgnoreReason({ ...base, raw: 'play' }), 'system play');
+  assert.equal(playPauseIgnoreReason({ ...base, raw: 'pause', position: 0.4 }), 'loop restart');
+  assert.equal(playPauseIgnoreReason({ ...base, raw: 'pause', position: 599.5 }), 'loop restart');
+  assert.equal(playPauseIgnoreReason({ ...base, raw: 'pause', quietUntil: 11_000 }), 'own sound');
+  assert.equal(playPauseIgnoreReason({ ...base, raw: 'pause', duration: NaN }), null, 'unknown duration');
+});

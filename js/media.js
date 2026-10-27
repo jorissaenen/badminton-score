@@ -5,19 +5,34 @@
 // app plays an inaudible audio loop to become the Now Playing item, and listens through the
 // Media Session API. The Now Playing panel (and lock screen) then also shows the score.
 
-function silentLoopUrl(seconds = 2, rate = 8000) {
-  // A tiny 16-bit mono WAV whose samples are ±1: far below hearing, but not "digital silence",
-  // which some systems skip when choosing what's Now Playing.
+// Long on purpose: iOS can report a play/pause each time a loop starts over (a 2-second loop
+// produced one every ~1.9 s, each scoring a point), so restarts should be rare.
+export const LOOP_SECONDS = 600;
+
+function silentLoopUrl(seconds = LOOP_SECONDS, rate = 8000) {
+  // 8-bit mono WAV whose samples are 128 ± 1: far below hearing, but not "digital silence",
+  // which some systems skip when choosing what's Now Playing. 10 minutes is about 4.8 MB.
   const samples = seconds * rate;
-  const buf = new ArrayBuffer(44 + samples * 2);
+  const buf = new ArrayBuffer(44 + samples);
   const v = new DataView(buf);
   const text = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
-  text(0, 'RIFF'); v.setUint32(4, 36 + samples * 2, true); text(8, 'WAVE');
+  text(0, 'RIFF'); v.setUint32(4, 36 + samples, true); text(8, 'WAVE');
   text(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
-  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
-  text(36, 'data'); v.setUint32(40, samples * 2, true);
-  for (let i = 0; i < samples; i++) v.setInt16(44 + i * 2, i % 2 ? 1 : -1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+  text(36, 'data'); v.setUint32(40, samples, true);
+  const data = new Uint8Array(buf, 44);
+  for (let i = 0; i < samples; i++) data[i] = i % 2 ? 129 : 127;
   return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
+
+// Decide whether a play/pause command is a real press. Returns null for a real press, or the
+// reason to ignore it. The app keeps the loop playing at all times, so a real press on earbuds
+// or a watch always arrives as 'pause'; a 'play' means the system restarted the sound itself.
+export function playPauseIgnoreReason({ raw, position, duration, now, quietUntil }) {
+  if (raw === 'play') return 'system play';
+  if (position < 1 || (Number.isFinite(duration) && duration - position < 1)) return 'loop restart';
+  if (now < quietUntil) return 'own sound';
+  return null;
 }
 
 export function mediaControlsSupported() {
@@ -42,7 +57,8 @@ export function createRepeatFilter(gapMs = REPEAT_GAP_MS, now = () => performanc
   };
 }
 
-// onAction receives 'playpause', 'next' or 'previous'.
+// onAction receives 'playpause', 'next' or 'previous', plus { raw, ignored }: the browser's own
+// action name and, for commands that are not real presses, why they were ignored.
 export function createMediaRemote(onAction) {
   const session = navigator.mediaSession;
   let audio = null;
@@ -57,9 +73,19 @@ export function createMediaRemote(onAction) {
     session.playbackState = 'playing';
   }
 
-  function command(action) {
-    keepPlaying(); // whatever iOS did, keep the loop running
-    if (Date.now() >= quietUntil) onAction(action);
+  function command(raw) {
+    const ignored = playPauseIgnoreReason({
+      raw,
+      position: audio?.currentTime ?? 0,
+      duration: audio?.duration ?? NaN,
+      now: Date.now(),
+      quietUntil,
+    });
+    // Restart the loop only if the system really stopped it; calling play() on every command
+    // could itself make the system report more play/pause commands.
+    if (audio?.paused) keepPlaying();
+    else session.playbackState = 'playing';
+    onAction('playpause', { raw, ignored });
   }
 
   // iOS ignores handlers registered before the audio became Now Playing, so (re)register them
@@ -67,10 +93,10 @@ export function createMediaRemote(onAction) {
   function registerHandlers() {
     if (!enabled) return;
     const handlers = {
-      play: () => command('playpause'),
-      pause: () => command('playpause'),
-      nexttrack: () => onAction('next'),
-      previoustrack: () => onAction('previous'),
+      play: () => command('play'),
+      pause: () => command('pause'),
+      nexttrack: () => onAction('next', { raw: 'nexttrack', ignored: null }),
+      previoustrack: () => onAction('previous', { raw: 'previoustrack', ignored: null }),
       seekforward: null,
       seekbackward: null,
     };

@@ -250,19 +250,21 @@ const mediaLog = [];
 function mediaLogText() {
   return 'headphones / watch: ' + mediaLog.map((m, i) => {
     const gap = i ? ` +${((m.at - mediaLog[i - 1].at) / 1000).toFixed(1)}s` : '';
-    return `${MEDIA_NAMES[m.action]}${gap}${m.repeat ? ' (repeat, ignored)' : ''}`;
+    const name = m.raw === 'play' || m.raw === 'pause' ? m.raw : MEDIA_NAMES[m.action];
+    return `${name}${gap}${m.ignored ? ` (${m.ignored}, ignored)` : ''}`;
   }).join(' · ');
 }
 
-const mediaRemote = createMediaRemote((action) => {
-  const repeat = isMediaRepeat(action);
-  mediaLog.push({ action, repeat, at: performance.now() });
+const mediaRemote = createMediaRemote((action, { raw, ignored } = {}) => {
+  // System-made commands don't count, and don't reset the repeat filter either.
+  const why = ignored ?? (isMediaRepeat(action) ? 'repeat' : null);
+  mediaLog.push({ action, raw, ignored: why, at: performance.now() });
   if (mediaLog.length > 6) mediaLog.shift();
   if ($('settings').open) {
     $('keyTester').textContent = mediaLogText();
     return;
   }
-  if (repeat) return;
+  if (why) return;
   wakeScreen();
   onGesture(MEDIA_GESTURES[action]);
 });
