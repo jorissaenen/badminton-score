@@ -21,6 +21,12 @@ browser tab that supports it; the installed app already opens fullscreen.
 
 - BWF rally scoring: 21 points, win by 2, capped at 30 (15- and 11-point formats too)
 - Best of 1, 3 or 5 games; the game winner serves first in the next game
+- *New match* pop-up (⚙ → New match, or after a match is won): a mini court shows both teams where
+  they'll be on screen. Tap ⇄ to swap sides, type team names if you like, and tap a team to serve
+  first, or tap *Random*. The remote works there too: 1 click switches the server, 2 clicks draws
+  at random, a long press starts the match. *Random* uses the browser's cryptographically secure
+  generator (`crypto.getRandomValues`, Web Crypto API; see `js/random.js`): one random bit, so
+  each team has exactly a 50 % chance and the outcome can't be predicted or steered.
 - Shuttle icon marks the serving team; the score call puts the server's score first, as umpires do
 - Optional spoken score calls ("11 9", "Game, Home") and beeps confirming each remote gesture,
   so you know the press registered without looking. The app picks the best English voice on the

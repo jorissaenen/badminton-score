@@ -5,6 +5,7 @@ import { isInstalled, setupInstallPrompt, installStatus } from './install.js';
 import { BreakTimer, INTERVAL_SECONDS, BETWEEN_GAMES_SECONDS, formatClock } from './breaks.js';
 import { watchLayout } from './layout.js';
 import { createMediaRemote, createRepeatFilter, mediaControlsSupported } from './media.js';
+import { createMatchSetup } from './setup.js';
 
 watchLayout();
 
@@ -173,7 +174,7 @@ function continueAfterGame() {
   if (!M.isGameOver(match, rules)) return;
   stopBreak();
   if (M.matchWinner(match, rules) !== null) {
-    startNewMatch();
+    openMatchSetup();
     return;
   }
   match = M.nextGame(match, rules);
@@ -191,7 +192,23 @@ function startNewMatch() {
   save();
   render();
   toast('New match');
-  say('New match');
+  say(`New match. ${settings.names[settings.firstServer]} to serve`);
+}
+
+// ---------- new match pop-up ----------
+
+const matchSetup = createMatchSetup({
+  dialog: $('matchSetup'),
+  onDraw: (name) => say(`${name} to serve`),
+  onStart({ names, swapped, firstServer }) {
+    settings = { ...settings, names, swapped, firstServer };
+    startNewMatch();
+  },
+});
+
+function openMatchSetup() {
+  resetRemotes();
+  matchSetup.show({ names: settings.names, swapped: settings.swapped, firstServer: settings.firstServer });
 }
 
 // ---------- intervals and breaks (optional, official timings) ----------
@@ -270,6 +287,11 @@ const mediaRemote = createMediaRemote((action, { raw, ignored } = {}) => {
 });
 
 function onGesture(gesture) {
+  if (matchSetup.open) {
+    beep(gesture === 'double' ? 660 : gesture === 'long' ? 440 : 880, gesture === 'double' ? 2 : 1);
+    matchSetup.gesture(gesture);
+    return;
+  }
   const over = M.isGameOver(match, rules);
   if (gesture === 'single') { beep(880); point(0); }
   else if (gesture === 'double') { beep(660, 2); point(1); }
@@ -302,6 +324,8 @@ function onKey(e) {
     $('keyTester').textContent = describeKey(e);
     return; // let the form work normally
   }
+  // Typing a team name in the new match pop-up is typing, not the remote.
+  if (matchSetup.open && e.target.closest?.('input')) return;
   // Stop Enter/Space from activating buttons and keys from scrolling the page.
   e.preventDefault();
   wakeScreen();
@@ -460,11 +484,8 @@ const form = $('settingsForm');
 
 $('settingsBtn').addEventListener('click', () => {
   resetRemotes();
-  form.name0.value = settings.names[0];
-  form.name1.value = settings.names[1];
   form.points.value = settings.points;
   form.bestOf.value = settings.bestOf;
-  form.firstServer.value = settings.firstServer;
   form.voice.checked = settings.voice;
   form.beep.checked = settings.beep;
   form.longPressMs.value = settings.longPressMs;
@@ -501,10 +522,8 @@ function readForm() {
   };
   settings = {
     ...settings,
-    names: [form.name0.value.trim() || 'Home', form.name1.value.trim() || 'Away'],
     points: Number(form.points.value),
     bestOf: Number(form.bestOf.value),
-    firstServer: Number(form.firstServer.value),
     voice: form.voice.checked,
     beep: form.beep.checked,
     longPressMs: num(form.longPressMs.value, 300, 3000, DEFAULT_TIMING.longPressMs),
@@ -520,7 +539,7 @@ function readForm() {
   Audio.keepOutputAwake(settings.voice);
   remote.setTiming(timing());
   mouseRemote.setTiming(timing());
-  // A match that hasn't started yet can pick up new rules and first server right away.
+  // A match that hasn't started yet can pick up new rules right away.
   if (match.games.length === 1 && match.games[0].rallies.length === 0) {
     rules = rulesFrom(settings);
     match = M.newMatch(settings.firstServer);
@@ -560,10 +579,8 @@ $('settings').addEventListener('close', () => {
 });
 
 $('resetBtn').addEventListener('click', () => {
-  if (!confirm('Start a new match? The current score will be lost.')) return;
-  readForm();
-  startNewMatch();
-  $('settings').close();
+  $('settings').close(); // saves the settings
+  openMatchSetup();
 });
 
 // ---------- screen sleep ----------
