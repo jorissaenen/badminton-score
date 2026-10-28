@@ -1,8 +1,12 @@
 # Setting up Firebase
 
-You need two Firebase projects: **badminton-dev** for the beta and **badminton-prod** for the
-real season. They are set up the same way. Start with **badminton-dev**; the production project
-can wait until the beta works.
+You need two Firebase projects, set up the same way:
+
+- **badminton-dev** — mock data, used by the **alpha** (`…/alpha/`). Created: `badminton-dev-bc258`.
+- **badminton-prod** — the real data, used by the **beta** (`…/beta/`, test friends) and
+  **production** (`…/`, the club).
+
+Start with **badminton-dev**; the production project can wait until the alpha works.
 
 It takes about 15 minutes per project. You need a Google account; the Blaze step also needs a
 payment card.
@@ -74,5 +78,5 @@ through the chat.
 ## Later: the production project
 
 Repeat steps 1–4 with the name `badminton-prod` (and step 5 when needed), and send me its
-`firebaseConfig` too. The beta then uses `badminton-dev` and the released app uses
-`badminton-prod`, so test data never mixes with the season's real results.
+`firebaseConfig` too. The alpha keeps using `badminton-dev` with its mock data; the beta and the
+released app use `badminton-prod`, so mock data never mixes with the season's real results.

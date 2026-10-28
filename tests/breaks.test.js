@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BreakTimer, formatClock } from '../beta/js/breaks.js';
+import { BreakTimer, formatClock } from '../alpha/js/breaks.js';
 
 function fakeClock() {
   let now = 0;

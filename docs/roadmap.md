@@ -6,34 +6,39 @@ owner can do (accounts, settings, payments).
 
 Rough sizes: S = a few hours, M = a day or two, L = several days.
 
-## Phase 0 — Production and beta side by side
+## Phase 0 — Alpha, beta and production side by side
 
-Result: `…/badminton-score/` stays v28; `…/badminton-score/beta/` shows the newest version.
+Result: `…/badminton-score/` stays v28; `/beta/` is for test friends; `/alpha/` is where new
+features are built, on mock data.
 
 - [x] Freeze v28 in branch `release/v28`
-- [x] Copy the app to `beta/` (v29), served at `…/badminton-score/beta/`; production files in the
-      site root are not touched
-- [x] Separate beta from production: storage keys, cache names, service worker scope, manifest id
-      and name, "β" badge on icon and screen; first start copies production's settings (read-only)
-- [x] Unit tests run against `beta/`
+- [x] Copy the app to `beta/` (v29) and `alpha/` (v30); production files in the site root are not
+      touched
+- [x] Separate the editions: storage keys, cache names, service worker scope, manifest id and name,
+      α/β badge on icon and screen; first start copies production's settings (read-only)
+- [x] Unit tests run against `alpha/`
 - [x] Firebase setup guide for you: [firebase-setup.md](firebase-setup.md)
-- [ ] Release checklist in the README: test in beta → copy `beta/` over the root with production
-      names → `release/vNN` (S)
-- Production's v28 service worker deletes other caches only when production itself updates; the
-  beta then simply rebuilds its offline copy. Not worth changing v28 for.
+- [x] **You:** Firebase project `badminton-dev` with web app (`badminton-dev-bc258`) — for alpha
+- [ ] Release checklist in the README: alpha → beta → production (S)
 
 ## Phase 1 — Foundation: build step, Firebase, sign-in
 
-Result: you can sign in to the beta with Google or an e-mail link.
+Result: you can sign in to the alpha with Google or an e-mail link.
 
-- [ ] **You:** create Firebase project `badminton-dev` (later also `badminton-prod`) following
-      [firebase-setup.md](firebase-setup.md); send me the `firebaseConfig`
+- [ ] **You:** in `badminton-dev`, turn on sign-in and create the database (steps 3 and 4 of
+      [firebase-setup.md](firebase-setup.md))
+- [ ] **You:** create `badminton-prod` the same way (for beta and production) and send me its
+      `firebaseConfig`
 - [ ] Decide when the build step arrives: commit the built beta into `beta/` from a GitHub Actions
       workflow, or switch Pages to "GitHub Actions" as its source (S)
 - [ ] Move the app to a Vite build, keeping the scoring code unchanged; tests in CI (M)
 - [ ] Firebase Authentication: Google and e-mail link (no Apple sign-in) (M)
 - [ ] Firestore with offline persistence; Firebase Emulator Suite for local tests (S)
 - [ ] Security rules skeleton with automated rule tests (M)
+- [ ] Mock data generator for alpha: a season with players, sessions, matches, keepers and
+      corrections; "reset demo data" in alpha only (M)
+- [ ] Data compatibility between beta and production: `schemaVersion` on documents, additive
+      changes, one-off migrations at release (S)
 - [ ] Account screen: name, photo, sign out, delete account (S)
 
 ## Phase 2 — Seasons, members, roles, invitations

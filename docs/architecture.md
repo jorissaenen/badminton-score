@@ -54,27 +54,35 @@ loses its connection catches up automatically.
 
 ## 3. Environments and releases
 
-| Environment | Code branch | Web address | Firebase project | Purpose |
-|---|---|---|---|---|
-| Production | `main`, site root (v28; also frozen in branch `release/v28`) | `…/badminton-score/` | `badminton-prod` | What the club uses |
-| Beta | `main`, folder `beta/` (v29) | `…/badminton-score/beta/` | `badminton-dev` | Testing new versions with real phones |
-| Local | any | `localhost` | Firebase Emulator Suite | Development and automated tests |
+Features ripen in three steps: **alpha** (built and tested end to end with mock data), **beta**
+(tried by test friends on the real data), **production** (the whole club, once stable).
 
-- **Both live in `main`:** production in the site root, the beta in the `beta/` folder; GitHub
-  Pages serves the folder at `/beta/` without any settings change. Once the app gets a build step
-  (phase 1), a GitHub Actions workflow builds the beta into `beta/`, or Pages switches to "GitHub
-  Actions" as its source.
-- **Beta is fully separated from production** on the same domain:
-  - its own service worker scope (`/beta/`) and cache names (`badminton-score-beta-…`), and it only
-    cleans up its own caches; v28 deletes other caches only when production itself updates, after
-    which the beta simply re-caches;
-  - its own storage keys (`badminton-score-beta-…`), so testing never touches production scores;
-  - its own manifest (`id`, name "Badminton Score β", a beta badge on the icon), so both can be
-    installed side by side;
-  - its own Firebase project, so test data never mixes with the season's real results.
-- **Release:** when the beta has been tested, copy `beta/` over the site root with production's
-  names (storage key, cache prefix, manifest, no β), bump the version, and keep a `release/vNN`
-  branch per release for a quick rollback.
+| Edition | Folder in `main` | Web address | Firebase project | Data | Used by |
+|---|---|---|---|---|---|
+| Alpha | `alpha/` (v30) | `…/badminton-score/alpha/` | `badminton-dev` (`badminton-dev-bc258`) | Mock data | Development, end-to-end tests |
+| Beta | `beta/` (v29) | `…/badminton-score/beta/` | `badminton-prod` | Real data | Test friends |
+| Production | site root (v28; also branch `release/v28`) | `…/badminton-score/` | `badminton-prod` | Real data | The club |
+| Local | any | `localhost` | Firebase Emulator Suite | Throw-away | Automated tests |
+
+- **All three live in `main`:** production in the site root, the others in their folders; GitHub
+  Pages serves the folders at `/alpha/` and `/beta/` without any settings change. Once the app gets
+  a build step, a GitHub Actions workflow builds each edition into its folder, or Pages switches to
+  "GitHub Actions" as its source.
+- **Each edition is fully separated** on the same domain: its own service worker scope and cache
+  names (each only cleans up its own caches), storage keys, manifest (name, id, α or β badge on the
+  icon and on screen) and Firebase config, all in its `js/edition.js`. v28 deletes other caches
+  only when production itself updates; the editions then simply re-cache.
+- **Mock data in alpha:** the alpha project holds a generated season (players, sessions, matches,
+  keepers, corrections) so every screen and statistic can be tested end to end. A "reset demo data"
+  action, available only in alpha, regenerates it.
+- **Beta and production share the real data.** A beta feature therefore must not break
+  production: new fields are added, never renamed or removed while production still reads them;
+  each document carries a `schemaVersion`; when a change can't be compatible, a one-off migration
+  runs when that feature is released to production. Beta-only features stay invisible in
+  production until released.
+- **Release flow:** alpha → beta: copy `alpha/` into `beta/` with beta's edition settings.
+  Beta → production: copy `beta/` over the site root with production's settings (no badge),
+  bump the version, and keep a `release/vNN` branch for a quick rollback.
 
 ## 4. Front-end
 

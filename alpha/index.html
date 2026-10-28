@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="Badminton scoreboard controlled by a Bluetooth camera remote.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Badminton Score α</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/shuttlecock.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/shuttle-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/shuttle-apple-180.png">
+  <link rel="stylesheet" href="css/styles.css">
+  <!-- Pick the first layout before anything is drawn; js/layout.js keeps it up to date. -->
+  <script>document.documentElement.classList.toggle('landscape', innerWidth > innerHeight); document.documentElement.classList.toggle('short', innerWidth > innerHeight && innerHeight <= 500);</script>
+</head>
+<body>
+  <!-- Icons: shuttlecock from Hugeicons (MIT), UI icons from Lucide (ISC). See README. -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-shuttle" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.5"><path stroke-linecap="round" d="M3.927 4.38c1.086-.571 2.527-.851 3.968-.158c2.053-2.963 6.157-2.963 8.21 0c1.44-.693 2.882-.413 3.968.157c.502.264.753.396.881.773c.129.378-.024.697-.33 1.336l-4.407 9.206c-.209.435-.313.653-.361.855c-.049.202-.062.76-.089 1.877C15.722 20.353 14.48 22 12 22s-3.721-1.648-3.767-3.574c-.027-1.117-.04-1.675-.089-1.877s-.152-.42-.36-.855L3.375 6.488c-.306-.64-.459-.958-.33-1.336c.128-.377.379-.509.881-.773"/><path d="M8 17h8M8 4l3 13m5-13l-3 13m-7-5c1.2 1.333 2.8 1.333 4 0c1.2 1.333 2.8 1.333 4 0c1.2 1.333 2.8 1.333 4 0"/></g></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0a2.34 2.34 0 0 0 3.319 1.915a2.34 2.34 0 0 1 2.33 4.033a2.34 2.34 0 0 0 0 3.831a2.34 2.34 0 0 1-2.33 4.033a2.34 2.34 0 0 0-3.319 1.915a2.34 2.34 0 0 1-4.659 0a2.34 2.34 0 0 0-3.32-1.915a2.34 2.34 0 0 1-2.33-4.033a2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></g></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></g></symbol>
+    <symbol id="i-swap" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 3L4 7l4 4M4 7h16m-4 14l4-4l-4-4m4 4H4"/></symbol>
+    <symbol id="i-maximize" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3"/></symbol>
+    <symbol id="i-minimize" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3m8 0v-3a2 2 0 0 1 2-2h3"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v13m4-9l-4-4l-4 4m-4 6v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></g></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M12 15V3m9 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10l5 5l5-5"/></g></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></g></symbol>
+    <symbol id="i-add" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8m-4-4v8"/></g></symbol>
+    <symbol id="i-dice" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect width="12" height="12" x="2" y="10" rx="2" ry="2"/><path d="m17.92 14l3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6M6 18h.01M10 14h.01M15 6h.01M18 9h.01"/></g></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497zM15 5l4 4"/></symbol>
+    <symbol id="i-remote" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M10 10a2 2 0 1 0 4 0a2 2 0 1 0-4 0"/><path d="M7 5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2zm5-2v2m-2 10v.01M10 18v.01m4-.01v.01M14 15v.01"/></g></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 6L6 18M6 6l12 12"/></symbol>
+  </svg>
+  <main id="board" class="board">
+    <section class="team" data-team="0" aria-label="Home team">
+      <div class="team-head">
+        <svg class="serve" aria-label="Serving"><use href="#i-shuttle"/></svg>
+        <span class="team-name" id="name0">Home</span>
+      </div>
+      <div class="score" id="score0">0</div>
+      <div class="games" id="games0" aria-label="Games won"></div>
+    </section>
+    <section class="team" data-team="1" aria-label="Away team">
+      <div class="team-head">
+        <svg class="serve" aria-label="Serving"><use href="#i-shuttle"/></svg>
+        <span class="team-name" id="name1">Away</span>
+      </div>
+      <div class="score" id="score1">0</div>
+      <div class="games" id="games1" aria-label="Games won"></div>
+    </section>
+
+    <div id="interval" class="gameover" hidden>
+      <div class="gameover-card">
+        <div class="gameover-title" id="intervalTitle">Interval</div>
+        <div class="break-clock" id="intervalClock">1:00</div>
+        <div class="gameover-hint">Long press the remote (or score the next point) to end the interval</div>
+        <button type="button" class="btn primary" id="resumeBtn" tabindex="-1">Resume now</button>
+      </div>
+    </div>
+
+    <div id="gameover" class="gameover" hidden>
+      <div class="gameover-card">
+        <div class="gameover-title" id="gameoverTitle"></div>
+        <div class="gameover-sub" id="gameoverSub"></div>
+        <div class="break-timer" id="breakTimer" hidden><span class="break-label">Break</span><span class="break-clock" id="breakClock">2:00</span></div>
+        <div class="gameover-ends" id="gameoverEnds" hidden><svg aria-hidden="true"><use href="#i-swap"/></svg> Teams change ends</div>
+        <div class="gameover-hint">Long press the remote to <span id="gameoverAction">start the next game</span></div>
+        <button type="button" class="btn primary" id="nextBtn" tabindex="-1">Start next game</button>
+      </div>
+    </div>
+
+    <div id="changeEnds" class="change-ends" role="status" hidden><svg aria-hidden="true"><use href="#i-swap"/></svg><span>Change ends</span></div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </main>
+
+  <footer class="bar">
+    <span class="game-label" id="gameLabel">Game 1</span>
+    <span class="beta-tag" title="Alpha version v30 (mock data)">α<span class="beta-version"> v30</span></span>
+    <span class="hint" id="hint">1 click: home · 2 clicks: away · hold: undo</span>
+    <span class="bar-buttons">
+      <button type="button" class="btn icon" id="undoBtn" title="Undo last point" tabindex="-1"><svg><use href="#i-undo"/></svg></button>
+      <button type="button" class="btn icon" id="swapBtn" title="Swap sides on screen" tabindex="-1"><svg><use href="#i-swap"/></svg></button>
+      <button type="button" class="btn icon" id="fsBtn" title="Fullscreen" tabindex="-1"><svg><use href="#i-maximize"/></svg></button>
+      <button type="button" class="btn icon" id="settingsBtn" title="Settings" tabindex="-1"><svg><use href="#i-settings"/></svg></button>
+    </span>
+  </footer>
+
+  <!-- Shown in a browser tab only: how to install the scoreboard as an app. -->
+  <div id="installSheet" class="install-overlay" hidden>
+    <div class="install-card" id="installCard" role="dialog" aria-modal="true" aria-labelledby="installTitle">
+      <button type="button" class="btn icon install-close" id="installClose" title="Close" tabindex="-1"><svg><use href="#i-close"/></svg></button>
+      <header class="install-head">
+        <img src="icons/shuttle-192.png" alt="" class="install-icon">
+        <div>
+          <h2 id="installTitle">Install the app</h2>
+          <p>Opens fullscreen, works offline and keeps the remote working best.</p>
+        </div>
+      </header>
+
+      <!-- Step 1: which browser? -->
+      <section id="installPick" class="install-section">
+        <h3>Which browser are you using?</h3>
+        <p id="installHint" class="install-hint" hidden></p>
+        <div id="installChoices" class="browser-list"></div>
+      </section>
+
+      <!-- Step 2: steps for the chosen browser -->
+      <section id="installGuide" class="install-section" hidden>
+        <button type="button" class="link-btn" id="installBack" tabindex="-1">‹ Choose another browser</button>
+        <h3 id="installGuideTitle"></h3>
+        <ol id="installSteps" class="install-steps"></ol>
+      </section>
+
+      <!-- One tap, where the browser allows it -->
+      <section id="installOneTap" class="install-section" hidden>
+        <h3>Add it to your home screen with one tap.</h3>
+      </section>
+
+      <footer class="install-buttons">
+        <button type="button" class="btn outline" id="installLater" tabindex="-1">Not now</button>
+        <button type="button" class="btn primary" id="installBtn" tabindex="-1" hidden>Install</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Black cover for "screen sleep": OLED pixels are off when black, but the page keeps listening to the remote. -->
+  <div id="sleep" class="sleep" hidden></div>
+
+  <dialog id="matchSetup" class="setup">
+    <div class="setup-form">
+      <header class="settings-head"><h2>New match</h2></header>
+      <div class="settings-body">
+        <p class="setup-hint">Tap a team to serve first. ⇄ swaps the sides, as they'll be on screen.</p>
+        <div class="setup-court" id="setupCourt">
+          <div class="setup-team" data-team="0">
+            <label class="setup-name-row">
+              <input class="setup-name" id="setupName0" maxlength="20" placeholder="Home" autocomplete="off" aria-label="Home team name">
+              <svg class="setup-pencil" aria-hidden="true"><use href="#i-pencil"/></svg>
+            </label>
+            <span class="setup-role"><svg aria-hidden="true"><use href="#i-remote"/></svg>1 click · Home</span>
+          </div>
+          <button type="button" class="btn icon setup-swap" id="setupSwap" title="Swap sides" tabindex="-1"><svg><use href="#i-swap"/></svg></button>
+          <div class="setup-team" data-team="1">
+            <label class="setup-name-row">
+              <input class="setup-name" id="setupName1" maxlength="20" placeholder="Away" autocomplete="off" aria-label="Away team name">
+              <svg class="setup-pencil" aria-hidden="true"><use href="#i-pencil"/></svg>
+            </label>
+            <span class="setup-role"><svg aria-hidden="true"><use href="#i-remote"/></svg>2 clicks · Away</span>
+          </div>
+          <svg class="setup-shuttle" id="setupShuttle" aria-hidden="true"><use href="#i-shuttle"/></svg>
+        </div>
+        <div class="setup-serve">
+          <span id="setupServeText" aria-live="polite"></span>
+          <button type="button" class="btn outline small-btn" id="setupRandom" tabindex="-1"><svg aria-hidden="true"><use href="#i-dice"/></svg> Random</button>
+        </div>
+        <p class="note">Random uses your phone's secure random generator: nobody can predict or steer it.</p>
+        <p class="note setup-remote-note"><svg aria-hidden="true"><use href="#i-remote"/></svg>1 click switches the server · 2 clicks random · hold to start</p>
+      </div>
+      <footer class="dialog-buttons">
+        <button type="button" class="btn outline" id="setupCancel" tabindex="-1">Cancel</button>
+        <button type="button" class="btn primary" id="setupStart" tabindex="-1" autofocus>Start match</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <dialog id="settings">
+    <form method="dialog" class="settings-form" id="settingsForm">
+      <header class="settings-head"><h2>Settings</h2></header>
+
+      <div class="settings-body">
+        <section class="group">
+          <h3>Match rules</h3>
+          <div class="card">
+            <div class="row">
+              <label class="field">Points per game
+                <select name="points">
+                  <option value="21">21 (cap 30)</option>
+                  <option value="15">15 (cap 20)</option>
+                  <option value="11">11 (cap 15)</option>
+                </select>
+              </label>
+              <label class="field">Match
+                <select name="bestOf">
+                  <option value="1">1 game</option>
+                  <option value="3">Best of 3</option>
+                  <option value="5">Best of 5</option>
+                </select>
+              </label>
+            </div>
+            <p class="note">Points and match length apply from the next new match.</p>
+            <label class="switch"><span>Change ends automatically<small>Swaps the scores on screen after each game and at 11 in the deciding game</small></span><input type="checkbox" name="autoEnds"></label>
+            <label class="switch"><span>Intervals &amp; breaks<small>60 s interval at 11 and 2 min between games, with countdown, “20 seconds” call and end beep</small></span><input type="checkbox" name="intervals"></label>
+          </div>
+        </section>
+
+        <section class="group">
+          <h3>Voice &amp; sound</h3>
+          <div class="card">
+            <label class="switch"><span>Announce score out loud<small>Umpire-style calls: “20, game point, 18”</small></span><input type="checkbox" name="voice"></label>
+            <div class="voice-options" id="voiceRow">
+              <div class="row">
+                <label class="field">Voice<select name="voiceURI"></select></label>
+                <label class="field narrow">Speed
+                  <select name="speechRate">
+                    <option value="0.9">Slow</option>
+                    <option value="1">Normal</option>
+                    <option value="1.1">Fast</option>
+                  </select>
+                </label>
+              </div>
+              <button type="button" class="btn outline small-btn" id="testVoice">Test voice</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="group">
+          <h3>Remote control</h3>
+          <div class="card">
+            <ul class="gestures">
+              <li><span>1 click</span>Point for home</li>
+              <li><span>2 clicks</span>Point for away</li>
+              <li><span>Long press</span>Undo · next game · end interval</li>
+            </ul>
+            <label class="switch" id="headphonesRow"><span>Headphone controls<small>Earbud taps as the remote: play/pause = home point, next track = away point, previous track = undo. Plays inaudible audio so the phone sends them to the app</small></span><input type="checkbox" name="headphones"></label>
+            <label class="switch"><span>Use the screen as remote<small>Tap anywhere on the scores like the remote button: 1 tap home, 2 taps away, hold to undo. Works with a finger or a mouse</small></span><input type="checkbox" name="screenRemote"></label>
+            <label class="switch"><span>Beep on remote clicks<small>Confirms each press without looking</small></span><input type="checkbox" name="beep"></label>
+            <div class="row">
+              <label class="field">Long press (ms)<input name="longPressMs" type="number" min="300" max="3000" step="50"></label>
+              <label class="field">Double-click (ms)<input name="doubleClickMs" type="number" min="150" max="1000" step="25"></label>
+            </div>
+            <div class="field"><span>Tester <small>· press the remote or an earbud, or tap this box</small></span>
+              <output id="keyTester" class="tester">No key received yet</output>
+            </div>
+          </div>
+        </section>
+
+        <section class="group">
+          <h3>Screen &amp; app</h3>
+          <div class="card">
+            <label class="switch"><span>Screen sleep<small>Black screen after 30 s; lights up on a remote press or score change</small></span><input type="checkbox" name="sleep"></label>
+            <button type="button" class="btn outline small-btn" id="installFromSettings" hidden><svg aria-hidden="true"><use href="#i-download"/></svg> Install as app</button>
+          </div>
+        </section>
+
+        <p class="about" id="aboutLine"></p>
+      </div>
+
+      <footer class="dialog-buttons">
+        <button type="button" class="btn outline" id="resetBtn">New match</button>
+        <button type="submit" class="btn primary" value="save" autofocus>Done</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

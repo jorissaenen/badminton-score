@@ -95,17 +95,19 @@ only works if it sends a regular key such as Enter. Many remotes have a separate
 button that sends Enter — try both buttons in the tester. Some remotes send nothing while the
 button is held; on those, long press can't be detected and you'll need the on-screen ↶ button.
 
-## Production and beta
+## Alpha, beta and production
 
-| | Address | Files | Version |
-|---|---|---|---|
-| Production | `…/badminton-score/` | site root | v28, frozen (also branch `release/v28`) |
-| Beta | `…/badminton-score/beta/` | `beta/` | v29, in development |
+| Edition | Address | Files | Version | Firebase data |
+|---|---|---|---|---|
+| Production | `…/badminton-score/` | site root | v28, frozen (also branch `release/v28`) | real (later) |
+| Beta | `…/badminton-score/beta/` | `beta/` | v29, for test friends | real (`badminton-prod`, later) |
+| Alpha | `…/badminton-score/alpha/` | `alpha/` | v30, in development | mock (`badminton-dev`) |
 
-New work happens in `beta/` only; the production files in the root are not changed until a beta
-is released. The beta keeps its own data, offline cache and install (shown as "Badminton Score β",
-with a β on the icon and in the bottom bar). On its first start it copies production's settings,
-without ever writing to production's data. `npm test` tests the beta's code.
+New features are built in `alpha/`, then copied to `beta/` for test friends, and finally over the
+site root for everyone. Each edition keeps its own data, offline cache and install ("Badminton
+Score α" / "β", with the letter on the icon and in the bottom bar). On first start an edition
+copies production's settings, without ever writing to production's data. `npm test` tests the
+alpha's code.
 
 Firebase: see [docs/firebase-setup.md](docs/firebase-setup.md).
 

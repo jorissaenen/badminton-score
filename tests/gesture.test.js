@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { GestureRecognizer } from '../beta/js/gesture.js';
+import { GestureRecognizer } from '../alpha/js/gesture.js';
 
 // Minimal fake clock.
 function clock() {
