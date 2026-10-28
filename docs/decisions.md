@@ -7,26 +7,25 @@ are in the redesign prototype (Badminton Score redesign, a private canvas on cla
 
 ## Product
 
-### D1. Product name and own domain — proposed
+### D1. Product name, domain and logo — decided
 The app grows beyond badminton, so "Badminton Score" won't fit. More important than the name is
 the **address**: an installed app, its sign-in and its stored data belong to its web address. Moving
-from `jorissaenen.github.io` later means everyone reinstalls and signs in again. So: pick a name,
-register a domain (about €15 a year), and move the app there **before** the club starts using it.
-GitHub Pages and Firebase both work with an own domain.
+from `jorissaenen.github.io` later means everyone reinstalls and signs in again. So: register the
+domain and move the app there **before** the club starts using it. GitHub Pages and Firebase both
+work with an own domain.
 
-Candidates (domains checked 28 Oct 2026; `.be` and `.eu` could not be checked automatically):
+- **Name: Skoor.** Short, sounds like "score" in every language, fits every sport.
+- **Domain: `skoor.io`** (free on 28 Oct 2026; `skoor.com`, `skoor.app` and `skoor.be` are taken).
+- **Logo:** "SK00R": the two o's are two green flip tiles showing 0–0, the score every match starts
+  with. Letters in Barlow Condensed ExtraBold with 12 % letter spacing; tiles green `#22c55e`
+  with a black 0 and a black split line. The app icon is the same two green tiles on black, so
+  icon and name share one shape. Below 24 px the digits drop out and two green blocks remain.
+  In running text the name is always written "Skoor"; the 00 lives only in the logo.
+- **Risk:** a Turkish football-analysis site uses the name Skoor (`getskoor.com`). Before
+  registering, search the EUIPO and WIPO trademark registers; the production logo will be drawn
+  as shapes, not live text.
 
-| Name | .com | .app | Note |
-|---|---|---|---|
-| **Klubscore** | free | free | Clear in Dutch, German and English; any sport |
-| Kluppo | free | free | Playful, distinctive, says nothing about scores |
-| Scorabo | free | free | Score + bravo; "abo" also means subscription in Dutch |
-| Klikscore | taken | free | One click to score, the app's origin |
-| MatchTally | taken | free | Plain English |
-| Teamscorer | taken | free | Plain English |
-| Matchpunt | taken | free | Dutch for match point; local feel |
-
-Before choosing: check the `.be`, a trademark search (EUIPO, Benelux BOIP) and app store names.
+The logo rounds (Kworum, Scorzo, Scorzio and Skoor) are on the logo canvas (a private canvas on claude.ai).
 
 ### D2. Three tabs: Play, Clubs, You — decided
 In a match the scoreboard fills the screen without tabs. Play always shows the same buttons in the
@@ -212,7 +211,6 @@ pay through the captain, or does the app split the cost over the players?
 
 ## Open questions
 
-- **O1.** Name and domain (D1).
 - **O2.** One season per club, or per team (youth teams may follow other calendars)?
 - **O3.** Public clubs: only reachable by link, or also findable? (Teams: opt-in findable, D20.)
 - **O4.** Viewer notifications: only when a match ends, or also after each game?
