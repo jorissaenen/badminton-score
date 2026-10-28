@@ -180,17 +180,20 @@
             <div class="account-out" id="accountOut">
               <p class="note">Sign in to share sessions and keep statistics. Scoring works without signing in.</p>
               <button type="button" class="btn primary" id="signInGoogle">Continue with Google</button>
-              <label class="note" for="signInEmail">Or get a sign-in link by e-mail:</label>
-              <div class="row account-email">
-                <input type="email" id="signInEmail" autocomplete="email" inputmode="email" placeholder="you@example.com" aria-label="E-mail address">
-                <button type="button" class="btn outline" id="signInEmailBtn">Send link</button>
-              </div>
-              <p class="note account-sent" id="emailSent" aria-live="polite" hidden></p>
-              <div class="account-paste" id="accountPaste" hidden>
-                <label class="note" for="signInLink">Did the link open in Safari or another browser instead of this app? In the e-mail, press and hold the link → <em>Copy</em>, and paste it here:</label>
+              <button type="button" class="link-btn" id="useEmailBtn">Sign in with e-mail instead</button>
+              <div class="account-step" id="emailStep" hidden>
+                <label class="note" for="signInEmail">We’ll e-mail you a sign-in link:</label>
                 <div class="row account-email">
-                  <input type="url" id="signInLink" autocomplete="off" placeholder="Paste the link" aria-label="Sign-in link">
-                  <button type="button" class="btn outline" id="signInLinkBtn">Sign in</button>
+                  <input type="email" id="signInEmail" autocomplete="email" inputmode="email" placeholder="you@example.com" aria-label="E-mail address">
+                  <button type="button" class="btn outline" id="signInEmailBtn">Send link</button>
+                </div>
+                <p class="note account-sent" id="emailSent" aria-live="polite" hidden></p>
+                <div class="account-step" id="accountPaste" hidden>
+                  <label class="note" for="signInLink">The link opens in Safari or your browser, not in this app. In the e-mail, press and hold the link → <em>Copy</em>, and paste it here:</label>
+                  <div class="row account-email">
+                    <input type="url" id="signInLink" autocomplete="off" placeholder="Paste the link" aria-label="Sign-in link">
+                    <button type="button" class="btn outline" id="signInLinkBtn">Sign in</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -202,8 +205,12 @@
             </div>
             <div class="account-in" id="accountIn" hidden>
               <div class="account-user">
-                <img id="accountPhoto" alt="" referrerpolicy="no-referrer" hidden>
-                <div><strong id="accountName"></strong><small id="accountDb"></small></div>
+                <span class="account-avatar" id="accountInitials" aria-hidden="true"></span>
+                <img class="account-avatar" id="accountPhoto" alt="" referrerpolicy="no-referrer" hidden>
+                <div>
+                  <strong id="accountName"></strong>
+                  <small class="account-conn" id="accountConn"><span class="dot"></span><span id="accountConnText"></span></small>
+                </div>
               </div>
               <button type="button" class="btn outline small-btn" id="signOutBtn">Sign out</button>
             </div>

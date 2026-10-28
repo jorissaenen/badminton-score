@@ -594,18 +594,29 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); -webkit-backdrop-filter: blur
 }
 
 /* Account section in settings. */
-.account-out, .account-in, .account-paste, .account-landing { display: flex; flex-direction: column; gap: 12px; }
-.account-out[hidden], .account-in[hidden], .account-paste[hidden], .account-landing[hidden], #accountGroup[hidden] { display: none; }
-.account-landing .note { margin: 0; }
+.account-out, .account-in, .account-step, .account-landing { display: flex; flex-direction: column; gap: 12px; }
+.account-out[hidden], .account-in[hidden], .account-step[hidden], .account-landing[hidden], #accountGroup[hidden] { display: none; }
 .account-out > .btn.primary { align-self: stretch; }
-.account-email input { flex: 1; }
+.account-out > .link-btn { align-self: center; margin: -4px 0 -6px; }
+.account-out > .link-btn[hidden] { display: none; }
+.account-email input { flex: 1; min-width: 0; }
 .account-email .btn { flex: none; }
-.account-out > label.note { margin-bottom: -6px; }
+.account-step > label.note { margin-bottom: -6px; }
+.account-landing .note { margin: 0; }
 .account-user { display: flex; align-items: center; gap: 12px; }
-.account-user img { width: 44px; height: 44px; border-radius: 50%; flex: none; }
-.account-user img[hidden] { display: none; }
+.account-avatar {
+  width: 44px; height: 44px; border-radius: 50%; flex: none; object-fit: cover;
+  display: grid; place-items: center; background: var(--field); border: 1px solid var(--line);
+  font-weight: 700; font-size: 1rem; color: var(--fg);
+}
+.account-avatar[hidden] { display: none; }
 .account-user strong { display: block; font-size: 1.05rem; }
-.account-user small { display: block; color: var(--muted); font-size: 0.85rem; margin-top: 2px; }
+.account-conn { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.85rem; margin-top: 2px; }
+.account-conn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+.account-conn.online .dot { background: #22c55e; }
+.account-conn.trying .dot, .account-conn.offline .dot { background: #ef4444; }
+.account-conn.trying .dot { animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.3; } }
 #accountStatus:empty { display: none; }
 .account-sent { margin: -4px 0 0; color: var(--fg); }
 .account-sent[hidden] { display: none; }

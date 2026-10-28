@@ -89,7 +89,8 @@ export async function onUser(callback) {
   return A.onAuthStateChanged(auth, callback);
 }
 
-// Keep a small profile per user (no e-mail address). Also proves the database connection works.
+// Keep a small profile per user (no e-mail address). Offline, the write waits in the local cache
+// and the returned promise only settles once the server has it.
 export async function saveProfile(user) {
   const { db, F } = await cloud();
   await F.setDoc(F.doc(db, 'users', user.uid), {
@@ -98,4 +99,11 @@ export async function saveProfile(user) {
     lastSeen: F.serverTimestamp(),
     schemaVersion: 1,
   }, { merge: true });
+}
+
+// Asks the server itself (not the local copy) for the user's profile: fails when offline, or with
+// 'permission-denied' when the security rules don't allow it.
+export async function checkServer(user) {
+  const { db, F } = await cloud();
+  await F.getDocFromServer(F.doc(db, 'users', user.uid));
 }

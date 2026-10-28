@@ -3,7 +3,7 @@
 // Bump VERSION whenever any app file changes.
 // Alpha edition (served from /alpha/): its own cache names, so it never removes another edition's cache.
 // The prefix must match EDITION.cachePrefix in js/edition.js.
-const VERSION = 'v30-alpha.4';
+const VERSION = 'v30-alpha.5';
 const CACHE_PREFIX = 'badminton-score-alpha-';
 const CACHE = `${CACHE_PREFIX}${VERSION}`;
 const NETWORK_TIMEOUT_MS = 3000;
@@ -63,6 +63,21 @@ function fromCacheFirst(request) {
   }));
 }
 
+// Google profile photos: show the saved copy (also offline) and refresh it in the background.
+const PROFILE_PHOTO = /^https:\/\/lh\d\.googleusercontent\.com\//;
+
+function fromCacheThenRefresh(event) {
+  const refresh = fetch(event.request).then((response) => {
+    if (response.ok || response.type === 'opaque') {
+      const copy = response.clone();
+      caches.open(CACHE).then((c) => c.put(event.request, copy));
+    }
+    return response;
+  });
+  event.waitUntil(refresh.catch(() => {}));
+  return caches.match(event.request).then((hit) => hit || refresh);
+}
+
 function fromNetwork(request) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('timeout')), NETWORK_TIMEOUT_MS);
@@ -85,6 +100,10 @@ self.addEventListener('fetch', (event) => {
   const url = event.request.url;
   if (url.startsWith(FIREBASE_SDK)) {
     event.respondWith(fromCacheFirst(event.request));
+    return;
+  }
+  if (PROFILE_PHOTO.test(url)) {
+    event.respondWith(fromCacheThenRefresh(event));
     return;
   }
   // Leave everything else that isn't the app's own (sign-in, the database's long-running live
