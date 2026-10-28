@@ -218,6 +218,18 @@ the core (D19) must stay free to compete with WhatsApp polls and Spond. Proposal
 The entitlements of D10 make it possible to combine these freely. Open question O8: does a team
 pay through the captain, or does the app split the cost over the players?
 
+### D23. Player profiles and who sees them — decided
+Tapping a name opens that player's profile: matches, wins, win rate, level, recent form and best
+partner, and a **"you and them"** section with four views: singles against each other, doubles
+against each other (any partners), as partners, and team matches when you played in different teams.
+Exactly-this-pair history stays on the match setup (D20).
+
+Each player chooses who sees their statistics: **members of my clubs** (default), **only my
+teams**, or **only me**. Whatever they choose, two things stay visible: their place in the club
+ranking (D3), and every match they played with or against someone, to that person. A private profile
+therefore still shows "you and them", built only from your shared matches. For minors D12 applies:
+the default is "only my teams".
+
 ## Open questions
 
 - **O2.** One season per club, or per team (youth teams may follow other calendars)?
