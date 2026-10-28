@@ -59,18 +59,23 @@ export function isEmailLinkLanding() {
   return /[?&](mode=signIn|oobCode=)/.test(location.search);
 }
 
-// Called on start when the page was opened from a sign-in link.
-export async function completeEmailLink(askEmail) {
+// The address this browser or app asked a link for, if any. On iPhone the installed app and
+// Safari don't share storage, so a link opened in Safari finds nothing here.
+export function storedEmail() {
+  try { return localStorage.getItem(EMAIL_KEY) || ''; } catch { return ''; }
+}
+
+export async function isEmailLink(link) {
   const { auth, A } = await cloud();
-  if (!A.isSignInWithEmailLink(auth, location.href)) return null;
-  let email = null;
-  try { email = localStorage.getItem(EMAIL_KEY); } catch { /* ask instead */ }
-  // Opened on another device or browser than the one that asked for the link.
-  email ||= askEmail();
-  if (!email) return null;
-  const result = await A.signInWithEmailLink(auth, email, location.href);
+  return A.isSignInWithEmailLink(auth, link);
+}
+
+// Sign in with a link from the e-mail: the page's own address when the link opened the app, or a
+// link pasted into the app (iOS opens links in Safari, never in the installed app).
+export async function completeEmailLink(link, email) {
+  const { auth, A } = await cloud();
+  const result = await A.signInWithEmailLink(auth, email, link);
   try { localStorage.removeItem(EMAIL_KEY); } catch { /* ignore */ }
-  history.replaceState(null, '', location.pathname); // drop the one-time code from the address
   return result;
 }
 

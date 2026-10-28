@@ -2,7 +2,8 @@
 // whether the database is reachable, sign out.
 import { EDITION } from './edition.js';
 import {
-  completeEmailLink, isEmailLinkLanding, onUser, saveProfile, sendEmailLink, signInWithGoogle, signOut,
+  completeEmailLink, isEmailLink, isEmailLinkLanding, onUser, saveProfile, sendEmailLink, signInWithGoogle,
+  signOut, storedEmail,
 } from './cloud.js';
 
 // Remembers that someone was signed in, so the next start reconnects without opening settings.
@@ -34,7 +35,8 @@ function rememberedSignIn() {
   try { return localStorage.getItem(SIGNED_IN_KEY) === '1'; } catch { return false; }
 }
 
-export function setupAccount($, notify = () => {}) {
+// openSettings shows the settings dialog (with the Account section on top).
+export function setupAccount($, notify = () => {}, openSettings = () => {}) {
   if (!EDITION.firebase) {
     $('accountGroup').hidden = true;
     return { start() {} };
@@ -42,12 +44,21 @@ export function setupAccount($, notify = () => {}) {
   let started = false;
   const status = (text) => { $('accountStatus').textContent = text; };
   const busy = (on) => {
-    for (const id of ['signInGoogle', 'signInEmailBtn', 'signOutBtn']) $(id).disabled = on;
+    for (const id of ['signInGoogle', 'signInEmailBtn', 'signInLinkBtn', 'signInHereBtn', 'signOutBtn']) {
+      $(id).disabled = on;
+    }
   };
 
+  // A link that opened this page but was asked for elsewhere (see the landing section below).
+  let landingLink = null;
+
   async function showUser(user) {
-    $('accountOut').hidden = Boolean(user);
+    if (user) landingLink = null;
+    $('accountLanding').hidden = Boolean(user) || !landingLink;
+    $('accountOut').hidden = Boolean(user) || Boolean(landingLink);
     $('accountIn').hidden = !user;
+    // Offer pasting a link once one was asked for here.
+    $('accountPaste').hidden = !storedEmail();
     remember(Boolean(user));
     if (!user) return;
     $('accountName').textContent = user.displayName || user.email || 'Signed in';
@@ -107,7 +118,8 @@ export function setupAccount($, notify = () => {}) {
     try {
       await start();
       await sendEmailLink(email);
-      status(`Sign-in link sent to ${email}. Open it on this device; it may take a minute (check spam too).`);
+      $('accountPaste').hidden = false;
+      status(`Sign-in link sent to ${email}. It may take a minute (check spam too).`);
     } catch (e) {
       status(explain(e));
     } finally {
@@ -119,6 +131,62 @@ export function setupAccount($, notify = () => {}) {
     if (e.key !== 'Enter') return;
     e.preventDefault(); // Enter would otherwise close the settings
     sendLink();
+  });
+
+  async function signInWithLink(link, email) {
+    busy(true);
+    try {
+      await start();
+      if (!(await isEmailLink(link))) {
+        status('That isn\u2019t a sign-in link. Copy the link from the e-mail (press and hold it \u2192 Copy).');
+        return false;
+      }
+      await completeEmailLink(link, email);
+      $('signInLink').value = '';
+      status('');
+      notify('Signed in');
+      return true;
+    } catch (e) {
+      status(explain(e));
+      return false;
+    } finally {
+      busy(false);
+    }
+  }
+
+  // A link pasted into the app. It belongs to the address this app asked a link for.
+  function pastedLink() {
+    const link = $('signInLink').value.trim();
+    if (!link) return;
+    const email = storedEmail() || $('signInEmail').value.trim();
+    if (!email) {
+      status('Type the e-mail address the link was sent to above, then paste the link again.');
+      return;
+    }
+    signInWithLink(link, email);
+  }
+  $('signInLinkBtn').addEventListener('click', pastedLink);
+  $('signInLink').addEventListener('input', () => {
+    if (/oobCode=/.test($('signInLink').value)) pastedLink(); // signs in as soon as a link is pasted
+  });
+  $('signInLink').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault(); // Enter would otherwise close the settings
+    pastedLink();
+  });
+
+  $('copyLinkBtn').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(landingLink);
+      status('Link copied. Now open the app, \u2699 \u2192 Account, and paste it.');
+    } catch {
+      status(`Copy this link by hand: ${landingLink}`);
+    }
+  });
+
+  $('signInHereBtn').addEventListener('click', () => {
+    const email = prompt('The e-mail address the link was sent to:');
+    if (email?.trim()) signInWithLink(landingLink, email.trim());
   });
 
   $('signOutBtn').addEventListener('click', async () => {
@@ -133,15 +201,22 @@ export function setupAccount($, notify = () => {}) {
     }
   });
 
-  // Opened from a sign-in e-mail: finish signing in.
+  // Opened from a sign-in e-mail. Asked for in this same browser or app: finish signing in.
+  // Asked for elsewhere (on iPhone: the installed app, whose links open in Safari): don't use up
+  // the one-time link here, but offer to copy it for the app, or to sign in here after all.
   if (isEmailLinkLanding()) {
-    start()
-      .then(() => completeEmailLink(() => prompt('To finish signing in, type the e-mail address the link was sent to:')))
-      .then((result) => { if (result) notify('Signed in'); })
-      .catch((e) => {
-        status(explain(e));
-        notify('Sign-in link didn\u2019t work: see Settings \u2192 Account');
+    const link = location.href;
+    history.replaceState(null, '', location.pathname); // drop the one-time code from the address
+    const email = storedEmail();
+    if (email) {
+      signInWithLink(link, email).then((ok) => { if (!ok) openSettings(); });
+    } else {
+      landingLink = link;
+      start().then(() => {
+        showUser(null);
+        openSettings();
       });
+    }
   } else if (rememberedSignIn()) {
     start(); // reconnect in the background after the scoreboard is up
   }

@@ -674,7 +674,7 @@ mediaRemote.enable(settings.headphones);
 
 // ---------- account (Firebase) ----------
 
-const account = setupAccount($, toast);
+const account = setupAccount($, toast, () => $('settingsBtn').click());
 
 // ---------- install prompt (browser tabs only) ----------
 

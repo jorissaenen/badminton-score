@@ -185,6 +185,19 @@
                 <input type="email" id="signInEmail" autocomplete="email" inputmode="email" placeholder="you@example.com" aria-label="E-mail address">
                 <button type="button" class="btn outline" id="signInEmailBtn">Send link</button>
               </div>
+              <div class="account-paste" id="accountPaste" hidden>
+                <label class="note" for="signInLink">Did the link open in Safari or another browser instead of this app? In the e-mail, press and hold the link → <em>Copy</em>, and paste it here:</label>
+                <div class="row account-email">
+                  <input type="url" id="signInLink" autocomplete="off" placeholder="Paste the link" aria-label="Sign-in link">
+                  <button type="button" class="btn outline" id="signInLinkBtn">Sign in</button>
+                </div>
+              </div>
+            </div>
+            <div class="account-landing" id="accountLanding" hidden>
+              <p class="note">This sign-in link was asked for in another app or browser, probably the installed app. On iPhone, links always open here instead of in the app.</p>
+              <p class="note"><strong>To sign in the app:</strong> tap <em>Copy link</em>, open the app, ⚙ → Account, and paste it there.</p>
+              <button type="button" class="btn primary" id="copyLinkBtn">Copy link</button>
+              <button type="button" class="btn outline" id="signInHereBtn">Sign in in this browser instead</button>
             </div>
             <div class="account-in" id="accountIn" hidden>
               <div class="account-user">

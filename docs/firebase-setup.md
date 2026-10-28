@@ -60,6 +60,11 @@ The rules decide who may read and write what. They live in the repository as
 Check: in the alpha, sign in (⚙ → Account). It should say **Database: connected ✓**. If it says the
 rules aren't published yet, repeat these steps.
 
+**E-mail link on iPhone:** iOS opens links in Safari, never in the installed app, and the two don't
+share their storage. So when the link was asked for in the installed app, Safari offers *Copy
+link*; then open the app, ⚙ → Account, and paste it in the box under *Send link*. (In the e-mail you
+can also press and hold the link → *Copy* and paste it straight into the app.)
+
 ## 5. Pay-as-you-go plan with a budget alert (can wait)
 
 Cloud Functions (the watch apps' connection and the statistics) only run on the **Blaze**
