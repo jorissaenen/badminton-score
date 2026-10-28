@@ -1,7 +1,8 @@
 # Roadmap
 
 Production stays on **v28** (branch `release/v28`) until a phase has been tested in the beta.
-See [architecture.md](architecture.md) for the design. **You** marks things only the repository
+See [architecture.md](architecture.md) for the design and [decisions.md](decisions.md) for the
+fixed choices and open questions. **You** marks things only the repository
 owner can do (accounts, settings, payments).
 
 Rough sizes: S = a few hours, M = a day or two, L = several days.

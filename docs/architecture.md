@@ -1,6 +1,7 @@
 # Architecture: from scoreboard to club platform
 
-Status: proposal (October 2026). Production is **v28** (branch `release/v28`); everything below is
+Status: proposal (October 2026). Fixed choices and open questions are in
+[decisions.md](decisions.md); where they differ from this document, decisions.md wins. Production is **v28** (branch `release/v28`); everything below is
 built and tested in the beta first.
 
 ## 1. Goals
