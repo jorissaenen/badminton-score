@@ -224,11 +224,12 @@ partner, and a **"you and them"** section with four views: singles against each 
 against each other (any partners), as partners, and team matches when you played in different teams.
 Exactly-this-pair history stays on the match setup (D20).
 
-Each player chooses who sees their statistics: **members of my clubs** (default), **only my
-teams**, or **only me**. Whatever they choose, two things stay visible: their place in the club
-ranking (D3), and every match they played with or against someone, to that person. A private profile
-therefore still shows "you and them", built only from your shared matches. For minors D12 applies:
-the default is "only my teams".
+Each player chooses who sees their statistics: **everyone** (also players of other clubs and
+visitors of public tournament pages), **members of my clubs** (default for adults), **members of my
+teams** (default for minors, D12), or **nobody**. Whatever they choose, two things stay visible:
+their place in the club ranking to the club (D3), and every match they played with or against
+someone, to that person, because it is their match too. A profile hidden from you therefore still
+shows "you and them", built only from your shared matches.
 
 ## Open questions
 
