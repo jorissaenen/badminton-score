@@ -11,21 +11,25 @@ Rough sizes: S = a few hours, M = a day or two, L = several days.
 Result: `…/badminton-score/` stays v28; `…/badminton-score/beta/` shows the newest version.
 
 - [x] Freeze v28 in branch `release/v28`
-- [ ] Create branch `develop` for new work (S)
-- [ ] GitHub Actions workflow: build `main` to the site root and `develop` to `/beta/`, run the
-      tests, publish both (M)
-- [ ] **You:** repository Settings → Pages → Source: *GitHub Actions*
-- [ ] Separate beta from production: storage keys, cache names, service worker scope, manifest id
-      and name, "β" badge on icon and screen (M)
-- [ ] Fix production's service worker so it only deletes its own caches, then release as v29 (S)
-- [ ] Release checklist in the README: test in beta → merge `develop` into `main` → `release/vNN` (S)
+- [x] Copy the app to `beta/` (v29), served at `…/badminton-score/beta/`; production files in the
+      site root are not touched
+- [x] Separate beta from production: storage keys, cache names, service worker scope, manifest id
+      and name, "β" badge on icon and screen; first start copies production's settings (read-only)
+- [x] Unit tests run against `beta/`
+- [x] Firebase setup guide for you: [firebase-setup.md](firebase-setup.md)
+- [ ] Release checklist in the README: test in beta → copy `beta/` over the root with production
+      names → `release/vNN` (S)
+- Production's v28 service worker deletes other caches only when production itself updates; the
+  beta then simply rebuilds its offline copy. Not worth changing v28 for.
 
 ## Phase 1 — Foundation: build step, Firebase, sign-in
 
 Result: you can sign in to the beta with Google or an e-mail link.
 
-- [ ] **You:** create two Firebase projects, `badminton-prod` and `badminton-dev` (region
-      `europe-west1`), on the Blaze plan with a budget alert; send me the web configs
+- [ ] **You:** create Firebase project `badminton-dev` (later also `badminton-prod`) following
+      [firebase-setup.md](firebase-setup.md); send me the `firebaseConfig`
+- [ ] Decide when the build step arrives: commit the built beta into `beta/` from a GitHub Actions
+      workflow, or switch Pages to "GitHub Actions" as its source (S)
 - [ ] Move the app to a Vite build, keeping the scoring code unchanged; tests in CI (M)
 - [ ] Firebase Authentication: Google and e-mail link (no Apple sign-in) (M)
 - [ ] Firestore with offline persistence; Firebase Emulator Suite for local tests (S)

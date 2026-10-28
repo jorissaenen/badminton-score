@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { secureCoinFlip } from '../js/random.js';
+import { secureCoinFlip } from '../beta/js/random.js';
 
 test('uses the secure generator and returns only 0 or 1', () => {
   let calls = 0;

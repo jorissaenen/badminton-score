@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chooseLayout } from '../js/layout.js';
+import { chooseLayout } from '../beta/js/layout.js';
 
 test('clear portrait and landscape sizes', () => {
   assert.equal(chooseLayout(390, 844, 'landscape'), 'portrait');

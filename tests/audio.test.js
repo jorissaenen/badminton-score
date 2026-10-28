@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bestVoice, sortedVoices } from '../js/audio.js';
+import { bestVoice, sortedVoices } from '../beta/js/audio.js';
 
 const v = (name, lang, localService = true) => ({ name, lang, localService, voiceURI: name });
 

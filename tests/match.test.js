@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import * as M from '../js/match.js';
+import * as M from '../beta/js/match.js';
 
 const R = { points: 21, cap: 30, bestOf: 3 };
 const play = (state, seq) => seq.reduce((s, t) => M.addPoint(s, t, R), state);

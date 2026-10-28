@@ -95,6 +95,20 @@ only works if it sends a regular key such as Enter. Many remotes have a separate
 button that sends Enter — try both buttons in the tester. Some remotes send nothing while the
 button is held; on those, long press can't be detected and you'll need the on-screen ↶ button.
 
+## Production and beta
+
+| | Address | Files | Version |
+|---|---|---|---|
+| Production | `…/badminton-score/` | site root | v28, frozen (also branch `release/v28`) |
+| Beta | `…/badminton-score/beta/` | `beta/` | v29, in development |
+
+New work happens in `beta/` only; the production files in the root are not changed until a beta
+is released. The beta keeps its own data, offline cache and install (shown as "Badminton Score β",
+with a β on the icon and in the bottom bar). On its first start it copies production's settings,
+without ever writing to production's data. `npm test` tests the beta's code.
+
+Firebase: see [docs/firebase-setup.md](docs/firebase-setup.md).
+
 ## Plans
 
 The next big step (Firebase, sign-in, seasons, live screens, statistics, watch apps) is described

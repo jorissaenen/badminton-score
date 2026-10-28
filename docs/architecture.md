@@ -56,22 +56,25 @@ loses its connection catches up automatically.
 
 | Environment | Code branch | Web address | Firebase project | Purpose |
 |---|---|---|---|---|
-| Production | `main` (v28 frozen in `release/v28`) | `…/badminton-score/` | `badminton-prod` | What the club uses |
-| Beta | `develop` | `…/badminton-score/beta/` | `badminton-dev` | Testing new versions with real phones |
+| Production | `main`, site root (v28; also frozen in branch `release/v28`) | `…/badminton-score/` | `badminton-prod` | What the club uses |
+| Beta | `main`, folder `beta/` (v29) | `…/badminton-score/beta/` | `badminton-dev` | Testing new versions with real phones |
 | Local | any | `localhost` | Firebase Emulator Suite | Development and automated tests |
 
-- **GitHub Pages switches to "GitHub Actions" as its source.** One workflow builds `main` into the
-  site root and `develop` into `/beta/`, then publishes both. (A branch-based Pages site can only
-  serve one branch.)
+- **Both live in `main`:** production in the site root, the beta in the `beta/` folder; GitHub
+  Pages serves the folder at `/beta/` without any settings change. Once the app gets a build step
+  (phase 1), a GitHub Actions workflow builds the beta into `beta/`, or Pages switches to "GitHub
+  Actions" as its source.
 - **Beta is fully separated from production** on the same domain:
-  - its own service worker scope (`/beta/`) and cache names (`badminton-score-beta-…`); today's
-    production worker deletes every cache that isn't its own, so cache names must be prefixed;
+  - its own service worker scope (`/beta/`) and cache names (`badminton-score-beta-…`), and it only
+    cleans up its own caches; v28 deletes other caches only when production itself updates, after
+    which the beta simply re-caches;
   - its own storage keys (`badminton-score-beta-…`), so testing never touches production scores;
   - its own manifest (`id`, name "Badminton Score β", a beta badge on the icon), so both can be
     installed side by side;
   - its own Firebase project, so test data never mixes with the season's real results.
-- **Release:** merge `develop` into `main` when beta has been tested, bump the version, keep a
-  `release/vNN` branch per release for a quick rollback.
+- **Release:** when the beta has been tested, copy `beta/` over the site root with production's
+  names (storage key, cache prefix, manifest, no β), bump the version, and keep a `release/vNN`
+  branch per release for a quick rollback.
 
 ## 4. Front-end
 

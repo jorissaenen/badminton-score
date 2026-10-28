@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createRepeatFilter } from '../js/media.js';
+import { createRepeatFilter } from '../beta/js/media.js';
 
 function setup(gapMs = 1500) {
   let now = 0;
@@ -37,7 +37,7 @@ test('a different command is always a new press', () => {
 });
 
 test('only a pause away from a loop restart counts as a real play/pause press', async () => {
-  const { playPauseIgnoreReason } = await import('../js/media.js');
+  const { playPauseIgnoreReason } = await import('../beta/js/media.js');
   const base = { position: 120, duration: 180, now: 10_000, quietUntil: 0 };
   assert.equal(playPauseIgnoreReason({ ...base, raw: 'pause' }), null, 'earbud press while playing');
   assert.equal(playPauseIgnoreReason({ ...base, raw: 'play' }), 'system play');
