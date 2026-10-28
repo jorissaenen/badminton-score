@@ -21,23 +21,27 @@ service cloud.firestore {
 
     // ---------- users ----------
 
-    // Own profile (name, photo; no e-mail address), and the list of seasons the user belongs to.
+    // Own profile (name, photo; no e-mail address), and the list of clubs the user belongs to.
     match /users/{uid} {
       allow read, write: if isMe(uid);
 
-      match /seasons/{seasonId} {
+      match /clubs/{clubId} {
         allow read, write: if isMe(uid);
       }
     }
 
-    // ---------- seasons ----------
+    // ---------- clubs ----------
 
-    match /seasons/{seasonId} {
-      function memberPath(uid) {
-        return /databases/$(database)/documents/seasons/$(seasonId)/members/$(uid);
+    match /clubs/{clubId} {
+      function clubPath() {
+        return /databases/$(database)/documents/clubs/$(clubId);
       }
 
-      // The signed-in user's role in this season, or '' when not a member.
+      function memberPath(uid) {
+        return /databases/$(database)/documents/clubs/$(clubId)/members/$(uid);
+      }
+
+      // The signed-in user's role in this club, or '' when not a member.
       function myRole() {
         return signedIn() && exists(memberPath(request.auth.uid))
           ? get(memberPath(request.auth.uid)).data.role : '';
@@ -52,7 +56,7 @@ service cloud.firestore {
       function isAdmin() { return rank(myRole()) >= 3; }
       function isOwner() { return myRole() == 'owner'; }
 
-      function validSeason(d) {
+      function validClub(d) {
         return d.keys().hasAll(['name', 'createdBy', 'schemaVersion'])
           && d.name is string && d.name.size() > 0 && d.name.size() <= 60
           && d.schemaVersion is int;
@@ -62,8 +66,8 @@ service cloud.firestore {
       // (see members). Changed by admins; the creator never changes. Deleted by owners.
       allow read: if isMember();
       allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid
-        && validSeason(request.resource.data);
-      allow update: if isAdmin() && validSeason(request.resource.data)
+        && validClub(request.resource.data);
+      allow update: if isAdmin() && validClub(request.resource.data)
         && request.resource.data.createdBy == resource.data.createdBy;
       allow delete: if isOwner();
 
@@ -76,7 +80,7 @@ service cloud.firestore {
         }
 
         function invitePath(token) {
-          return /databases/$(database)/documents/seasons/$(seasonId)/invites/$(token);
+          return /databases/$(database)/documents/clubs/$(clubId)/invites/$(token);
         }
 
         // Joining with an invite that hasn't expired, with exactly the invite's role.
@@ -86,17 +90,15 @@ service cloud.firestore {
             && get(invitePath(d.invite)).data.role == d.role;
         }
 
-        // The season's creator, as owner, in the same write that creates the season.
-        function createsOwnSeason(d) {
-          return d.role == 'owner'
-            && !exists(/databases/$(database)/documents/seasons/$(seasonId))
-            && getAfter(/databases/$(database)/documents/seasons/$(seasonId)).data.createdBy == uid;
+        // The club's creator, as owner, in the same write that creates the club.
+        function createsOwnClub(d) {
+          return d.role == 'owner' && !exists(clubPath()) && getAfter(clubPath()).data.createdBy == uid;
         }
 
         allow read: if isMember();
 
         allow create: if isMe(uid) && validMember(request.resource.data)
-          && (createsOwnSeason(request.resource.data) || joinsWithInvite(request.resource.data));
+          && (createsOwnClub(request.resource.data) || joinsWithInvite(request.resource.data));
 
         // Everyone updates their own name and photo. Admins change roles of non-owners, up to
         // admin; only owners make or unmake owners. Nobody changes their own role (an owner hands
@@ -109,9 +111,9 @@ service cloud.firestore {
         );
 
         // Leaving (anyone but an owner), or removal: admins remove non-owners, owners anyone else.
-        // After deleting the season, its owner clears out the rest, their own entry last.
+        // After deleting the club, its owner clears out the rest, their own entry last.
         allow delete: if (isMe(uid) && resource.data.role != 'owner')
-          || (isMe(uid) && !exists(/databases/$(database)/documents/seasons/$(seasonId)))
+          || (isMe(uid) && !exists(clubPath()))
           || (!isMe(uid) && isOwner())
           || (!isMe(uid) && isAdmin() && resource.data.role != 'owner');
       }
@@ -120,13 +122,13 @@ service cloud.firestore {
 
       match /invites/{token} {
         function validInvite(d) {
-          return d.keys().hasAll(['role', 'expiresAt', 'createdBy', 'seasonName'])
+          return d.keys().hasAll(['role', 'expiresAt', 'createdBy', 'clubName'])
             && d.role in ['admin', 'keeper', 'member'] && d.expiresAt is timestamp
             && d.expiresAt > request.time && d.expiresAt < request.time + duration.value(31, 'd')
             && d.createdBy == request.auth.uid && token.size() >= 20;
         }
 
-        // Anyone signed in who has the link may read that one invite (to see the season's name
+        // Anyone signed in who has the link may read that one invite (to see the club's name
         // and join). Listing invites is for admins only, so tokens can't be collected.
         allow get: if signedIn();
         allow list: if isAdmin();
@@ -134,7 +136,21 @@ service cloud.firestore {
         allow delete: if isAdmin();
       }
 
-      // ---------- players: everyone who plays, with or without an account ----------
+      // ---------- seasons: periods for rankings and statistics ----------
+
+      match /seasons/{seasonId} {
+        function validSeason(d) {
+          return d.keys().hasAll(['name', 'start', 'end']) && d.name is string
+            && d.name.size() > 0 && d.name.size() <= 60
+            && d.start is string && d.end is string && d.start <= d.end;
+        }
+
+        allow read: if isMember();
+        allow create, update: if isAdmin() && validSeason(request.resource.data);
+        allow delete: if isAdmin();
+      }
+
+      // ---------- players: everyone who plays, with or without an account; kept across seasons ----------
 
       match /players/{playerId} {
         function validPlayer(d) {

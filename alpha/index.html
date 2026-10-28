@@ -218,37 +218,37 @@
           </div>
         </section>
 
-        <section class="group" id="seasonGroup" hidden>
-          <h3>Season</h3>
+        <section class="group" id="clubGroup" hidden>
+          <h3>Club</h3>
           <div class="card">
-            <div class="season-join" id="joinCard" hidden>
+            <div class="club-join" id="joinCard" hidden>
               <p id="joinText"></p>
               <div class="row">
                 <button type="button" class="btn primary" id="joinBtn">Join</button>
                 <button type="button" class="btn outline" id="joinLaterBtn">Not now</button>
               </div>
             </div>
-            <div class="season-pick" id="seasonPick" hidden>
+            <div class="club-pick" id="clubPick" hidden>
               <div class="row">
-                <label class="field">Your season
-                  <select id="seasonSelect"></select>
+                <label class="field">Your club
+                  <select id="clubSelect"></select>
                 </label>
-                <button type="button" class="btn outline" id="seasonOpenBtn">Open</button>
+                <button type="button" class="btn outline" id="clubOpenBtn">Open</button>
               </div>
-              <p class="note" id="seasonRole"></p>
+              <p class="note" id="clubRole"></p>
             </div>
-            <p class="note" id="seasonNone" hidden>You’re not in a season yet. Open the invite link from your organiser, or start a new season.</p>
-            <button type="button" class="link-btn" id="seasonNewBtn">Start a new season</button>
-            <div class="season-new" id="seasonNew" hidden>
+            <p class="note" id="clubNone" hidden>You’re not in a club yet. Open the invite link from your organiser, or start a new club.</p>
+            <button type="button" class="link-btn" id="clubNewBtn">Start a new club</button>
+            <div class="club-new" id="clubNew" hidden>
               <div class="row">
-                <label class="field">Season name
-                  <input type="text" id="seasonName" maxlength="60" placeholder="Autumn 2026" autocomplete="off">
+                <label class="field">Club name
+                  <input type="text" id="clubName" maxlength="60" placeholder="BC Smash" autocomplete="off">
                 </label>
-                <button type="button" class="btn primary" id="seasonCreateBtn">Create</button>
+                <button type="button" class="btn primary" id="clubCreateBtn">Create</button>
               </div>
-              <p class="note">You become its owner. Matches use the points and match length set below.</p>
+              <p class="note">You become its owner. Next, add a season and invite people. Matches use the points and match length set below.</p>
             </div>
-            <p class="note" id="seasonStatus" aria-live="polite"></p>
+            <p class="note" id="clubStatus" aria-live="polite"></p>
           </div>
         </section>
 
@@ -336,14 +336,40 @@
     </form>
   </dialog>
 
-  <dialog id="seasonDialog">
+  <dialog id="clubDialog">
     <form method="dialog" class="settings-form">
-      <header class="settings-head season-head">
-        <h2 id="seasonTitle">Season</h2>
-        <span class="role-tag" id="seasonMyRole"></span>
+      <header class="settings-head club-head">
+        <h2 id="clubTitle">Club</h2>
+        <span class="role-tag" id="clubMyRole"></span>
       </header>
 
       <div class="settings-body">
+        <section class="group" id="seasonsGroup">
+          <h3>Seasons</h3>
+          <div class="card">
+            <p class="note" id="noSeasons" hidden>No season yet. A season is a period (for example September to June) with its own ranking; results across seasons show your progress.</p>
+            <ul class="club-list" id="seasonList"></ul>
+            <button type="button" class="link-btn" id="seasonAddBtn" hidden>Add a season</button>
+            <div class="season-form" id="seasonForm" hidden>
+              <label class="field">Name
+                <input type="text" id="seasonName" maxlength="60" autocomplete="off">
+              </label>
+              <div class="row">
+                <label class="field">From
+                  <input type="date" id="seasonStart">
+                </label>
+                <label class="field">Until
+                  <input type="date" id="seasonEnd">
+                </label>
+              </div>
+              <div class="row">
+                <button type="button" class="btn primary" id="seasonSaveBtn">Add season</button>
+                <button type="button" class="btn outline" id="seasonCancelBtn">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section class="group" id="inviteGroup" hidden>
           <h3>Invite people</h3>
           <div class="card">
@@ -373,15 +399,15 @@
                 <button type="button" class="btn outline" id="inviteCopyBtn">Copy</button>
               </div>
             </div>
-            <ul class="season-list" id="inviteList"></ul>
+            <ul class="club-list" id="inviteList"></ul>
           </div>
         </section>
 
         <section class="group">
           <h3>Members</h3>
           <div class="card">
-            <ul class="season-list" id="memberList"></ul>
-            <p class="note">Members have an account. Score keepers also start matches and enter scores; admins also invite people and manage the season.</p>
+            <ul class="club-list" id="memberList"></ul>
+            <p class="note">Members have an account. Score keepers also start matches and enter scores; admins also invite people and manage the club.</p>
           </div>
         </section>
 
@@ -390,7 +416,7 @@
           <div class="card">
             <p class="note" id="claimHint" hidden>Are you on this list? Tap <em>That’s me</em> next to your name, or add yourself.</p>
             <button type="button" class="btn outline small-btn" id="addMeBtn" hidden>Add me as a player</button>
-            <ul class="season-list" id="playerList"></ul>
+            <ul class="club-list" id="playerList"></ul>
             <div class="row" id="addGuestRow" hidden>
               <label class="field">Add a player without an account
                 <input type="text" id="guestName" maxlength="40" placeholder="Name" autocomplete="off">
@@ -400,20 +426,20 @@
           </div>
         </section>
 
-        <section class="group" id="seasonManage">
-          <h3>This season</h3>
+        <section class="group" id="clubManage">
+          <h3>This club</h3>
           <div class="card">
             <div class="row" id="renameRow" hidden>
               <label class="field">Name
-                <input type="text" id="seasonRename" maxlength="60" autocomplete="off">
+                <input type="text" id="clubRename" maxlength="60" autocomplete="off">
               </label>
-              <button type="button" class="btn outline" id="seasonRenameBtn">Save</button>
+              <button type="button" class="btn outline" id="clubRenameBtn">Save</button>
             </div>
-            <button type="button" class="btn outline danger" id="seasonLeaveBtn" hidden>Leave this season</button>
-            <button type="button" class="btn outline danger" id="seasonDeleteBtn" hidden>Delete this season</button>
+            <button type="button" class="btn outline danger" id="clubLeaveBtn" hidden>Leave this club</button>
+            <button type="button" class="btn outline danger" id="clubDeleteBtn" hidden>Delete this club</button>
           </div>
         </section>
-        <p class="note season-status" id="seasonDialogStatus" aria-live="polite"></p>
+        <p class="note club-status" id="clubDialogStatus" aria-live="polite"></p>
       </div>
 
       <footer class="dialog-buttons">

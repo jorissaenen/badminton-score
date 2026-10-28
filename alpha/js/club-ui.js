@@ -1,10 +1,10 @@
-// The Season section in settings (your seasons, joining with an invite, starting a season) and the
-// Season window (invites, members and roles, players).
+// The Club section in settings (your clubs, joining with an invite, starting a club) and the
+// Club window (invites, members and roles, players).
 import { EDITION } from './edition.js';
 import qrcode from './vendor/qrcode.js';
 import * as Club from './club.js';
 
-const CURRENT_KEY = `${EDITION.storageKey}-season`;
+const CURRENT_KEY = `${EDITION.storageKey}-club`;
 const JOIN_KEY = `${EDITION.storageKey}-join`;
 
 function stored(key) {
@@ -38,19 +38,21 @@ function avatar(name, photoURL) {
   return el('span', { className: 'avatar' }, initials(name));
 }
 
+const dateText = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+
 const expiresText = (ts) => {
   const days = Math.round((ts.toMillis() - Date.now()) / 86400_000);
   return days >= 1 ? `${days} day${days === 1 ? '' : 's'} left` : 'expires today';
 };
 
-// account: from setupAccount; defaults(): the current points and match length for a new season.
-export function setupSeason($, account, notify = () => {}, defaults = () => ({})) {
-  const group = $('seasonGroup');
+// account: from setupAccount; defaults(): the current points and match length for a new club.
+export function setupClub($, account, notify = () => {}, defaults = () => ({})) {
+  const group = $('clubGroup');
   if (!EDITION.firebase) return { refresh() {}, openedFromInvite: false };
 
-  let seasons = [];
-  let pendingJoin = null; // { seasonId, token, invite? }
-  const status = (text) => { $('seasonStatus').textContent = text; };
+  let clubs = [];
+  let pendingJoin = null; // { clubId, token, invite? }
+  const status = (text) => { $('clubStatus').textContent = text; };
   const user = () => account.user();
 
   // An invite link opened the app: remember it (it survives signing in, even by e-mail link) and
@@ -69,37 +71,37 @@ export function setupSeason($, account, notify = () => {}, defaults = () => ({})
     group.hidden = !u && !pendingJoin;
     await showJoin();
     if (!u) {
-      $('seasonPick').hidden = true;
-      $('seasonNone').hidden = true;
-      $('seasonNewBtn').hidden = true;
-      $('seasonNew').hidden = true;
+      $('clubPick').hidden = true;
+      $('clubNone').hidden = true;
+      $('clubNewBtn').hidden = true;
+      $('clubNew').hidden = true;
       return;
     }
-    $('seasonNewBtn').hidden = !$('seasonNew').hidden || Boolean(pendingJoin);
+    $('clubNewBtn').hidden = !$('clubNew').hidden || Boolean(pendingJoin);
     try {
-      seasons = await Club.mySeasons(u);
+      clubs = await Club.myClubs(u);
     } catch {
-      status('Can’t load your seasons right now (offline?).');
+      status('Can’t load your clubs right now (offline?).');
       return;
     }
     status('');
-    const select = $('seasonSelect');
-    select.replaceChildren(...seasons.map((s) => el('option', { value: s.id }, s.name)));
-    const current = seasons.find((s) => s.id === stored(CURRENT_KEY)) ?? seasons[0];
+    const select = $('clubSelect');
+    select.replaceChildren(...clubs.map((s) => el('option', { value: s.id }, s.name)));
+    const current = clubs.find((s) => s.id === stored(CURRENT_KEY)) ?? clubs[0];
     if (current) select.value = current.id;
-    $('seasonPick').hidden = !seasons.length;
-    $('seasonNone').hidden = Boolean(seasons.length) || Boolean(pendingJoin);
+    $('clubPick').hidden = !clubs.length;
+    $('clubNone').hidden = Boolean(clubs.length) || Boolean(pendingJoin);
     showMyRole();
   }
 
   async function showMyRole() {
-    const id = $('seasonSelect').value;
+    const id = $('clubSelect').value;
     if (!id) return;
     store(CURRENT_KEY, id);
     const role = await Club.myRoleIn(user(), id);
-    $('seasonRole').textContent = role ? `You’re ${role === 'admin' || role === 'owner' ? 'an' : 'a'} ${Club.ROLE_NAMES[role].toLowerCase()} here.` : '';
+    $('clubRole').textContent = role ? `You’re ${role === 'admin' || role === 'owner' ? 'an' : 'a'} ${Club.ROLE_NAMES[role].toLowerCase()} here.` : '';
   }
-  $('seasonSelect').addEventListener('change', showMyRole);
+  $('clubSelect').addEventListener('change', showMyRole);
 
   async function showJoin() {
     const card = $('joinCard');
@@ -108,22 +110,22 @@ export function setupSeason($, account, notify = () => {}, defaults = () => ({})
     const u = user();
     $('joinBtn').hidden = !u;
     if (!u) {
-      $('joinText').textContent = 'You’ve been invited to a season. Sign in above to join.';
+      $('joinText').textContent = 'You’ve been invited to a club. Sign in above to join.';
       return;
     }
-    const { seasonId, token } = pendingJoin;
-    if (await Club.myRoleIn(u, seasonId)) {
+    const { clubId, token } = pendingJoin;
+    if (await Club.myRoleIn(u, clubId)) {
       // Already a member: just make sure it's in the list, and select it.
-      const invite = await Club.readInvite(seasonId, token).catch(() => null);
-      await Club.rememberSeason(u, seasonId, invite?.seasonName ?? 'Season').catch(() => {});
-      store(CURRENT_KEY, seasonId);
+      const invite = await Club.readInvite(clubId, token).catch(() => null);
+      await Club.rememberClub(u, clubId, invite?.clubName ?? 'Club').catch(() => {});
+      store(CURRENT_KEY, clubId);
       clearJoin();
-      notify('You’re already in this season');
+      notify('You’re already in this club');
       return;
     }
     let invite = null;
     try {
-      invite = await Club.readInvite(seasonId, token);
+      invite = await Club.readInvite(clubId, token);
     } catch {
       $('joinText').textContent = 'Can’t check the invite right now (offline?).';
       $('joinBtn').hidden = true;
@@ -136,7 +138,7 @@ export function setupSeason($, account, notify = () => {}, defaults = () => ({})
       return;
     }
     pendingJoin.invite = invite;
-    $('joinText').replaceChildren('You’re invited to ', el('strong', {}, invite.seasonName),
+    $('joinText').replaceChildren('You’re invited to ', el('strong', {}, invite.clubName),
       ` as ${Club.ROLE_NAMES[invite.role].toLowerCase()}.`);
   }
 
@@ -148,16 +150,16 @@ export function setupSeason($, account, notify = () => {}, defaults = () => ({})
   }
 
   $('joinBtn').addEventListener('click', async () => {
-    const { seasonId, token, invite } = pendingJoin ?? {};
+    const { clubId, token, invite } = pendingJoin ?? {};
     if (!invite) return;
     $('joinBtn').disabled = true;
     try {
-      await Club.join(user(), seasonId, token, invite);
-      store(CURRENT_KEY, seasonId);
+      await Club.join(user(), clubId, token, invite);
+      store(CURRENT_KEY, clubId);
       clearJoin();
-      notify(`Welcome to ${invite.seasonName}`);
+      notify(`Welcome to ${invite.clubName}`);
       await refresh();
-      openSeason(seasonId);
+      openClub(clubId);
     } catch (e) {
       status(`Couldn’t join (${e.code || e.message}).`);
     } finally {
@@ -166,50 +168,50 @@ export function setupSeason($, account, notify = () => {}, defaults = () => ({})
   });
   $('joinLaterBtn').addEventListener('click', () => { clearJoin(); refresh(); });
 
-  $('seasonNewBtn').addEventListener('click', () => {
-    $('seasonNew').hidden = false;
-    $('seasonNewBtn').hidden = true;
-    $('seasonName').focus();
+  $('clubNewBtn').addEventListener('click', () => {
+    $('clubNew').hidden = false;
+    $('clubNewBtn').hidden = true;
+    $('clubName').focus();
   });
 
-  async function createSeason() {
-    const name = $('seasonName').value.trim();
+  async function createClub() {
+    const name = $('clubName').value.trim();
     if (!name) {
-      status('Give the season a name first.');
+      status('Give the club a name first.');
       return;
     }
-    $('seasonCreateBtn').disabled = true;
+    $('clubCreateBtn').disabled = true;
     try {
-      const id = await Club.createSeason(user(), name, defaults());
+      const id = await Club.createClub(user(), name, defaults());
       store(CURRENT_KEY, id);
-      $('seasonName').value = '';
-      $('seasonNew').hidden = true;
+      $('clubName').value = '';
+      $('clubNew').hidden = true;
       await refresh();
-      openSeason(id);
+      openClub(id);
     } catch (e) {
-      status(`Couldn’t create the season (${e.code || e.message}).`);
+      status(`Couldn’t create the club (${e.code || e.message}).`);
     } finally {
-      $('seasonCreateBtn').disabled = false;
+      $('clubCreateBtn').disabled = false;
     }
   }
-  $('seasonCreateBtn').addEventListener('click', createSeason);
-  $('seasonName').addEventListener('keydown', (e) => {
+  $('clubCreateBtn').addEventListener('click', createClub);
+  $('clubName').addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
     e.preventDefault(); // Enter would otherwise close the settings
-    createSeason();
+    createClub();
   });
 
-  $('seasonOpenBtn').addEventListener('click', () => openSeason($('seasonSelect').value));
+  $('clubOpenBtn').addEventListener('click', () => openClub($('clubSelect').value));
 
   account.onUserChange(() => refresh());
 
-  // ---------- the Season window ----------
+  // ---------- the Club window ----------
 
-  const dialog = $('seasonDialog');
+  const dialog = $('clubDialog');
   let stopWatching = null;
-  let view = null; // { id, season, members, players, invites, myRole }
+  let view = null; // { id, club, members, players, invites, myRole }
   let lastInvite = null;
-  const dstatus = (text) => { $('seasonDialogStatus').textContent = text; };
+  const dstatus = (text) => { $('clubDialogStatus').textContent = text; };
 
   async function act(promise, failure) {
     try {
@@ -220,24 +222,26 @@ export function setupSeason($, account, notify = () => {}, defaults = () => ({})
     }
   }
 
-  async function openSeason(id) {
+  async function openClub(id) {
     if (!id || !user()) return;
     stopWatching?.();
-    view = { id, season: null, members: [], players: [], invites: [], myRole: await Club.myRoleIn(user(), id) };
+    view = { id, club: null, members: [], players: [], invites: [], myRole: await Club.myRoleIn(user(), id) };
     if (!view.myRole) {
-      status('You’re no longer a member of this season.');
-      await Club.forgetSeason(user(), id).catch(() => {});
+      status('You’re no longer a member of this club.');
+      await Club.forgetClub(user(), id).catch(() => {});
       refresh();
       return;
     }
     lastInvite = null;
+    editingSeason = null;
+    $('seasonForm').hidden = true;
     $('inviteOut').hidden = true;
     dstatus('');
-    stopWatching = await Club.watchSeason(id, Club.isAdmin(view.myRole), (state) => {
+    stopWatching = await Club.watchClub(id, Club.isAdmin(view.myRole), (state) => {
       Object.assign(view, state);
       view.myRole = view.members.find((m) => m.id === user()?.uid)?.role ?? view.myRole;
       render();
-    }, () => dstatus('You no longer have access to this season.'));
+    }, () => dstatus('You no longer have access to this club.'));
     if (!dialog.open) dialog.showModal();
   }
 
@@ -248,16 +252,34 @@ export function setupSeason($, account, notify = () => {}, defaults = () => ({})
   });
 
   function render() {
-    if (!view?.season) return;
-    const { season, members, players, invites, myRole } = view;
+    if (!view?.club) return;
+    const { club, members, seasons, players, invites, myRole } = view;
     const me = user();
     const admin = Club.isAdmin(myRole);
-    $('seasonTitle').textContent = season.name;
-    $('seasonMyRole').textContent = Club.ROLE_NAMES[myRole] ?? '';
-    // Keep the name in my own season list up to date after a rename.
-    if (seasons.find((s) => s.id === view.id)?.name !== season.name) {
-      Club.rememberSeason(me, view.id, season.name).catch(() => {});
+    $('clubTitle').textContent = club.name;
+    $('clubMyRole').textContent = Club.ROLE_NAMES[myRole] ?? '';
+    // Keep the name in my own club list up to date after a rename.
+    if (clubs.find((s) => s.id === view.id)?.name !== club.name) {
+      Club.rememberClub(me, view.id, club.name).catch(() => {});
     }
+
+    // Seasons
+    const now = Club.currentSeason(seasons);
+    $('noSeasons').hidden = seasons.length > 0;
+    $('seasonAddBtn').hidden = !admin || !$('seasonForm').hidden;
+    $('seasonList').replaceChildren(...seasons.map((se) => el('li', {},
+      el('span', { className: 'who two-line' }, se.name,
+        el('small', {}, `${dateText(se.start)} – ${dateText(se.end)}`,
+          se.id === now?.id ? el('span', { className: 'now' }, ' \u00b7 current') : null)),
+      admin ? el('button', {
+        type: 'button', className: 'btn outline', textContent: 'Edit', onclick: () => editSeason(se),
+      }) : null,
+      admin ? el('button', {
+        type: 'button', className: 'icon-x', textContent: '\u00d7', title: `Delete ${se.name}`,
+        onclick: () => {
+          if (confirm(`Delete season ${se.name}?`)) act(Club.deleteSeason(view.id, se.id), 'Couldn’t delete the season');
+        },
+      }) : null)));
 
     // Invites
     $('inviteGroup').hidden = !admin;
@@ -290,7 +312,7 @@ export function setupSeason($, account, notify = () => {}, defaults = () => ({})
           canRemove ? el('button', {
             type: 'button', className: 'icon-x', textContent: '×', title: `Remove ${m.name}`,
             onclick: () => {
-              if (confirm(`Remove ${m.name} from ${season.name}?`)) act(Club.removeMember(view.id, m.id), 'Couldn’t remove');
+              if (confirm(`Remove ${m.name} from ${club.name}?`)) act(Club.removeMember(view.id, m.id), 'Couldn’t remove');
             },
           }) : null);
       }));
@@ -316,12 +338,49 @@ export function setupSeason($, account, notify = () => {}, defaults = () => ({})
           },
         }) : null)));
 
-    // This season
+    // This club
     $('renameRow').hidden = !admin;
-    if (document.activeElement !== $('seasonRename')) $('seasonRename').value = season.name;
-    $('seasonLeaveBtn').hidden = myRole === 'owner';
-    $('seasonDeleteBtn').hidden = myRole !== 'owner';
+    if (document.activeElement !== $('clubRename')) $('clubRename').value = club.name;
+    $('clubLeaveBtn').hidden = myRole === 'owner';
+    $('clubDeleteBtn').hidden = myRole !== 'owner';
   }
+
+  // Adding or editing a season (admins)
+  let editingSeason = null;
+  function editSeason(se) {
+    editingSeason = se;
+    const values = se ?? Club.nextSeasonSuggestion(view.seasons);
+    $('seasonName').value = values.name;
+    $('seasonStart').value = values.start;
+    $('seasonEnd').value = values.end;
+    $('seasonSaveBtn').textContent = se ? 'Save' : 'Add season';
+    $('seasonForm').hidden = false;
+    $('seasonAddBtn').hidden = true;
+  }
+  function closeSeasonForm() {
+    editingSeason = null;
+    $('seasonForm').hidden = true;
+    render();
+  }
+  $('seasonAddBtn').addEventListener('click', () => editSeason(null));
+  $('seasonCancelBtn').addEventListener('click', closeSeasonForm);
+  $('seasonSaveBtn').addEventListener('click', async () => {
+    const name = $('seasonName').value.trim();
+    const start = $('seasonStart').value;
+    const end = $('seasonEnd').value;
+    if (!name || !start || !end) {
+      dstatus('Give the season a name, a start and an end date.');
+      return;
+    }
+    if (end < start) {
+      dstatus('The season has to end after it starts.');
+      return;
+    }
+    await act(editingSeason
+      ? Club.updateSeason(view.id, editingSeason.id, { name, start, end })
+      : Club.addSeason(view.id, name, start, end), 'Couldn’t save the season');
+    closeSeasonForm();
+  });
 
   $('addMeBtn').addEventListener('click', () => {
     const me = user();
@@ -342,25 +401,25 @@ export function setupSeason($, account, notify = () => {}, defaults = () => ({})
     addGuest();
   });
 
-  $('seasonRenameBtn').addEventListener('click', () => {
-    const name = $('seasonRename').value.trim();
-    if (name) act(Club.renameSeason(user(), view.id, name), 'Couldn’t rename');
+  $('clubRenameBtn').addEventListener('click', () => {
+    const name = $('clubRename').value.trim();
+    if (name) act(Club.renameClub(user(), view.id, name), 'Couldn’t rename');
   });
 
-  $('seasonLeaveBtn').addEventListener('click', async () => {
-    if (!confirm(`Leave ${view.season.name}? You need a new invite to come back.`)) return;
+  $('clubLeaveBtn').addEventListener('click', async () => {
+    if (!confirm(`Leave ${view.club.name}? You need a new invite to come back.`)) return;
     await act(Club.leave(user(), view.id), 'Couldn’t leave');
     store(CURRENT_KEY, null);
     dialog.close();
   });
 
-  $('seasonDeleteBtn').addEventListener('click', async () => {
-    const name = view.season.name;
-    if (prompt(`This deletes ${name} for everyone: members, players and invites. Type the season’s name to confirm:`)?.trim() !== name) return;
+  $('clubDeleteBtn').addEventListener('click', async () => {
+    const name = view.club.name;
+    if (prompt(`This deletes ${name} for everyone: members, seasons, players and invites. Type the club’s name to confirm:`)?.trim() !== name) return;
     const id = view.id;
     stopWatching?.();
     stopWatching = null;
-    await act(Club.deleteSeason(user(), id), 'Couldn’t delete the season');
+    await act(Club.deleteClub(user(), id), 'Couldn’t delete the club');
     store(CURRENT_KEY, null);
     dialog.close();
     notify(`${name} deleted`);
@@ -372,9 +431,9 @@ export function setupSeason($, account, notify = () => {}, defaults = () => ({})
     const days = Number($('inviteDays').value);
     $('inviteCreateBtn').disabled = true;
     try {
-      const token = await Club.createInvite(user(), view.id, view.season.name, role, days);
+      const token = await Club.createInvite(user(), view.id, view.club.name, role, days);
       const link = Club.inviteLink(view.id, token);
-      lastInvite = { link, role, text: `Join ${view.season.name} on Badminton Score: ${link}` };
+      lastInvite = { link, role, text: `Join ${view.club.name} on Badminton Score: ${link}` };
       const qr = qrcode(0, 'M');
       qr.addData(link);
       qr.make();
@@ -392,7 +451,7 @@ export function setupSeason($, account, notify = () => {}, defaults = () => ({})
   });
 
   $('inviteShareBtn').addEventListener('click', () => {
-    navigator.share({ title: `Join ${view.season.name}`, text: lastInvite.text }).catch(() => {});
+    navigator.share({ title: `Join ${view.club.name}`, text: lastInvite.text }).catch(() => {});
   });
 
   $('inviteCopyBtn').addEventListener('click', async () => {

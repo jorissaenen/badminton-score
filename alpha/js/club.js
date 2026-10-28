@@ -1,4 +1,4 @@
-// Seasons, members, invites and players in Firestore. Who may do what is enforced by
+// Clubs with their members, invites, seasons and players in Firestore. Who may do what is enforced by
 // firestore.rules; the screens only offer what the rules allow.
 import { cloud } from './cloud.js';
 
@@ -17,19 +17,19 @@ export function assignableRoles(myRole, theirRole, isSelf) {
   return [];
 }
 
-// Invite links: …/?join=<seasonId>.<token>. The token is 24 random bytes, so it can't be guessed.
+// Invite links: …/?join=<clubId>.<token>. The token is 24 random bytes, so it can't be guessed.
 export function newToken() {
   const bytes = crypto.getRandomValues(new Uint8Array(24));
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-export function inviteLink(seasonId, token, base = location.origin + location.pathname) {
-  return `${base}?join=${seasonId}.${token}`;
+export function inviteLink(clubId, token, base = location.origin + location.pathname) {
+  return `${base}?join=${clubId}.${token}`;
 }
 
 export function parseJoin(search) {
   const m = /[?&]join=([A-Za-z0-9]+)\.([A-Za-z0-9_-]{20,})/.exec(search);
-  return m ? { seasonId: m[1], token: m[2] } : null;
+  return m ? { clubId: m[1], token: m[2] } : null;
 }
 
 const profile = (user) => ({
@@ -37,50 +37,54 @@ const profile = (user) => ({
   photoURL: user.photoURL || null,
 });
 
-export async function mySeasons(user) {
+export async function myClubs(user) {
   const { db, F } = await cloud();
-  const snap = await F.getDocs(F.collection(db, 'users', user.uid, 'seasons'));
+  const snap = await F.getDocs(F.collection(db, 'users', user.uid, 'clubs'));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
     .sort((a, b) => (b.joinedAt?.toMillis?.() ?? 0) - (a.joinedAt?.toMillis?.() ?? 0));
 }
 
-export async function createSeason(user, name, defaults) {
+export async function createClub(user, name, defaults) {
   const { db, F } = await cloud();
-  const ref = F.doc(F.collection(db, 'seasons'));
+  const ref = F.doc(F.collection(db, 'clubs'));
   const batch = F.writeBatch(db);
   batch.set(ref, {
     name, defaults, createdBy: user.uid, createdAt: F.serverTimestamp(), schemaVersion: 1,
   });
-  batch.set(F.doc(db, 'seasons', ref.id, 'members', user.uid), {
+  batch.set(F.doc(db, 'clubs', ref.id, 'members', user.uid), {
     role: 'owner', ...profile(user), joinedAt: F.serverTimestamp(),
   });
-  batch.set(F.doc(db, 'users', user.uid, 'seasons', ref.id), { name, joinedAt: F.serverTimestamp() });
+  batch.set(F.doc(db, 'users', user.uid, 'clubs', ref.id), { name, joinedAt: F.serverTimestamp() });
   await batch.commit();
   return ref.id;
 }
 
-export async function renameSeason(user, seasonId, name) {
+export async function renameClub(user, clubId, name) {
   const { db, F } = await cloud();
-  await F.updateDoc(F.doc(db, 'seasons', seasonId), { name });
-  await F.setDoc(F.doc(db, 'users', user.uid, 'seasons', seasonId), { name }, { merge: true });
+  await F.updateDoc(F.doc(db, 'clubs', clubId), { name });
+  await F.setDoc(F.doc(db, 'users', user.uid, 'clubs', clubId), { name }, { merge: true });
 }
 
-// Follows a season while its screen is open. `on` gets { season, members, players, invites } as
+// Follows a club while its screen is open. `on` gets { club, members, seasons, players, invites } as
 // they change; `onError` gets the error when the user isn't (or no longer) a member.
-export async function watchSeason(seasonId, withInvites, on, onError) {
+export async function watchClub(clubId, withInvites, on, onError) {
   const { db, F } = await cloud();
-  const state = { season: null, members: [], players: [], invites: [] };
+  const state = { club: null, members: [], seasons: [], players: [], invites: [] };
   const list = (snap) => snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   const subs = [
-    F.onSnapshot(F.doc(db, 'seasons', seasonId), (d) => {
-      state.season = d.exists() ? { id: d.id, ...d.data() } : null;
+    F.onSnapshot(F.doc(db, 'clubs', clubId), (d) => {
+      state.club = d.exists() ? { id: d.id, ...d.data() } : null;
       on(state);
     }, onError),
-    F.onSnapshot(F.collection(db, 'seasons', seasonId, 'members'), (s) => { state.members = list(s); on(state); }, onError),
-    F.onSnapshot(F.collection(db, 'seasons', seasonId, 'players'), (s) => { state.players = list(s); on(state); }, onError),
+    F.onSnapshot(F.collection(db, 'clubs', clubId, 'members'), (s) => { state.members = list(s); on(state); }, onError),
+    F.onSnapshot(F.collection(db, 'clubs', clubId, 'players'), (s) => { state.players = list(s); on(state); }, onError),
+    F.onSnapshot(F.collection(db, 'clubs', clubId, 'seasons'), (s) => {
+      state.seasons = list(s).sort((a, b) => b.start.localeCompare(a.start));
+      on(state);
+    }, onError),
   ];
   if (withInvites) {
-    subs.push(F.onSnapshot(F.collection(db, 'seasons', seasonId, 'invites'), (s) => {
+    subs.push(F.onSnapshot(F.collection(db, 'clubs', clubId, 'invites'), (s) => {
       state.invites = list(s).filter((i) => i.expiresAt?.toMillis() > Date.now());
       on(state);
     }, () => {}));
@@ -88,111 +92,143 @@ export async function watchSeason(seasonId, withInvites, on, onError) {
   return () => subs.forEach((unsubscribe) => unsubscribe());
 }
 
-export async function createInvite(user, seasonId, seasonName, role, days) {
+export async function createInvite(user, clubId, clubName, role, days) {
   const { db, F } = await cloud();
   const token = newToken();
-  await F.setDoc(F.doc(db, 'seasons', seasonId, 'invites', token), {
-    role, seasonName, createdBy: user.uid, createdAt: F.serverTimestamp(),
+  await F.setDoc(F.doc(db, 'clubs', clubId, 'invites', token), {
+    role, clubName, createdBy: user.uid, createdAt: F.serverTimestamp(),
     expiresAt: F.Timestamp.fromMillis(Date.now() + days * 86400_000),
   });
   return token;
 }
 
-export async function deleteInvite(seasonId, token) {
+export async function deleteInvite(clubId, token) {
   const { db, F } = await cloud();
-  await F.deleteDoc(F.doc(db, 'seasons', seasonId, 'invites', token));
+  await F.deleteDoc(F.doc(db, 'clubs', clubId, 'invites', token));
 }
 
-export async function readInvite(seasonId, token) {
+export async function readInvite(clubId, token) {
   const { db, F } = await cloud();
-  const d = await F.getDoc(F.doc(db, 'seasons', seasonId, 'invites', token));
+  const d = await F.getDoc(F.doc(db, 'clubs', clubId, 'invites', token));
   if (!d.exists()) return null;
   const invite = d.data();
   return { ...invite, expired: invite.expiresAt.toMillis() <= Date.now() };
 }
 
-// Returns the user's role in the season, or null when not a member (or not allowed to look).
-export async function myRoleIn(user, seasonId) {
+// Returns the user's role in the club, or null when not a member (or not allowed to look).
+export async function myRoleIn(user, clubId) {
   const { db, F } = await cloud();
   try {
-    const d = await F.getDoc(F.doc(db, 'seasons', seasonId, 'members', user.uid));
+    const d = await F.getDoc(F.doc(db, 'clubs', clubId, 'members', user.uid));
     return d.exists() ? d.data().role : null;
   } catch {
     return null;
   }
 }
 
-export async function join(user, seasonId, token, invite) {
+export async function join(user, clubId, token, invite) {
   const { db, F } = await cloud();
   const batch = F.writeBatch(db);
-  batch.set(F.doc(db, 'seasons', seasonId, 'members', user.uid), {
+  batch.set(F.doc(db, 'clubs', clubId, 'members', user.uid), {
     role: invite.role, ...profile(user), invite: token, joinedAt: F.serverTimestamp(),
   });
-  batch.set(F.doc(db, 'users', user.uid, 'seasons', seasonId), {
-    name: invite.seasonName, joinedAt: F.serverTimestamp(),
+  batch.set(F.doc(db, 'users', user.uid, 'clubs', clubId), {
+    name: invite.clubName, joinedAt: F.serverTimestamp(),
   });
   await batch.commit();
 }
 
-// Already a member (e.g. opened the invite twice): make sure the season is in the user's list.
-export async function rememberSeason(user, seasonId, name) {
+// Already a member (e.g. opened the invite twice): make sure the club is in the user's list.
+export async function rememberClub(user, clubId, name) {
   const { db, F } = await cloud();
-  await F.setDoc(F.doc(db, 'users', user.uid, 'seasons', seasonId), { name, joinedAt: F.serverTimestamp() }, { merge: true });
+  await F.setDoc(F.doc(db, 'users', user.uid, 'clubs', clubId), { name, joinedAt: F.serverTimestamp() }, { merge: true });
 }
 
-export async function forgetSeason(user, seasonId) {
+export async function forgetClub(user, clubId) {
   const { db, F } = await cloud();
-  await F.deleteDoc(F.doc(db, 'users', user.uid, 'seasons', seasonId));
+  await F.deleteDoc(F.doc(db, 'users', user.uid, 'clubs', clubId));
 }
 
-export async function setRole(seasonId, uid, role) {
+export async function setRole(clubId, uid, role) {
   const { db, F } = await cloud();
-  await F.updateDoc(F.doc(db, 'seasons', seasonId, 'members', uid), { role });
+  await F.updateDoc(F.doc(db, 'clubs', clubId, 'members', uid), { role });
 }
 
-export async function removeMember(seasonId, uid) {
+export async function removeMember(clubId, uid) {
   const { db, F } = await cloud();
-  await F.deleteDoc(F.doc(db, 'seasons', seasonId, 'members', uid));
+  await F.deleteDoc(F.doc(db, 'clubs', clubId, 'members', uid));
 }
 
-export async function leave(user, seasonId) {
-  await removeMember(seasonId, user.uid);
-  await forgetSeason(user, seasonId);
+export async function leave(user, clubId) {
+  await removeMember(clubId, user.uid);
+  await forgetClub(user, clubId);
 }
 
-// The season first (so nobody can open it any more), then everything in it, the owner's own
-// member entry last (the rules allow that only once the season is gone).
-export async function deleteSeason(user, seasonId) {
+// The club first (so nobody can open it any more), then everything in it, the owner's own
+// member entry last (the rules allow that only once the club is gone).
+export async function deleteClub(user, clubId) {
   const { db, F } = await cloud();
-  await F.deleteDoc(F.doc(db, 'seasons', seasonId));
-  for (const sub of ['invites', 'players', 'members']) {
-    const snap = await F.getDocs(F.collection(db, 'seasons', seasonId, sub));
+  await F.deleteDoc(F.doc(db, 'clubs', clubId));
+  for (const sub of ['invites', 'seasons', 'players', 'members']) {
+    const snap = await F.getDocs(F.collection(db, 'clubs', clubId, sub));
     for (const d of snap.docs) if (!(sub === 'members' && d.id === user.uid)) await F.deleteDoc(d.ref);
   }
-  await F.deleteDoc(F.doc(db, 'seasons', seasonId, 'members', user.uid));
-  await forgetSeason(user, seasonId);
+  await F.deleteDoc(F.doc(db, 'clubs', clubId, 'members', user.uid));
+  await forgetClub(user, clubId);
 }
 
-export async function addPlayer(seasonId, name, uid = null) {
+export async function addPlayer(clubId, name, uid = null) {
   const { db, F } = await cloud();
-  await F.addDoc(F.collection(db, 'seasons', seasonId, 'players'), {
+  await F.addDoc(F.collection(db, 'clubs', clubId, 'players'), {
     name, ...(uid && { uid }), createdAt: F.serverTimestamp(), schemaVersion: 1,
   });
 }
 
-export async function claimPlayer(user, seasonId, playerId) {
+export async function claimPlayer(user, clubId, playerId) {
   const { db, F } = await cloud();
-  await F.updateDoc(F.doc(db, 'seasons', seasonId, 'players', playerId), {
+  await F.updateDoc(F.doc(db, 'clubs', clubId, 'players', playerId), {
     uid: user.uid, claimedAt: F.serverTimestamp(),
   });
 }
 
-export async function renamePlayer(seasonId, playerId, name) {
+export async function renamePlayer(clubId, playerId, name) {
   const { db, F } = await cloud();
-  await F.updateDoc(F.doc(db, 'seasons', seasonId, 'players', playerId), { name });
+  await F.updateDoc(F.doc(db, 'clubs', clubId, 'players', playerId), { name });
 }
 
-export async function deletePlayer(seasonId, playerId) {
+export async function deletePlayer(clubId, playerId) {
   const { db, F } = await cloud();
-  await F.deleteDoc(F.doc(db, 'seasons', seasonId, 'players', playerId));
+  await F.deleteDoc(F.doc(db, 'clubs', clubId, 'players', playerId));
+}
+
+// Seasons: a name and a period (dates as YYYY-MM-DD). Matches count for the season they fall in.
+export async function addSeason(clubId, name, start, end) {
+  const { db, F } = await cloud();
+  await F.addDoc(F.collection(db, 'clubs', clubId, 'seasons'), {
+    name, start, end, createdAt: F.serverTimestamp(), schemaVersion: 1,
+  });
+}
+
+export async function updateSeason(clubId, seasonId, changes) {
+  const { db, F } = await cloud();
+  await F.updateDoc(F.doc(db, 'clubs', clubId, 'seasons', seasonId), changes);
+}
+
+export async function deleteSeason(clubId, seasonId) {
+  const { db, F } = await cloud();
+  await F.deleteDoc(F.doc(db, 'clubs', clubId, 'seasons', seasonId));
+}
+
+// The season today falls in, or else the most recent one.
+export function currentSeason(seasons, today = new Date().toISOString().slice(0, 10)) {
+  return seasons.find((s) => s.start <= today && today <= s.end)
+    ?? [...seasons].sort((a, b) => b.start.localeCompare(a.start))[0] ?? null;
+}
+
+// A suggestion for a new season: September to June, after the latest one.
+export function nextSeasonSuggestion(seasons, today = new Date()) {
+  const latest = [...seasons].sort((a, b) => b.end.localeCompare(a.end))[0];
+  let year = today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1;
+  if (latest) year = Math.max(year, Number(latest.end.slice(0, 4)));
+  return { name: `${year}–${String((year + 1) % 100).padStart(2, '0')}`, start: `${year}-09-01`, end: `${year + 1}-06-30` };
 }

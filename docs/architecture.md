@@ -11,10 +11,11 @@ built and tested in the beta first.
   keeper** who entered it (a player or someone next to the court) and the device used. The keeper
   can change during a match; each match keeps its list of keepers.
 - Every screen (phone, tablet, TV) shows the **live** state of a match; several screens at once,
-  and screens that follow **all courts** of a session.
-- Seasons with sessions (training evenings), players, roles and invitations.
+  and screens that follow **all courts** of an event.
+- Clubs with seasons, events (training evenings and tournaments, one-off or recurring), players,
+  roles and invitations; registering for events in advance, with reminders.
 - Matchmaking for 12–13 players on 2+ courts: fair rotation, balanced teams, still random.
-- Statistics and leaderboards per session and per season.
+- Statistics and leaderboards per event, per season and over all seasons (progress over the years).
 - Sign in with Google or an e-mail link (works on iPhone too). Works with a patchy sports-hall
   connection.
 - Production stays stable while new versions are tested.
@@ -34,7 +35,7 @@ flowchart LR
   end
   subgraph Firebase["Firebase (prod and dev projects, region europe-west1)"]
     AUTH[Authentication<br/>Google, e-mail link]
-    FS[(Firestore<br/>seasons, sessions, matches)]
+    FS[(Firestore<br/>clubs, seasons, events, matches)]
     FN[Cloud Functions<br/>watch API, stats, invites]
     RULES[Security rules]
   end
@@ -72,7 +73,7 @@ Features ripen in three steps: **alpha** (built and tested end to end with mock 
   names (each only cleans up its own caches), storage keys, manifest (name, id, α or β badge on the
   icon and on screen) and Firebase config, all in its `js/edition.js`. v28 deletes other caches
   only when production itself updates; the editions then simply re-cache.
-- **Mock data in alpha:** the alpha project holds a generated season (players, sessions, matches,
+- **Mock data in alpha:** the alpha project holds a generated club and season (players, events, matches,
   keepers, corrections) so every screen and statistic can be tested end to end. A "reset demo data"
   action, available only in alpha, regenerates it.
 - **Beta and production share the real data.** A beta feature therefore must not break
@@ -111,23 +112,37 @@ Technology:
 
 ## 5. Data model (Firestore)
 
+A **club** is the top level: roles, players and invites belong to the club, so they carry over
+from season to season. A **season** is just a period (start and end date) for rankings; an event
+or match belongs to the season its date falls in. One person can be in several clubs, with a
+different role in each.
+
 ```
-users/{uid}                     name, photo, linked playerId per season
-seasons/{seasonId}              name, start, end, defaults (points, format)
-  members/{uid}                 role: owner | admin | keeper | member
-  invites/{token}               role, expiry, created by (link and QR code)
-  players/{playerId}            display name, uid (optional: guests have none), rating
-  sessions/{sessionId}          date, courts (changeable during the session), format:
-                                1v1 | 2v2 | mixed, status
-    attendance/{playerId}       present | expected | left, arrived at
-    queue                       derived: waiting order, games played tonight
-    matches/{matchId}           court, teams [[ids],[ids]], rules, server, sides,
-                                status: planned | live | finished, startedAt, endedAt
-      events/{eventId}          see "Match events and score keepers" below
-    (match).keepers             summary per keeper: updates, corrections, first/last update
-  keepers/{keeperId}            name, uid (optional: a keeper without an account has none)
-  stats/…                       derived per player, pair, session, season (by Cloud Functions)
-devices/{deviceId}              paired watch: owner uid, season, allowed courts, token hash
+users/{uid}                       name, photo (no e-mail address)
+  clubs/{clubId}                  the clubs this user belongs to (name, joined at)
+clubs/{clubId}                    name, created by, defaults (points, match length)
+  members/{uid}                   role: owner | admin | keeper | member; name, photo; invite used
+  invites/{token}                 role, expiry, created by, club name (link and QR code)
+  players/{playerId}              name; uid (none for players without an account); rating,
+                                  kept across seasons
+  seasons/{seasonId}              name, start, end (YYYY-MM-DD)
+  series/{seriesId}               a recurring event: type, weekday, time window, location,
+                                  courts, from/until, reminder times
+  events/{eventId}                type (training | americano | mexicano | groups-knockout),
+                                  date, time window, location, courts, seriesId (if recurring),
+                                  status: planned | cancelled | live | finished, registration
+                                  deadline
+    registrations/{playerId}      going | not going, note (e.g. an apology), set by (uid), at
+    attendance/{playerId}         checked in, arrived at, left at (on the day itself)
+    rounds/{roundId}              tournaments: round number, pairings
+    matches/{matchId}             court, teams [[ids],[ids]], rules, server, sides,
+                                  status: planned | live | finished, startedAt, endedAt
+      events/{updateId}           see "Match events and score keepers" below
+    (match).keepers               summary per keeper: updates, corrections, first/last update
+  keepers/{keeperId}              name, uid (optional: a keeper without an account has none)
+  stats/…                         derived per player, pair, event, season and all-time
+devices/{deviceId}                paired watch: owner uid, club, allowed courts, token hash
+pushTokens/{uid}/{deviceId}       for reminders (web push), per device
 ```
 
 ### Match events and score keepers
@@ -176,21 +191,48 @@ the rally: a point belongs to a team, not to a player.
 - **Sign-in:** Google and e-mail link, both free, handled by Firebase Authentication. iPhone users
   use either one. Sign in with Apple is left out: it needs the paid Apple Developer Program, also
   on the web.
-- **Roles per season:**
+- **Roles per club** (seasons have no roles of their own):
 
   | Role | Can |
   |---|---|
   | Owner | Everything, including deleting the season and changing owners |
-  | Admin | Manage sessions, courts, players, matches; invite; give keeper/admin rights |
+  | Admin | Manage seasons, events, courts, players, matches; invite; give keeper/admin rights |
   | Score keeper | Start matches and enter scores on a court (players and non-players) |
-  | Member | View everything; check in; see own stats |
+  | Member | View everything; register for events and check in; see own stats |
 
 - **Sharing:** an invite link or QR code (WhatsApp, or on screen) carries a one-time or expiring
-  token; opening it and signing in adds you to the season with the role in the invite. A display
-  screen can follow a session **without signing in** through a read-only share link, if the owner
+  token; opening it and signing in adds you to the club with the role in the invite. A display
+  screen can follow an event **without signing in** through a read-only share link, if the owner
   enables that.
 - **Enforcement:** Firestore security rules check every read and write against the member's role;
   the rules have their own automated tests in the emulator.
+
+## 6a. Events, registration, reminders and tournaments
+
+- **Events** are created by admins, **one-off** or as a **recurring series** ("every Tuesday
+  20:00–21:30, Sporthal X, 2 courts, September to June"). The series creates the dates ahead of
+  time; a single date can be moved or cancelled without touching the rest.
+- **Registering in advance:** every member sets *going* or *not going* (with an optional note, for
+  an apology) for each upcoming event; admins do it for players without an account. Everyone sees
+  who is coming, which helps planning (number of courts, a tournament's size). An optional
+  deadline closes registration. On the day itself, check-in records who actually came.
+- **Reminders:** a notification a day before and a few hours before (times set per series or
+  event), with *Going / Not going*. Uses web push (Firebase Cloud Messaging, free) sent by a
+  scheduled Cloud Function, so it needs the **Blaze** plan. iPhone: only in the installed app
+  (iOS 16.4+), after allowing notifications; tapping opens the event (iOS shows no answer buttons).
+  Free addition: an **"Add to calendar"** link (an `.ics` subscription per member), so events and
+  their reminders also appear in the phone's own calendar.
+- **Event types:**
+
+  | Type | How it works |
+  |---|---|
+  | Training | The matchmaking below: fair rotation, balanced teams, varied partners |
+  | Americano | Every round new random partners and opponents; everyone collects their own points; individual ranking at the end |
+  | Mexicano | Round 1 random; from round 2 on, teams follow the current standing (1+4 vs 2+3 within each group of four), so people of similar level meet |
+  | Groups + knockout | Groups seeded by season rating, then a knockout bracket; final ranking |
+
+  A tournament starts from the players who registered (and checked in), draws its rounds with the
+  secure random generator, and ends with a ranking that also counts for the season statistics.
 
 ## 7. Matchmaking (rotation and balance)
 
@@ -198,7 +240,7 @@ For each free court, the organiser's device proposes the next match:
 
 1. **Who plays:** present players not in a live match, longest waiting first (fewest games
    tonight, then longest since their last game).
-2. **Format:** 2v2 when four are available and the session allows doubles; otherwise 1v1.
+2. **Format:** 2v2 when four are available and the event allows doubles; otherwise 1v1.
 3. **Teams:** score many possible splits on *balance* (difference in team rating), *variety*
    (penalty for repeating partners and opponents tonight) and *fairness*; pick at random among the
    best few, using the secure random generator (`random.js`).
@@ -217,9 +259,13 @@ summaries, so screens load instantly.
   longest point streak, comebacks, game/match points converted and saved, rating over time
   (chart).
 - **Pairs and head-to-head:** best partnerships, results between players or pairs.
-- **Session:** winner of the evening, matches played, longest/closest match, biggest win.
-- **Season:** leaderboard (rating and win % with a minimum number of matches), records, attendance.
-- **Score keepers:** per keeper, per session and per season: matches kept, **score updates
+- **Event:** winner of the evening or the tournament ranking, matches played, longest/closest
+  match, biggest win.
+- **Season:** leaderboard (rating and win % with a minimum number of matches), records,
+  attendance (registered vs actually came).
+- **All-time / progress:** the same per season side by side, and the rating over all seasons, so
+  someone who played five seasons sees their progress.
+- **Score keepers:** per keeper, per event, per season and all-time: matches kept, **score updates
   entered**, **corrections** (their updates that were later undone or fixed, by themselves or
   someone else), and the **error rate** = corrections ÷ score updates. Also per input method (tap,
   remote, earbuds, watch), how quickly mistakes were corrected, and keeping score while playing

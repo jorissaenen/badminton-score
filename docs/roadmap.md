@@ -41,32 +41,52 @@ Result: you can sign in to the alpha with Google or an e-mail link.
 - [x] Firestore with offline persistence; Firebase Emulator Suite for local tests (`npm run
       emulators`; the alpha on localhost with `?emulator` uses it, with a fake sign-in)
 - [x] Security rules with automated rule tests (`npm run test:rules`)
-- [ ] Mock data generator for alpha: a season with players, sessions, matches, keepers and
+- [ ] Mock data generator for alpha: a club and season with players, events, registrations, matches, keepers and
       corrections; "reset demo data" in alpha only (M)
 - [ ] Data compatibility between beta and production: `schemaVersion` on documents, additive
       changes, one-off migrations at release (S)
 - [x] Account screen: name, photo (initials without one), online status, sign out
 - [ ] Delete account (S)
 
-## Phase 2 — Seasons, members, roles, invitations
+## Phase 2 — Clubs, seasons, members, roles, invitations
 
-Result: you create a season, invite the group by WhatsApp or QR code, and give admin rights.
+Result: you create a club, add seasons, invite the group by WhatsApp or QR code, and give admin
+rights.
 
-- [x] Create, rename and delete a season; defaults (points, match length) saved with it
-- [ ] Archive a season; edit its defaults (S)
-- [x] Roles owner / admin / score keeper / member, enforced by security rules
+- [x] Create, rename and delete a club; one person in several clubs, each with its own role
+- [x] Seasons inside a club: name and period (suggested September–June), add, edit, delete;
+      "current" season by date
+- [x] Roles owner / admin / score keeper / member per club, enforced by security rules
 - [x] Invite link and QR code with role and expiry (1, 7 or 30 days), shared by WhatsApp, the
       share sheet or copying; withdrawing a link; join flow, also when signing in first
-- [x] Player list with guests (no account); "That's me" claims a guest player after joining
-- [x] Member management: change roles, remove members, leave a season
+- [x] Player list with players without an account, kept across seasons; "That's me" links one to
+      your account after joining
+- [x] Member management: change roles, remove members, leave a club
+- [ ] Club defaults (points, match length) editable (S)
 
-## Phase 3 — Sessions, courts and live scoring
+## Phase 2b — Events, registration and reminders
+
+Result: the training evenings are planned ahead; everyone says whether they're coming and gets a
+reminder.
+
+- [ ] One-off events: type, date, time window, location, number of courts (S)
+- [ ] Recurring series ("every Tuesday 20:00–21:30"): dates created ahead; move or cancel one
+      date without touching the rest (M)
+- [ ] Register in advance: going / not going with an optional note; admins register players
+      without an account; who's coming, visible to all; optional registration deadline (M)
+- [ ] Upcoming events on the start screen of the app, with your own answer (S)
+- [ ] "Add to calendar" (.ics subscription per member) (S)
+- [ ] **You:** Blaze plan (firebase-setup.md, step 5), for reminders
+- [ ] Reminders by web push a day and a few hours before, with Going / Not going; settings per
+      member (M)
+
+## Phase 3 — Events on the day: courts and live scoring
 
 Result: two phones score two courts; any screen follows them live.
 
-- [ ] Create a session: courts, format (1v1 / 2v2 / mixed); change the number of courts during the
-      session (M)
-- [ ] Attendance: check-in, late arrivals, leaving early (S)
+- [ ] Start the event: courts, format (1v1 / 2v2 / mixed); change the number of courts during the
+      event (M)
+- [ ] Attendance: check-in (pre-filled from registrations), late arrivals, leaving early (S)
 - [ ] Match as an event log in Firestore; the scoreboard writes events and shows the computed
       score (L)
 - [ ] Every event records the score keeper who entered it, the device and the input (tap, remote,
@@ -81,9 +101,9 @@ Result: two phones score two courts; any screen follows them live.
 - [ ] Display mode: one court full screen, or a grid of all courts; read-only share link without
       sign-in (M)
 - [ ] Offline: scoring keeps working without a connection and syncs afterwards (M)
-- [ ] Session overview for players: live courts, queue, estimated waiting time (M)
+- [ ] Event overview for players: live courts, queue, estimated waiting time (M)
 
-## Phase 4 — Matchmaking
+## Phase 4 — Matchmaking and tournaments
 
 Result: the next match for a free court is proposed automatically, fair and balanced.
 
@@ -91,17 +111,21 @@ Result: the next match for a free court is proposed automatically, fair and bala
       by partner/opponent history, secure random choice among the best options (M)
 - [ ] Organiser screen: proposal per free court; accept, re-draw, or adjust by tap or drag (M)
 - [ ] Waiting-time estimate from tonight's measured match durations (S)
+- [ ] Tournament types: Americano (random partners, individual ranking), Mexicano (pairing by
+      current standing, so similar levels meet), groups seeded by rating + knockout; rounds drawn
+      from the registered and checked-in players; final ranking (L)
 
 ## Phase 5 — Statistics and leaderboard
 
-Result: player pages with progress charts, session summary, season leaderboard.
+Result: player pages with progress charts, event summary, all-time progress, season leaderboard.
 
 - [ ] Cloud Function on match finish: update summaries and ratings (M)
 - [ ] Rating with OpenSkill (doubles with rotating partners) (M)
 - [ ] Player page: totals, win %, rating chart, records (M)
 - [ ] Pairs and head-to-head (M)
-- [ ] Session summary: winner of the evening, longest/closest match (S)
+- [ ] Event summary: winner of the evening or tournament ranking, longest/closest match (S)
 - [ ] Season leaderboard (rating and win %, minimum number of matches) and records (M)
+- [ ] All-time view: every season side by side and the rating over all seasons (progress) (M)
 - [ ] Score keeper statistics: matches kept, score updates entered, corrections (their updates
       later undone or fixed), error rate = corrections ÷ updates, per input method, time to
       correct, keeping score while playing vs from the side (M)
@@ -130,6 +154,6 @@ Result: scoring from the wrist; the phone or TV only shows the score.
 
 ## Decisions still open
 
-1. May display screens follow a session without signing in (read-only link)?
+1. May display screens follow an event without signing in (read-only link)?
 2. Leaderboard on rating, win %, or both?
 3. Garmin or Wear OS first (whichever more players have)?
