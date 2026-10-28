@@ -26,10 +26,8 @@ Result: you can sign in to the beta with Google or an e-mail link.
 
 - [ ] **You:** create two Firebase projects, `badminton-prod` and `badminton-dev` (region
       `europe-west1`), on the Blaze plan with a budget alert; send me the web configs
-- [ ] **You (optional now, needed for Apple sign-in and the Apple Watch):** Apple Developer
-      Program membership
 - [ ] Move the app to a Vite build, keeping the scoring code unchanged; tests in CI (M)
-- [ ] Firebase Authentication: Google, e-mail link; Apple when the account exists (M)
+- [ ] Firebase Authentication: Google and e-mail link (no Apple sign-in) (M)
 - [ ] Firestore with offline persistence; Firebase Emulator Suite for local tests (S)
 - [ ] Security rules skeleton with automated rule tests (M)
 - [ ] Account screen: name, photo, sign out, delete account (S)
@@ -53,6 +51,10 @@ Result: two phones score two courts; any screen follows them live.
 - [ ] Attendance: check-in, late arrivals, leaving early (S)
 - [ ] Match as an event log in Firestore; the scoreboard writes events and shows the computed
       score (L)
+- [ ] Every event records scorer, device and input (tap, remote, earbuds, watch); undo and
+      after-match fixes are events that refer to what they correct, never deletions (M)
+- [ ] Scorer selection on the scoring phone: me, another member, or a scorer without an account
+      (standing next to the court); several scorers per match (M)
 - [ ] Scorer mode: bind a phone to a court; remote, earbuds and taps work as today (M)
 - [ ] One player, one live match (transaction) (S)
 - [ ] Display mode: one court full screen, or a grid of all courts; read-only share link without
@@ -79,6 +81,9 @@ Result: player pages with progress charts, session summary, season leaderboard.
 - [ ] Pairs and head-to-head (M)
 - [ ] Session summary: winner of the evening, longest/closest match (S)
 - [ ] Season leaderboard (rating and win %, minimum number of matches) and records (M)
+- [ ] Scorer statistics: matches and points scored, per input method, corrections, error rate,
+      time to correct, scoring while playing vs from the side (M)
+- [ ] Match history: replay every event of a match, with scorer and corrections (S)
 
 ## Phase 6 — Watch apps
 
@@ -86,10 +91,13 @@ Result: scoring from the wrist; the phone or TV only shows the score.
 
 - [ ] Watch API (Cloud Functions): pair with a code, current match, point, undo; idempotent (M)
 - [ ] Pairing screen in the PWA for admins (S)
-- [ ] **You:** tell me which watches the group actually has, to decide the order
-- [ ] Garmin Connect IQ app (L) — free to publish
-- [ ] Wear OS app (L) — **You:** Google Play developer account (€25 once)
-- [ ] Apple Watch app with iPhone companion (L) — **You:** Apple Developer Program (~€99/year)
+- [ ] Garmin Connect IQ app (L), sideloaded: a `.prg` per watch model plus a download page with
+      USB install steps — free
+- [ ] Wear OS app (L), sideloaded: APK plus install steps — **You:** free "limited distribution"
+      Android developer account (optional: €25 Google Play account for a private test track)
+- [ ] Watch events carry the paired scorer and device, like any other event (S)
+- No Apple Watch app (it would need the paid Apple Developer Program); Apple Watch owners use
+  *Headphone controls*
 
 ## Phase 7 — Finishing
 
@@ -100,7 +108,6 @@ Result: scoring from the wrist; the phone or TV only shows the score.
 
 ## Decisions still open
 
-1. Apple sign-in now (needs the Apple Developer account) or Google + e-mail link first?
-2. Which watches does the group use (Garmin, Wear OS, Apple)?
-3. May display screens follow a session without signing in (read-only link)?
-4. Leaderboard on rating, win %, or both?
+1. May display screens follow a session without signing in (read-only link)?
+2. Leaderboard on rating, win %, or both?
+3. Garmin or Wear OS first (whichever more players have)?

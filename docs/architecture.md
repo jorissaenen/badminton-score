@@ -5,13 +5,17 @@ built and tested in the beta first.
 
 ## 1. Goals
 
-- Score with one click, as today, from a phone, a remote, earbuds or a **dedicated watch app**.
+- Score with one click, as today, from a phone, a remote, earbuds or a **dedicated watch app**
+  (Garmin and Wear OS; no Apple Watch, see section 9).
+- **Every match is fully recorded**, including who scored each point, on which device, and every
+  correction; scorers may be players or someone standing next to the court.
 - Every screen (phone, tablet, TV) shows the **live** state of a match; several screens at once,
   and screens that follow **all courts** of a session.
 - Seasons with sessions (training evenings), players, roles and invitations.
 - Matchmaking for 12–13 players on 2+ courts: fair rotation, balanced teams, still random.
 - Statistics and leaderboards per session and per season.
-- Sign in with Google, Apple or an e-mail link. Works with a patchy sports-hall connection.
+- Sign in with Google or an e-mail link (works on iPhone too). Works with a patchy sports-hall
+  connection.
 - Production stays stable while new versions are tested.
 
 ## 2. Overview
@@ -20,16 +24,15 @@ built and tested in the beta first.
 flowchart LR
   subgraph Clients
     PWA[PWA: scorer / display / organiser / player]
-    WEAR[Wear OS app]
-    GARMIN[Garmin Connect IQ app]
-    APPLE[Apple Watch app + iPhone companion]
+    WEAR[Wear OS app, sideloaded]
+    GARMIN[Garmin Connect IQ app, sideloaded]
   end
   subgraph GitHub
     PAGES[GitHub Pages<br/>/ = production<br/>/beta/ = beta]
     ACTIONS[GitHub Actions<br/>build, test, deploy]
   end
   subgraph Firebase["Firebase (prod and dev projects, region europe-west1)"]
-    AUTH[Authentication<br/>Google, Apple, e-mail link]
+    AUTH[Authentication<br/>Google, e-mail link]
     FS[(Firestore<br/>seasons, sessions, matches)]
     FN[Cloud Functions<br/>watch API, stats, invites]
     RULES[Security rules]
@@ -38,7 +41,6 @@ flowchart LR
   PWA --> AUTH
   WEAR -- HTTPS + device token --> FN
   GARMIN -- HTTPS via Garmin Connect --> FN
-  APPLE -- HTTPS + device token --> FN
   FN --> FS
   FS -- match finished trigger --> FN
   ACTIONS --> PAGES
@@ -109,11 +111,36 @@ seasons/{seasonId}              name, start, end, defaults (points, format)
     queue                       derived: waiting order, games played tonight
     matches/{matchId}           court, teams [[ids],[ids]], rules, server, sides,
                                 status: planned | live | finished, startedAt, endedAt
-      events/{eventId}          point(team) | undo | sides | start | end,
-                                at (server time), by (uid or device), clientId
+      events/{eventId}          see "Match events and scorers" below
+  scorers/{scorerId}            name, uid (optional: a guest scorer has none)
   stats/…                       derived per player, pair, session, season (by Cloud Functions)
 devices/{deviceId}              paired watch: owner uid, season, allowed courts, token hash
 ```
+
+### Match events and scorers
+
+Every change to a match is an event; nothing is overwritten or deleted, so the full history of
+every match is kept.
+
+| Field | Meaning |
+|---|---|
+| `id` | unique per event, created on the device (`clientId`): a resent event counts once |
+| `type` | `point`, `undo`, `sides`, `start`, `end`, `fix` |
+| `team` | for `point`: 0 or 1 |
+| `undoes` | for `undo`: the id of the point it takes back |
+| `scorer` | who entered it: a member (`uid`), or a scorer without an account (`scorerId`) |
+| `device` | phone, Garmin or Wear OS watch, with a device id |
+| `input` | tap, remote, earbuds/headphones, watch, screen-as-remote |
+| `at`, `clientAt` | server time and the device's own time (for offline scoring) |
+| `reason` | for `fix`: an admin's correction after the match, with a short note |
+
+- **Several scorers:** any number of scorers can work on one match (a player with a remote, a
+  scorer next to the court with a watch); each event records its own scorer.
+- **Corrections are kept:** an undo doesn't delete the point; it is an event that refers to it. The
+  score counts only points that weren't undone, and the statistics can see every correction.
+- **Scorers without an account:** the person standing next to the court can be picked from the
+  season's scorer list (or added by name) on the scoring phone; a paired watch belongs to a member
+  or a named scorer.
 
 - **Event log per match:** each point is a separate event with a unique `clientId`. Two scorers
   pressing at the same time can't overwrite each other, a repeated send (a watch retrying) is
@@ -126,15 +153,16 @@ devices/{deviceId}              paired watch: owner uid, season, allowed courts,
 
 ## 6. Accounts, roles and sharing
 
-- **Sign-in:** Google (free), e-mail link (free), Apple (needs a paid Apple Developer account,
-  also for the web). Firebase Authentication handles all three.
+- **Sign-in:** Google and e-mail link, both free, handled by Firebase Authentication. iPhone users
+  use either one. Sign in with Apple is left out: it needs the paid Apple Developer Program, also
+  on the web.
 - **Roles per season:**
 
   | Role | Can |
   |---|---|
   | Owner | Everything, including deleting the season and changing owners |
   | Admin | Manage sessions, courts, players, matches; invite; give scorer/admin rights |
-  | Scorer | Start and score matches on a court |
+  | Scorer | Start and score matches on a court (players and non-players) |
   | Member | View everything; check in; see own stats |
 
 - **Sharing:** an invite link or QR code (WhatsApp, or on screen) carries a one-time or expiring
@@ -171,26 +199,34 @@ summaries, so screens load instantly.
 - **Pairs and head-to-head:** best partnerships, results between players or pairs.
 - **Session:** winner of the evening, matches played, longest/closest match, biggest win.
 - **Season:** leaderboard (rating and win % with a minimum number of matches), records, attendance.
+- **Scorers:** matches and points scored, per input method (tap, remote, earbuds, watch);
+  corrections made; **error rate** (share of their points later undone or fixed); how fast
+  mistakes were corrected; scoring done while playing versus from the side of the court. An undo
+  is not always the scorer's mistake (a let or a changed line call also leads to one), so the error
+  rate is shown as an indication, not a verdict.
 - **Note on "longest rally":** the app knows who won a rally, not how many shots it had. It can
   measure the **longest time between two points** (a proxy that includes pauses), the longest
   point streak and the longest game exactly.
 
 ## 9. Watch apps
 
-All three talk to the same small **watch API** (Cloud Functions): `pair`, `current match`,
-`point`, `undo`. The watch only sends events and shows the score it gets back.
+Garmin and Wear OS only, both **sideloaded** (no public store listing). There is **no Apple Watch
+app**: Apple only allows watch apps through TestFlight or the App Store, which both need the paid
+Apple Developer Program. Apple Watch owners can still score with the watch's music buttons
+(*Headphone controls*).
+
+Both apps talk to the same small **watch API** (Cloud Functions): `pair`, `current match`,
+`point`, `undo`. The watch only sends events and shows the score it gets back. Each event carries
+the watch's scorer and device, like any other event.
 
 - **Pairing:** the watch shows a 6-character code; an admin enters it in the PWA, which gives the
   watch a token limited to that season (and optionally one court). No password on the watch.
 - **Repeats:** every press carries a unique id, so retries never count twice.
 
-| Watch | Technology | Distribution | Cost |
+| Watch | Technology | Distribution (sideloaded) | Cost |
 |---|---|---|---|
-| Wear OS | Kotlin, Compose for Wear OS, standalone (own Wi-Fi/LTE or via phone) | Google Play | €25 once |
-| Garmin | Connect IQ (Monkey C); internet via the Garmin Connect app on the phone | Connect IQ Store | free |
-| Apple Watch | SwiftUI watchOS app, which must ship inside an iPhone app | App Store / TestFlight | ~€99 per year |
-
-Until these exist, the current **Headphone controls** already let a watch's music buttons score.
+| Garmin | Connect IQ (Monkey C); internet via the Garmin Connect app on the phone | A `.prg` file per watch model, copied over USB to `GARMIN/APPS`; download page on the website | Free |
+| Wear OS | Kotlin, Compose for Wear OS, standalone (own Wi-Fi/LTE or via the phone) | APK installed over Wi-Fi with an installer app (e.g. Wear Installer), signed by a verified "limited distribution" developer account so Android's developer verification (from 2027 everywhere) doesn't block it. Optional: a private Google Play test track for automatic updates | Free (Play test track: €25 once) |
 
 ## 10. Costs (estimate for one club)
 
@@ -198,8 +234,9 @@ Until these exist, the current **Headphone controls** already let a watch's musi
 - Firebase: Cloud Functions need the pay-as-you-go **Blaze** plan; at this size usage stays within
   the free quota (about 50 000 reads per day free; one evening is a few thousand). A budget alert
   of a few euros guards against surprises.
-- Apple Developer Program: ~€99 per year (Sign in with Apple and the Apple Watch app).
-- Google Play developer account: €25 once (Wear OS app). Garmin: free.
+- No Apple costs: no Apple Watch app and no Sign in with Apple.
+- Wear OS: free with a "limited distribution" developer account; €25 once only if you want the
+  private Google Play test track. Garmin: free.
 
 ## 11. Privacy
 
