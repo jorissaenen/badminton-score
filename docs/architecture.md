@@ -137,7 +137,8 @@ clubs/{clubId}                    name, created by, defaults (points, match leng
     rounds/{roundId}              tournaments: round number, pairings
     matches/{matchId}             court, teams [[ids],[ids]], rules, server, sides,
                                   status: planned | live | finished, startedAt, endedAt
-      events/{updateId}           see "Match events and score keepers" below
+      updates/{updateId}          see "Match events and score keepers" below (not called
+                                  "events", so they never mix with the club's events)
     (match).keepers               summary per keeper: updates, corrections, first/last update
   keepers/{keeperId}              name, uid (optional: a keeper without an account has none)
   stats/…                         derived per player, pair, event, season and all-time

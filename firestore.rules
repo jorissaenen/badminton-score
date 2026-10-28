@@ -28,6 +28,12 @@ service cloud.firestore {
       match /clubs/{clubId} {
         allow read, write: if isMe(uid);
       }
+
+      // Devices that get reminders: a push token per app installation (written by the app,
+      // read by the reminder function, which bypasses these rules).
+      match /devices/{deviceId} {
+        allow read, write: if isMe(uid);
+      }
     }
 
     // ---------- clubs ----------
@@ -170,6 +176,53 @@ service cloud.firestore {
               && request.resource.data.get('uid', null) == request.auth.uid
               && onlyChanges(['uid', 'claimedAt'])));
         allow delete: if isAdmin();
+      }
+
+      // ---------- events: training evenings and tournaments ----------
+
+      // A recurring series ("every Tuesday 20:00–21:30"); its dates are separate events.
+      match /series/{seriesId} {
+        allow read: if isMember();
+        allow write: if isAdmin();
+      }
+
+      match /events/{eventId} {
+        function validEvent(d) {
+          return d.keys().hasAll(['type', 'date', 'start', 'end', 'startsAt', 'status'])
+            && d.type in ['training', 'random', 'weighted', 'knockout']
+            && d.status in ['planned', 'cancelled']
+            && d.date is string && d.date.size() == 10
+            && d.start is string && d.end is string && d.startsAt is timestamp
+            && d.get('location', '') is string && d.get('location', '').size() <= 80
+            && d.get('note', '') is string && d.get('note', '').size() <= 280;
+        }
+
+        allow read: if isMember();
+        allow create, update: if isAdmin() && validEvent(request.resource.data);
+        allow delete: if isAdmin();
+
+        // Going or not going, per player (id = playerId), with an optional note (an apology).
+        // Members answer for their own player; admins for anyone, e.g. players without an account.
+        match /registrations/{playerId} {
+          function playerPath() {
+            return /databases/$(database)/documents/clubs/$(clubId)/players/$(playerId);
+          }
+
+          function isMyPlayer() {
+            return exists(playerPath()) && get(playerPath()).data.get('uid', null) == request.auth.uid;
+          }
+
+          function validRegistration(d) {
+            return d.keys().hasAll(['status', 'by']) && d.status in ['going', 'not going']
+              && d.by == request.auth.uid
+              && d.get('note', '') is string && d.get('note', '').size() <= 140;
+          }
+
+          allow read: if isMember();
+          allow create, update: if validRegistration(request.resource.data)
+            && (isAdmin() || (isMember() && isMyPlayer()));
+          allow delete: if isAdmin() || (isMember() && isMyPlayer());
+        }
       }
     }
 

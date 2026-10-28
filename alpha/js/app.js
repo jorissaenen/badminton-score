@@ -678,7 +678,7 @@ mediaRemote.enable(settings.headphones);
 
 const account = setupAccount($, toast, () => $('settingsBtn').click());
 const club = setupClub($, account, toast, () => ({ points: settings.points, bestOf: settings.bestOf }));
-if (club.openedFromInvite) $('settingsBtn').click(); // show the invite right away
+if (club.openedFromInvite) $('settingsBtn').click(); // an invite link or a reminder: show it right away
 
 // ---------- install prompt (browser tabs only) ----------
 

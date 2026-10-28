@@ -3,6 +3,9 @@
 import { EDITION } from './edition.js';
 import qrcode from './vendor/qrcode.js';
 import * as Club from './club.js';
+import { setupEvents } from './events-ui.js';
+import { isInstalled } from './install.js';
+import { disableReminders, enableReminders, remindersState } from './cloud.js';
 
 const CURRENT_KEY = `${EDITION.storageKey}-club`;
 const JOIN_KEY = `${EDITION.storageKey}-join`;
@@ -64,6 +67,11 @@ export function setupClub($, account, notify = () => {}, defaults = () => ({})) 
   }
   try { pendingJoin = JSON.parse(stored(JOIN_KEY)); } catch { pendingJoin = null; }
 
+  // A reminder was tapped: …/?event=<clubId>.<eventId> opens that event once signed in.
+  const eventLink = /[?&]event=([A-Za-z0-9]+)\.([A-Za-z0-9_-]+)/.exec(location.search);
+  let pendingEvent = eventLink ? { clubId: eventLink[1], eventId: eventLink[2] } : null;
+  if (eventLink) history.replaceState(null, '', location.pathname);
+
   // ---------- the section in settings ----------
 
   async function refresh() {
@@ -98,10 +106,42 @@ export function setupClub($, account, notify = () => {}, defaults = () => ({})) 
     const id = $('clubSelect').value;
     if (!id) return;
     store(CURRENT_KEY, id);
+    events.refreshNext(id);
+    showReminders();
     const role = await Club.myRoleIn(user(), id);
     $('clubRole').textContent = role ? `You’re ${role === 'admin' || role === 'owner' ? 'an' : 'a'} ${Club.ROLE_NAMES[role].toLowerCase()} here.` : '';
   }
   $('clubSelect').addEventListener('change', showMyRole);
+
+  // Reminders a day and a few hours before each event, per device.
+  const REMINDER_TEXT = {
+    on: 'On for this device, a day and 3 hours before each event.',
+    off: 'A notification a day and 3 hours before each event.',
+    blocked: 'Notifications are blocked for this app. Allow them in the phone’s settings first.',
+    'install-first': 'On iPhone and iPad, only the installed app can show reminders.',
+  };
+  function showReminders() {
+    const state = remindersState(isInstalled());
+    $('reminders').hidden = !(state in REMINDER_TEXT);
+    $('remindersText').textContent = REMINDER_TEXT[state] ?? '';
+    $('remindersBtn').hidden = state === 'blocked' || state === 'install-first';
+    $('remindersBtn').textContent = state === 'on' ? 'Turn off' : 'Turn on';
+  }
+  $('remindersBtn').addEventListener('click', async () => {
+    const on = remindersState(isInstalled()) === 'on';
+    $('remindersBtn').disabled = true;
+    try {
+      if (on) await disableReminders(user());
+      else await enableReminders(user());
+      notify(on ? 'Reminders off' : 'Reminders on');
+    } catch (e) {
+      status(e.code === 'reminders/blocked' ? 'Reminders need permission for notifications.'
+        : `Couldn’t change reminders (${e.code || e.message}).`);
+    } finally {
+      $('remindersBtn').disabled = false;
+      showReminders();
+    }
+  });
 
   async function showJoin() {
     const card = $('joinCard');
@@ -203,7 +243,14 @@ export function setupClub($, account, notify = () => {}, defaults = () => ({})) 
 
   $('clubOpenBtn').addEventListener('click', () => openClub($('clubSelect').value));
 
-  account.onUserChange(() => refresh());
+  account.onUserChange((u) => {
+    refresh();
+    if (u && pendingEvent) {
+      const { clubId, eventId } = pendingEvent;
+      pendingEvent = null;
+      events.openEvent(clubId, eventId);
+    }
+  });
 
   // ---------- the Club window ----------
 
@@ -225,7 +272,7 @@ export function setupClub($, account, notify = () => {}, defaults = () => ({})) 
   async function openClub(id) {
     if (!id || !user()) return;
     stopWatching?.();
-    view = { id, club: null, members: [], players: [], invites: [], myRole: await Club.myRoleIn(user(), id) };
+    view = { id, club: null, members: [], seasons: [], players: [], invites: [], myRole: await Club.myRoleIn(user(), id) };
     if (!view.myRole) {
       status('You’re no longer a member of this club.');
       await Club.forgetClub(user(), id).catch(() => {});
@@ -236,7 +283,9 @@ export function setupClub($, account, notify = () => {}, defaults = () => ({})) 
     editingSeason = null;
     $('seasonForm').hidden = true;
     $('inviteOut').hidden = true;
+    $('eventForm').hidden = true;
     dstatus('');
+    events.watch(id);
     stopWatching = await Club.watchClub(id, Club.isAdmin(view.myRole), (state) => {
       Object.assign(view, state);
       view.myRole = view.members.find((m) => m.id === user()?.uid)?.role ?? view.myRole;
@@ -248,7 +297,14 @@ export function setupClub($, account, notify = () => {}, defaults = () => ({})) 
   dialog.addEventListener('close', () => {
     stopWatching?.();
     stopWatching = null;
+    events.stop();
     refresh();
+  });
+
+  const events = setupEvents($, {
+    user,
+    notify,
+    club: () => (dialog.open && view?.club ? view : null),
   });
 
   function render() {
@@ -342,6 +398,7 @@ export function setupClub($, account, notify = () => {}, defaults = () => ({})) 
     $('renameRow').hidden = !admin;
     if (document.activeElement !== $('clubRename')) $('clubRename').value = club.name;
     $('clubLeaveBtn').hidden = myRole === 'owner';
+    events.render();
     $('clubDeleteBtn').hidden = myRole !== 'owner';
   }
 
@@ -463,5 +520,5 @@ export function setupClub($, account, notify = () => {}, defaults = () => ({})) 
     }
   });
 
-  return { refresh, openedFromInvite: Boolean(fromLink) };
+  return { refresh, openedFromInvite: Boolean(fromLink || eventLink) };
 }

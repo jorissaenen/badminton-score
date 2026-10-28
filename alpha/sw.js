@@ -3,7 +3,7 @@
 // Bump VERSION whenever any app file changes.
 // Alpha edition (served from /alpha/): its own cache names, so it never removes another edition's cache.
 // The prefix must match EDITION.cachePrefix in js/edition.js.
-const VERSION = 'v30-alpha.7';
+const VERSION = 'v30-alpha.8';
 const CACHE_PREFIX = 'badminton-score-alpha-';
 const CACHE = `${CACHE_PREFIX}${VERSION}`;
 const NETWORK_TIMEOUT_MS = 3000;
@@ -26,6 +26,7 @@ const ASSETS = [
   'js/account.js',
   'js/club.js',
   'js/club-ui.js',
+  'js/events-ui.js',
   'js/vendor/qrcode.js',
   'manifest.webmanifest',
   'icons/shuttle-192.png',
@@ -34,6 +35,38 @@ const ASSETS = [
   'icons/shuttle-apple-180.png',
   'icons/shuttlecock.svg',
 ];
+
+// Reminders: Firebase Cloud Messaging delivers them as web push with a data payload
+// { title, body, url, tag }. Every push must show a notification (iOS requires it).
+self.addEventListener('push', (event) => {
+  let msg = {};
+  try {
+    const json = event.data?.json() ?? {};
+    msg = json.data ?? json;
+  } catch { /* show a plain notification */ }
+  event.waitUntil(self.registration.showNotification(msg.title || 'Badminton Score', {
+    body: msg.body || '',
+    tag: msg.tag || undefined,
+    icon: 'icons/shuttle-192.png',
+    badge: 'icons/shuttle-192.png',
+    data: { url: msg.url || self.registration.scope },
+  }));
+});
+
+// Tapping a reminder opens the event: in the open app if there is one, otherwise a new window.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || self.registration.scope;
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const app = windows.find((w) => w.url.startsWith(self.registration.scope));
+    if (app) {
+      await app.focus();
+      return app.navigate(url).catch(() => self.clients.openWindow(url));
+    }
+    return self.clients.openWindow(url);
+  })());
+});
 
 self.addEventListener('install', (event) => {
   // cache: 'reload' bypasses the browser's HTTP cache, so a new version never stores stale files.

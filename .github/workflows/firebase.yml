@@ -1,0 +1,61 @@
+# Tests the app, the database rules and the reminder function, then deploys the rules, indexes
+# and Cloud Functions to the alpha's Firebase project (badminton-dev). Needs the repository secret
+# FIREBASE_SERVICE_ACCOUNT_DEV (see docs/firebase-setup.md, step 8); without it, only the tests run.
+name: Firebase
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - firestore.rules
+      - firestore.indexes.json
+      - firebase.json
+      - functions/**
+      - tests/**
+      - .github/workflows/firebase.yml
+  workflow_dispatch:
+
+concurrency:
+  group: firebase-deploy
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm test
+      - run: npm run test:rules
+
+  deploy-dev:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm ci
+        working-directory: functions
+      - name: Deploy to badminton-dev
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}
+        run: |
+          if [ -z "$SERVICE_ACCOUNT" ]; then
+            echo "::warning::The secret FIREBASE_SERVICE_ACCOUNT_DEV isn't set yet, so nothing was deployed (docs/firebase-setup.md, step 8)."
+            exit 0
+          fi
+          printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/service-account.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/service-account.json"
+          npx firebase deploy --only firestore,functions --project dev --non-interactive --force

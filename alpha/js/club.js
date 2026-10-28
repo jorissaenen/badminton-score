@@ -50,6 +50,7 @@ export async function createClub(user, name, defaults) {
   const batch = F.writeBatch(db);
   batch.set(ref, {
     name, defaults, createdBy: user.uid, createdAt: F.serverTimestamp(), schemaVersion: 1,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, // for reminders' "today"/"tomorrow"
   });
   batch.set(F.doc(db, 'clubs', ref.id, 'members', user.uid), {
     role: 'owner', ...profile(user), joinedAt: F.serverTimestamp(),
@@ -231,4 +232,173 @@ export function nextSeasonSuggestion(seasons, today = new Date()) {
   let year = today.getMonth() >= 6 ? today.getFullYear() : today.getFullYear() - 1;
   if (latest) year = Math.max(year, Number(latest.end.slice(0, 4)));
   return { name: `${year}–${String((year + 1) % 100).padStart(2, '0')}`, start: `${year}-09-01`, end: `${year + 1}-06-30` };
+}
+
+// ---------- events ----------
+
+export const EVENT_TYPES = {
+  training: 'Training',
+  random: 'Random tournament',
+  weighted: 'Weighted tournament',
+  knockout: 'Knockout tournament',
+};
+
+const pad = (n) => String(n).padStart(2, '0');
+export const isoDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+// The moment an event starts, in this device's time zone (the club's, in practice).
+export function startsAt(date, time) {
+  return new Date(`${date}T${time}:00`);
+}
+
+// Every date from `from` to `until` (YYYY-MM-DD, both included) on the same weekday as `from`.
+export function weeklyDates(from, until) {
+  const dates = [];
+  for (let d = new Date(`${from}T12:00:00`); isoDate(d) <= until; d.setDate(d.getDate() + 7)) {
+    dates.push(isoDate(d));
+  }
+  return dates;
+}
+
+function eventDoc(F, e) {
+  return {
+    type: e.type, date: e.date, start: e.start, end: e.end,
+    startsAt: F.Timestamp.fromDate(startsAt(e.date, e.start)),
+    location: e.location ?? '', courts: e.courts ?? 2, note: e.note ?? '',
+    status: e.status ?? 'planned', ...(e.seriesId && { seriesId: e.seriesId }),
+    schemaVersion: 1,
+  };
+}
+
+// One event, or a weekly series: the series and all its dates are written at once, so every date
+// can be answered, moved or cancelled on its own.
+export async function addEvents(user, clubId, e, repeatUntil = null) {
+  const { db, F } = await cloud();
+  const events = F.collection(db, 'clubs', clubId, 'events');
+  if (!repeatUntil) {
+    await F.addDoc(events, { ...eventDoc(F, e), createdBy: user.uid, createdAt: F.serverTimestamp() });
+    return 1;
+  }
+  const series = F.doc(F.collection(db, 'clubs', clubId, 'series'));
+  const dates = weeklyDates(e.date, repeatUntil);
+  const batch = F.writeBatch(db);
+  batch.set(series, {
+    type: e.type, start: e.start, end: e.end, location: e.location ?? '', courts: e.courts ?? 2,
+    from: e.date, until: repeatUntil, createdBy: user.uid, createdAt: F.serverTimestamp(), schemaVersion: 1,
+  });
+  for (const date of dates) {
+    batch.set(F.doc(events, `${series.id}_${date}`), {
+      ...eventDoc(F, { ...e, date, seriesId: series.id }), createdBy: user.uid, createdAt: F.serverTimestamp(),
+    });
+  }
+  await batch.commit();
+  return dates.length;
+}
+
+export async function updateEvent(clubId, eventId, e) {
+  const { db, F } = await cloud();
+  const changes = { ...e };
+  if (e.date && e.start) changes.startsAt = F.Timestamp.fromDate(startsAt(e.date, e.start));
+  await F.updateDoc(F.doc(db, 'clubs', clubId, 'events', eventId), changes);
+}
+
+export async function deleteEvent(clubId, eventId) {
+  const { db, F } = await cloud();
+  const regs = await F.getDocs(F.collection(db, 'clubs', clubId, 'events', eventId, 'registrations'));
+  for (const r of regs.docs) await F.deleteDoc(r.ref);
+  await F.deleteDoc(F.doc(db, 'clubs', clubId, 'events', eventId));
+}
+
+// Deletes the series' dates from `fromDate` on (earlier ones stay, with their history), with their
+// answers, in one go.
+export async function deleteSeries(clubId, seriesId, fromDate) {
+  const { db, F } = await cloud();
+  const snap = await F.getDocs(F.query(F.collection(db, 'clubs', clubId, 'events'), F.where('seriesId', '==', seriesId)));
+  const doomed = snap.docs.filter((d) => d.data().date >= fromDate);
+  const regs = await Promise.all(doomed.map((d) => F.getDocs(F.collection(d.ref, 'registrations'))));
+  const refs = [...regs.flatMap((r) => r.docs.map((d) => d.ref)), ...doomed.map((d) => d.ref)];
+  if (doomed.length === snap.docs.length) refs.push(F.doc(db, 'clubs', clubId, 'series', seriesId));
+  for (let i = 0; i < refs.length; i += 400) {
+    const batch = F.writeBatch(db);
+    refs.slice(i, i + 400).forEach((ref) => batch.delete(ref));
+    await batch.commit();
+  }
+}
+
+// Upcoming events (from today), soonest first.
+export async function watchUpcoming(clubId, on, limit = 12) {
+  const { db, F } = await cloud();
+  const q = F.query(F.collection(db, 'clubs', clubId, 'events'),
+    F.where('date', '>=', isoDate(new Date())), F.orderBy('date'), F.limit(limit));
+  return F.onSnapshot(q, (s) => on(s.docs.map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))), () => on([]));
+}
+
+export async function nextEvent(clubId) {
+  const { db, F } = await cloud();
+  const q = F.query(F.collection(db, 'clubs', clubId, 'events'),
+    F.where('date', '>=', isoDate(new Date())), F.orderBy('date'), F.limit(5));
+  const snap = await F.getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    .filter((e) => e.status !== 'cancelled' && e.startsAt.toMillis() > Date.now() - 3 * 3600_000)
+    .sort((a, b) => a.startsAt.toMillis() - b.startsAt.toMillis())[0] ?? null;
+}
+
+export async function watchEvent(clubId, eventId, on) {
+  const { db, F } = await cloud();
+  const state = { event: null, registrations: {} };
+  const subs = [
+    F.onSnapshot(F.doc(db, 'clubs', clubId, 'events', eventId), (d) => {
+      state.event = d.exists() ? { id: d.id, ...d.data() } : null;
+      on(state);
+    }, () => on(state)),
+    F.onSnapshot(F.collection(db, 'clubs', clubId, 'events', eventId, 'registrations'), (s) => {
+      state.registrations = Object.fromEntries(s.docs.map((d) => [d.id, d.data()]));
+      on(state);
+    }, () => {}),
+  ];
+  return () => subs.forEach((u) => u());
+}
+
+// Registrations of several events at once, for the "8 going" counts in lists.
+export async function watchRegistrations(clubId, eventIds, on) {
+  const { db, F } = await cloud();
+  const all = {};
+  const subs = eventIds.map((id) => F.onSnapshot(
+    F.collection(db, 'clubs', clubId, 'events', id, 'registrations'),
+    (s) => {
+      all[id] = Object.fromEntries(s.docs.map((d) => [d.id, d.data()]));
+      on(all);
+    },
+    () => {},
+  ));
+  return () => subs.forEach((u) => u());
+}
+
+export async function register(user, clubId, eventId, playerId, status, note = '') {
+  const { db, F } = await cloud();
+  const ref = F.doc(db, 'clubs', clubId, 'events', eventId, 'registrations', playerId);
+  if (!status) {
+    await F.deleteDoc(ref);
+    return;
+  }
+  await F.setDoc(ref, { status, note: note.slice(0, 140), by: user.uid, at: F.serverTimestamp() });
+}
+
+export async function myRegistration(clubId, eventId, playerId) {
+  const { db, F } = await cloud();
+  const d = await F.getDoc(F.doc(db, 'clubs', clubId, 'events', eventId, 'registrations', playerId));
+  return d.exists() ? d.data() : null;
+}
+
+export async function myPlayer(user, clubId) {
+  const { db, F } = await cloud();
+  const snap = await F.getDocs(F.query(F.collection(db, 'clubs', clubId, 'players'), F.where('uid', '==', user.uid)));
+  return snap.docs[0] ? { id: snap.docs[0].id, ...snap.docs[0].data() } : null;
+}
+
+export async function listPlayers(clubId) {
+  const { db, F } = await cloud();
+  const snap = await F.getDocs(F.collection(db, 'clubs', clubId, 'players'));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }

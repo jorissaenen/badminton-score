@@ -681,3 +681,35 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.6); -webkit-backdrop-filter: blur
 .club-list .now { color: #22c55e; }
 .club-list .who.two-line { white-space: normal; }
 .club-list .who.two-line small { display: block; margin: 2px 0 0; }
+
+/* Events */
+.event-form { display: flex; flex-direction: column; gap: 12px; }
+.event-form[hidden], #eventAddBtn[hidden], #noEvents[hidden], #eventUntilField[hidden], #eventAdmin[hidden],
+#seriesDeleteBtn[hidden], #answerNoteField[hidden], .event-cancelled[hidden], #notGoingGroup[hidden],
+#noAnswerGroup[hidden], #goingNone[hidden], #myAnswerGroup[hidden], .next-event[hidden], .reminders[hidden] { display: none; }
+#eventAddBtn { align-self: flex-start; margin: -6px 0 -8px; }
+.event-form input[type="date"], .event-form input[type="time"] { min-height: 44px; }
+.event-list li { cursor: pointer; }
+.event-list .who.two-line strong { font-weight: 600; }
+.chip { flex: none; font-size: 0.8rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; border: 1px solid #3a3a3a; color: var(--muted); }
+.chip.going { color: #000; background: #22c55e; border-color: #22c55e; }
+.chip.not-going { color: #f87171; border-color: #5b2323; }
+.chip.cancelled { color: var(--muted); text-decoration: line-through; }
+.event-when { margin: 4px 0 0; color: var(--muted); font-size: 0.95rem; }
+.event-cancelled { margin: 12px 8px 0; padding: 10px 14px; border-radius: 12px; background: #2a1414; color: #f87171; font-weight: 600; }
+.answer-buttons { display: flex; gap: 12px; }
+.answer-buttons .btn { flex: 1; }
+.answer-buttons .btn.on-going { background: #22c55e; border-color: #22c55e; color: #000; }
+.answer-buttons .btn.on-not-going { background: #2a1414; border-color: #f87171; color: #f87171; }
+.club-list .reason { display: block; color: var(--muted); font-size: 0.8rem; margin: 2px 0 0; white-space: normal; }
+#eventAdmin .card .btn { align-self: stretch; }
+.next-event {
+  font: inherit; text-align: left; color: var(--fg); background: #0d0d0d; border: 1px solid #2e2e2e;
+  border-radius: 12px; padding: 10px 12px; cursor: pointer; display: flex; flex-direction: column; gap: 2px;
+}
+.next-event small { color: var(--muted); font-size: 0.85rem; }
+.reminders { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.reminders small { display: block; color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+.reminders .btn { flex: none; }
+.reminders .btn[hidden] { display: none; }
+#eventDialog .dialog-buttons { justify-content: flex-end; }

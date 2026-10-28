@@ -236,6 +236,11 @@
                 <button type="button" class="btn outline" id="clubOpenBtn">Open</button>
               </div>
               <p class="note" id="clubRole"></p>
+              <button type="button" class="next-event" id="nextEvent" hidden></button>
+              <div class="reminders" id="reminders" hidden>
+                <span><strong>Reminders</strong><small id="remindersText"></small></span>
+                <button type="button" class="btn outline" id="remindersBtn">Turn on</button>
+              </div>
             </div>
             <p class="note" id="clubNone" hidden>You’re not in a club yet. Open the invite link from your organiser, or start a new club.</p>
             <button type="button" class="link-btn" id="clubNewBtn">Start a new club</button>
@@ -344,6 +349,57 @@
       </header>
 
       <div class="settings-body">
+        <section class="group" id="eventsGroup">
+          <h3>Upcoming</h3>
+          <div class="card">
+            <p class="note" id="noEvents" hidden>No events planned yet.</p>
+            <ul class="club-list event-list" id="eventList"></ul>
+            <button type="button" class="link-btn" id="eventAddBtn" hidden>Plan an event</button>
+            <div class="event-form" id="eventForm" hidden>
+              <label class="field">What
+                <select id="eventType">
+                  <option value="training">Training</option>
+                  <option value="random">Random tournament</option>
+                  <option value="weighted">Weighted tournament</option>
+                  <option value="knockout">Knockout tournament</option>
+                </select>
+              </label>
+              <div class="row">
+                <label class="field">Date
+                  <input type="date" id="eventDate">
+                </label>
+                <label class="field">Repeat
+                  <select id="eventRepeat">
+                    <option value="">Only this date</option>
+                    <option value="weekly">Every week</option>
+                  </select>
+                </label>
+              </div>
+              <label class="field" id="eventUntilField" hidden>Every week until
+                <input type="date" id="eventUntil">
+              </label>
+              <div class="row">
+                <label class="field">From
+                  <input type="time" id="eventStart" value="20:00" step="300">
+                </label>
+                <label class="field">Until
+                  <input type="time" id="eventEnd" value="21:30" step="300">
+                </label>
+                <label class="field narrow">Courts
+                  <input type="number" id="eventCourts" value="2" min="1" max="12" inputmode="numeric">
+                </label>
+              </div>
+              <label class="field">Where
+                <input type="text" id="eventLocation" maxlength="80" placeholder="Sports hall" autocomplete="off">
+              </label>
+              <div class="row">
+                <button type="button" class="btn primary" id="eventSaveBtn">Plan</button>
+                <button type="button" class="btn outline" id="eventCancelBtn">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section class="group" id="seasonsGroup">
           <h3>Seasons</h3>
           <div class="card">
@@ -440,6 +496,59 @@
           </div>
         </section>
         <p class="note club-status" id="clubDialogStatus" aria-live="polite"></p>
+      </div>
+
+      <footer class="dialog-buttons">
+        <button type="submit" class="btn primary">Done</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="eventDialog">
+    <form method="dialog" class="settings-form">
+      <header class="settings-head">
+        <h2 id="eventTitle">Event</h2>
+        <p class="event-when" id="eventWhen"></p>
+      </header>
+
+      <div class="settings-body">
+        <p class="event-cancelled" id="eventCancelled" hidden>Cancelled</p>
+        <section class="group" id="myAnswerGroup">
+          <h3>Are you coming?</h3>
+          <div class="card">
+            <div class="answer-buttons" id="answerButtons">
+              <button type="button" class="btn outline" id="goingBtn">Going</button>
+              <button type="button" class="btn outline" id="notGoingBtn">Not going</button>
+            </div>
+            <label class="field" id="answerNoteField" hidden>Reason (optional, visible to the club)
+              <input type="text" id="answerNote" maxlength="140" placeholder="e.g. away this week" autocomplete="off">
+            </label>
+            <p class="note" id="answerHint"></p>
+          </div>
+        </section>
+
+        <section class="group">
+          <h3 id="goingTitle">Going</h3>
+          <div class="card"><ul class="club-list" id="goingList"></ul><p class="note" id="goingNone">Nobody yet.</p></div>
+        </section>
+        <section class="group" id="notGoingGroup">
+          <h3 id="notGoingTitle">Not going</h3>
+          <div class="card"><ul class="club-list" id="notGoingList"></ul></div>
+        </section>
+        <section class="group" id="noAnswerGroup">
+          <h3 id="noAnswerTitle">No answer yet</h3>
+          <div class="card"><ul class="club-list" id="noAnswerList"></ul></div>
+        </section>
+
+        <section class="group" id="eventAdmin" hidden>
+          <h3>Manage</h3>
+          <div class="card">
+            <button type="button" class="btn outline" id="eventToggleBtn">Cancel this date</button>
+            <button type="button" class="btn outline danger" id="eventDeleteBtn">Delete this event</button>
+            <button type="button" class="btn outline danger" id="seriesDeleteBtn" hidden>Delete this and all later dates</button>
+          </div>
+        </section>
+        <p class="note club-status" id="eventStatus" aria-live="polite"></p>
       </div>
 
       <footer class="dialog-buttons">

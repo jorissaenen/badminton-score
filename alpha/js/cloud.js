@@ -10,7 +10,7 @@ let loading = null;
 // Automated tests: on localhost, `?emulator` connects to the local Firebase emulators instead of
 // the real project (npm run emulators), and offers a fake sign-in.
 const EMULATOR = (() => {
-  if (location.hostname !== 'localhost') return false;
+  if (typeof location === 'undefined' || location.hostname !== 'localhost') return false;
   try {
     if (new URLSearchParams(location.search).has('emulator')) sessionStorage.setItem('emulator', '1');
     return sessionStorage.getItem('emulator') === '1';
@@ -123,4 +123,60 @@ export async function saveProfile(user) {
 export async function checkServer(user) {
   const { db, F } = await cloud();
   await F.getDocFromServer(F.doc(db, 'users', user.uid));
+}
+
+// ---------- reminders (web push through Firebase Cloud Messaging) ----------
+
+const DEVICE_KEY = `${EDITION.storageKey}-device`;
+
+function deviceId() {
+  try {
+    let id = localStorage.getItem(DEVICE_KEY);
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem(DEVICE_KEY, id);
+    }
+    return id;
+  } catch {
+    return 'unknown';
+  }
+}
+
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent)
+  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+// 'not-configured' | 'unsupported' | 'install-first' (iPhone/iPad: only the installed app gets
+// notifications) | 'blocked' | 'off' | 'on'
+export function remindersState(installed) {
+  if (!EDITION.vapidKey) return 'not-configured';
+  if (isIOS() && !installed) return 'install-first';
+  if (!('Notification' in globalThis) || !('serviceWorker' in navigator) || !('PushManager' in globalThis)) return 'unsupported';
+  if (Notification.permission === 'denied') return 'blocked';
+  if (Notification.permission !== 'granted') return 'off';
+  try { return localStorage.getItem(`${DEVICE_KEY}-on`) === '1' ? 'on' : 'off'; } catch { return 'off'; }
+}
+
+// Asks permission, gets this device's push token and stores it, so the reminder function can
+// reach this device. Called from a tap (browsers only ask for permission after a tap).
+export async function enableReminders(user) {
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') throw Object.assign(new Error('not allowed'), { code: 'reminders/blocked' });
+  const { db, F } = await cloud();
+  const { getMessaging, getToken } = await import(`${SDK}/firebase-messaging.js`);
+  const registration = await navigator.serviceWorker.ready;
+  const token = await getToken(getMessaging(), { vapidKey: EDITION.vapidKey, serviceWorkerRegistration: registration });
+  await F.setDoc(F.doc(db, 'users', user.uid, 'devices', deviceId()), {
+    token,
+    app: location.origin + location.pathname, // which edition a reminder should open
+    edition: EDITION.name,
+    installed: matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || navigator.standalone === true,
+    updatedAt: F.serverTimestamp(),
+  });
+  try { localStorage.setItem(`${DEVICE_KEY}-on`, '1'); } catch { /* shows "off" next time */ }
+}
+
+export async function disableReminders(user) {
+  const { db, F } = await cloud();
+  await F.deleteDoc(F.doc(db, 'users', user.uid, 'devices', deviceId()));
+  try { localStorage.removeItem(`${DEVICE_KEY}-on`); } catch { /* ignore */ }
 }
