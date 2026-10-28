@@ -111,8 +111,9 @@ Result: the next match for a free court is proposed automatically, fair and bala
       by partner/opponent history, secure random choice among the best options (M)
 - [ ] Organiser screen: proposal per free court; accept, re-draw, or adjust by tap or drag (M)
 - [ ] Waiting-time estimate from tonight's measured match durations (S)
-- [ ] Tournament types: Americano (random partners, individual ranking), Mexicano (pairing by
-      current standing, so similar levels meet), groups seeded by rating + knockout; rounds drawn
+- [ ] Tournament types: random tournament (random partners, individual ranking), weighted
+      tournament (pairing by rating and current standing, so similar levels meet), knockout
+      tournament (groups by rating, then knockout); rounds drawn
       from the registered and checked-in players; final ranking (L)
 
 ## Phase 5 — Statistics and leaderboard

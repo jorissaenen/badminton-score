@@ -128,7 +128,7 @@ clubs/{clubId}                    name, created by, defaults (points, match leng
   seasons/{seasonId}              name, start, end (YYYY-MM-DD)
   series/{seriesId}               a recurring event: type, weekday, time window, location,
                                   courts, from/until, reminder times
-  events/{eventId}                type (training | americano | mexicano | groups-knockout),
+  events/{eventId}                type (training | random | weighted | knockout tournament),
                                   date, time window, location, courts, seriesId (if recurring),
                                   status: planned | cancelled | live | finished, registration
                                   deadline
@@ -227,9 +227,9 @@ the rally: a point belongs to a team, not to a player.
   | Type | How it works |
   |---|---|
   | Training | The matchmaking below: fair rotation, balanced teams, varied partners |
-  | Americano | Every round new random partners and opponents; everyone collects their own points; individual ranking at the end |
-  | Mexicano | Round 1 random; from round 2 on, teams follow the current standing (1+4 vs 2+3 within each group of four), so people of similar level meet |
-  | Groups + knockout | Groups seeded by season rating, then a knockout bracket; final ranking |
+  | Random tournament | Every round new random partners and opponents; everyone collects their own points; individual ranking at the end |
+  | Weighted tournament | Round 1 based on the season rating; after each round, teams follow the current standing (1st + 4th against 2nd + 3rd within each group of four), so people of similar level play each other |
+  | Knockout tournament | Groups made from the season rating, then a knockout bracket; final ranking |
 
   A tournament starts from the players who registered (and checked in), draws its rounds with the
   secure random generator, and ends with a ranking that also counts for the season statistics.
