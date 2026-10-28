@@ -97,6 +97,7 @@ update.
 ## Business
 
 ### D10. The club subscribes; the app checks entitlements, not plan names — decided
+Pricing, revenue and cost estimates: [market-analysis.md](market-analysis.md).
 Clubs buy, not members, so the plan belongs to the club. Code and security rules never ask "is this
 the Pro plan?" but "what may this club do?" — for example `maxTeams`, `maxMembersPerTeam`,
 `viewers`, `statsHistory`, `interClubMatches`, `publicPage`, `liveDisplay`. A plan only fills those
