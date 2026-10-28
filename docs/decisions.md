@@ -187,6 +187,15 @@ opponent" for a date. Another team's captain sends a **challenge**, which the fi
 (the flow of D8). This replaces searching in Facebook groups. Findable is opt-in per team; persons
 are never findable, only teams. (Answers O3 for teams.)
 
+**Head to head.** When a match is set up, and when a team gets a challenge, the app shows the
+earlier results between the two sides. What counts as "the same sides" depends on the sport's rules
+module (D4):
+- **Individual and pair sports** (badminton, tennis, padel, table tennis, darts): exactly the same
+  line-up. In doubles that means the same pair against the same pair; a different partner is a
+  different line-up.
+- **Team sports** (football, basketball, volleyball): team against team, whoever played that day,
+  counted in matches won per meeting.
+
 ### D21. Event organisers without a club — decided
 Anyone can be an **organiser**: create a tournament or event, invite teams by link (teams already
 using the app, or not yet: a team without the app joins as a guest team with just names), plan the
