@@ -76,15 +76,32 @@ export function setupClub($, account, notify = () => {}, defaults = () => ({}), 
   let pendingEvent = eventLink;
   if (eventLink) history.replaceState(null, '', location.pathname);
 
-  // Tapped while the app was already open: the service worker passes the event's address here.
-  navigator.serviceWorker?.addEventListener('message', (e) => {
-    if (e.data?.type !== 'open') return;
-    const target = parseEventLink(new URL(e.data.url, location.href).search);
-    if (!target) return;
+  // A tapped reminder (see notificationclick in sw.js): the service worker leaves the event's
+  // address in a small cache, and also sends it as a message when the app is running.
+  const PENDING = `${EDITION.cachePrefix}pending`;
+  function openTarget(target) {
     openSettings();
     if (user()) events.openEvent(target.clubId, target.eventId);
     else pendingEvent = target; // opens once signed in
+  }
+  async function takePendingOpen() {
+    try {
+      const cache = await caches.open(PENDING);
+      const hit = await cache.match('open');
+      if (!hit) return;
+      await cache.delete('open');
+      const { url, at } = await hit.json();
+      const target = Date.now() - at < 10 * 60_000 && parseEventLink(new URL(url, location.href).search);
+      if (target) openTarget(target);
+    } catch { /* no cache storage: the address in the link still works */ }
+  }
+  navigator.serviceWorker?.addEventListener('message', (e) => {
+    if (e.data?.type === 'open') takePendingOpen();
   });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) takePendingOpen(); });
+  window.addEventListener('focus', takePendingOpen);
+  if (!eventLink) takePendingOpen();
+  else caches?.open(PENDING).then((c) => c.delete('open')).catch(() => {});
 
   // ---------- the section in settings ----------
 

@@ -3,9 +3,12 @@
 // Bump VERSION whenever any app file changes.
 // Alpha edition (served from /alpha/): its own cache names, so it never removes another edition's cache.
 // The prefix must match EDITION.cachePrefix in js/edition.js.
-const VERSION = 'v30-alpha.12';
+const VERSION = 'v30-alpha.13';
 const CACHE_PREFIX = 'badminton-score-alpha-';
 const CACHE = `${CACHE_PREFIX}${VERSION}`;
+// A tapped reminder's address, left for the app to pick up (see notificationclick). Kept across
+// updates, unlike the versioned cache.
+const PENDING = `${CACHE_PREFIX}pending`;
 const NETWORK_TIMEOUT_MS = 3000;
 const ASSETS = [
   './',
@@ -54,13 +57,16 @@ self.addEventListener('push', (event) => {
   }));
 });
 
-// Tapping a reminder opens the event. If the app is still open (in the background), it is brought
-// forward and told which event to show: iOS ignores navigating an open app to another address.
-// Otherwise the app starts on the event's address.
+// Tapping a reminder opens the event. On iPhone the app is started (on its start screen) before
+// this runs, so a message to it can arrive before it listens. The address is therefore also left
+// in a small cache that the app reads whenever it starts or comes to the front; the message only
+// makes an app that's already running react at once. A closed app is opened on the address.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = event.notification.data?.url || self.registration.scope;
   event.waitUntil((async () => {
+    const pending = await caches.open(PENDING);
+    await pending.put('open', new Response(JSON.stringify({ url, at: Date.now() })));
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const app = windows.find((w) => w.url.startsWith(self.registration.scope));
     if (!app) return self.clients.openWindow(url);
@@ -82,7 +88,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
       // Only clean up older alpha caches; other editions' caches are not ours to delete.
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith(CACHE_PREFIX) && k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith(CACHE_PREFIX) && k !== CACHE && k !== PENDING).map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
