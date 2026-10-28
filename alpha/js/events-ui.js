@@ -1,6 +1,7 @@
 // Events: the Upcoming list and "Plan an event" in the Club window, the Event window (are you
 // coming, who's coming), and the next event in settings.
 import * as Club from './club.js';
+import { choiceFor, describeReminder, remindAt, reminderChoices } from './reminder.js';
 
 function el(tag, props = {}, ...children) {
   const node = Object.assign(document.createElement(tag), props);
@@ -61,7 +62,7 @@ export function setupEvents($, ctx) {
     const admin = Club.isAdmin(view.myRole);
     const mine = myPlayerId();
     $('noEvents').hidden = events.length > 0;
-    $('eventAddBtn').hidden = !admin || !$('eventForm').hidden;
+    $('eventAddBtn').hidden = !admin;
     $('eventList').replaceChildren(...events.map((e) => {
       const regs = registrations[e.id];
       const going = regs ? Object.values(regs).filter((r) => r.status === 'going').length : null;
@@ -73,31 +74,87 @@ export function setupEvents($, ctx) {
     }));
   }
 
-  // ---------- planning an event (admins) ----------
+  // ---------- planning and editing an event (admins) ----------
 
-  function openForm() {
+  const editDialog = $('eventEditDialog');
+  let editing = null; // null: planning a new event; otherwise the event being edited
+  const fstatus = (text) => { $('eventEditStatus').textContent = text; };
+
+  // The reminder list shows the actual moments, so it follows the date and start time.
+  function fillReminderChoices(keep = $('eventReminder').value || 'smart') {
+    const date = $('eventDate').value || Club.isoDate(new Date());
+    const start = $('eventStart').value || '20:00';
+    const choices = reminderChoices(date, start);
+    $('eventReminder').replaceChildren(...Object.entries(choices).map(([value, c]) => el('option', { value }, c.label)));
+    $('eventReminder').value = keep in choices ? keep : 'smart';
+    showReminderWhen();
+  }
+
+  function showReminderWhen() {
+    $('reminderOther').hidden = $('eventReminder').value !== 'other';
+    $('reminderWhen').textContent = $('eventDate').value ? describeReminder($('eventDate').value, chosenReminder()) : '';
+  }
+
+  function chosenReminder() {
+    const key = $('eventReminder').value;
+    if (key === 'none') return null;
+    if (key === 'other') return { daysBefore: Number($('reminderDays').value), time: $('reminderTime').value || '09:00' };
+    return reminderChoices($('eventDate').value, $('eventStart').value)[key].reminder;
+  }
+
+  function openEditor(event = null) {
+    editing = event;
     const view = ctx.club();
-    const season = Club.currentSeason(view.seasons);
-    const nextWeek = new Date();
-    nextWeek.setDate(nextWeek.getDate() + 7);
-    $('eventDate').value = Club.isoDate(new Date());
-    $('eventUntil').value = season?.end ?? Club.isoDate(new Date(Date.now() + 90 * 86400_000));
-    $('eventRepeat').value = '';
+    $('eventEditTitle').textContent = event ? 'Edit event' : 'Plan an event';
+    $('eventSaveBtn').textContent = event ? 'Save' : 'Plan';
+    $('eventRepeatField').hidden = Boolean(event);
     $('eventUntilField').hidden = true;
-    $('eventForm').hidden = false;
-    $('eventAddBtn').hidden = true;
+    $('eventRepeat').value = '';
+    $('eventType').value = event?.type ?? 'training';
+    $('eventDate').value = event?.date ?? Club.isoDate(new Date());
+    $('eventStart').value = event?.start ?? '20:00';
+    $('eventEnd').value = event?.end ?? '21:30';
+    $('eventCourts').value = event?.courts ?? 2;
+    $('eventLocation').value = event?.location ?? '';
+    const season = view && Club.currentSeason(view.seasons);
+    $('eventUntil').value = season?.end ?? Club.isoDate(new Date(Date.now() + 90 * 86400_000));
+    const choice = event ? choiceFor(event.reminder, event.date, event.start) : 'smart';
+    if (choice === 'other') {
+      $('reminderDays').value = String(event.reminder.daysBefore);
+      $('reminderTime').value = event.reminder.time;
+    }
+    fillReminderChoices(choice);
+    fstatus('');
+    editDialog.showModal();
   }
 
-  function closeForm() {
-    $('eventForm').hidden = true;
-    render();
-  }
-
-  $('eventAddBtn').addEventListener('click', openForm);
-  $('eventCancelBtn').addEventListener('click', closeForm);
+  $('eventAddBtn').addEventListener('click', () => openEditor());
+  $('eventEditCancel').addEventListener('click', () => editDialog.close());
   $('eventRepeat').addEventListener('change', () => {
     $('eventUntilField').hidden = $('eventRepeat').value !== 'weekly';
   });
+  $('eventDate').addEventListener('change', () => fillReminderChoices());
+  $('eventStart').addEventListener('change', () => fillReminderChoices());
+  $('eventReminder').addEventListener('change', showReminderWhen);
+  $('reminderDays').addEventListener('change', showReminderWhen);
+  $('reminderTime').addEventListener('change', showReminderWhen);
+
+  // Asks whether a change to a date of a weekly series is for that date only or for all upcoming
+  // dates. Resolves to 'one', 'all', or null (cancelled).
+  function askScope() {
+    const d = $('scopeDialog');
+    return new Promise((resolve) => {
+      const done = (answer) => {
+        d.close();
+        resolve(answer);
+      };
+      $('scopeOne').onclick = () => done('one');
+      $('scopeAll').onclick = () => done('all');
+      $('scopeCancel').onclick = () => done(null);
+      d.oncancel = () => resolve(null);
+      d.showModal();
+    });
+  }
 
   $('eventSaveBtn').addEventListener('click', async () => {
     const view = ctx.club();
@@ -108,28 +165,47 @@ export function setupEvents($, ctx) {
       end: $('eventEnd').value,
       courts: Number($('eventCourts').value) || 1,
       location: $('eventLocation').value.trim(),
+      reminder: chosenReminder(),
     };
-    const until = $('eventRepeat').value === 'weekly' ? $('eventUntil').value : null;
+    const until = !editing && $('eventRepeat').value === 'weekly' ? $('eventUntil').value : null;
     if (!e.date || !e.start || !e.end) {
-      status('Fill in the date and the times.');
+      fstatus('Fill in the date and the times.');
       return;
     }
     if (e.end <= e.start) {
-      status('The event has to end after it starts.');
+      fstatus('The event has to end after it starts.');
       return;
     }
-    if (until !== null && (!until || until < e.date)) {
-      status('Pick until when the event repeats (after the first date).');
+    if (!editing && $('eventRepeat').value === 'weekly' && (!until || until < e.date)) {
+      fstatus('Pick until when the event repeats (after the first date).');
       return;
     }
+    const at = remindAt(e.date, e.reminder);
+    if (at && at >= Club.startsAt(e.date, e.start)) {
+      fstatus('The reminder has to come before the event starts.');
+      return;
+    }
+    if (editing && !Club.changedFields(editing, e).length) {
+      editDialog.close();
+      return;
+    }
+    const scope = editing?.seriesId ? await askScope() : 'one';
+    if (!scope) return;
     $('eventSaveBtn').disabled = true;
     try {
-      const n = await Club.addEvents(ctx.user(), view.id, e, until);
-      status('');
-      ctx.notify(n === 1 ? 'Event planned' : `${n} dates planned`);
-      closeForm();
+      if (!editing) {
+        const n = await Club.addEvents(ctx.user(), view.id, e, until);
+        ctx.notify(n === 1 ? 'Event planned' : `${n} dates planned`);
+      } else if (scope === 'all') {
+        const n = await Club.updateSeries(editClub, editing, e);
+        ctx.notify(`${n} date${n === 1 ? '' : 's'} changed`);
+      } else {
+        await Club.updateEvent(editClub, editing, e);
+        ctx.notify('Event changed');
+      }
+      editDialog.close();
     } catch (err) {
-      status(`Couldn’t plan the event (${err.code || err.message}).`);
+      fstatus(`Couldn’t save (${err.code || err.message}).`);
     } finally {
       $('eventSaveBtn').disabled = false;
     }
@@ -233,6 +309,13 @@ export function setupEvents($, ctx) {
     $('notGoingList').replaceChildren(...notGoing.map(row));
     $('noAnswerList').replaceChildren(...noAnswer.map(row));
 
+    // Reminder and editing
+    const at = e.remindAt?.toDate();
+    $('eventReminderText').textContent = cancelled ? ''
+      : at ? `Reminder: ${at.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}, ${at.toTimeString().slice(0, 5)}`
+        : 'No reminder';
+    $('eventEditBtn').hidden = !admin;
+
     // Manage
     $('eventAdmin').hidden = !admin;
     $('eventToggleBtn').textContent = cancelled ? 'Plan this date again' : 'Cancel this date';
@@ -266,10 +349,16 @@ export function setupEvents($, ctx) {
     $('answerNote').blur();
   });
 
+  let editClub = null; // the club of the event being edited
+  $('eventEditBtn').addEventListener('click', () => {
+    editClub = open.clubId;
+    openEditor({ ...open.event });
+  });
+
   $('eventToggleBtn').addEventListener('click', () => {
     const cancelled = open.event.status === 'cancelled';
     if (!cancelled && !confirm('Cancel this date? Everyone sees it as cancelled.')) return;
-    act(Club.updateEvent(open.clubId, open.eventId, { status: cancelled ? 'planned' : 'cancelled' }), 'Couldn’t change the event');
+    act(Club.setEventStatus(open.clubId, open.eventId, cancelled ? 'planned' : 'cancelled'), 'Couldn’t change the event');
   });
 
   $('eventDeleteBtn').addEventListener('click', async () => {

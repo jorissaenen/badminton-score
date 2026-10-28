@@ -1,6 +1,7 @@
-// Clubs with their members, invites, seasons and players in Firestore. Who may do what is enforced by
+// Clubs with their members, invites, seasons, players and events in Firestore. Who may do what is enforced by
 // firestore.rules; the screens only offer what the rules allow.
 import { cloud } from './cloud.js';
+import { remindAt, smartReminder } from './reminder.js';
 
 export const ROLES = ['owner', 'admin', 'keeper', 'member'];
 export const ROLE_NAMES = { owner: 'Owner', admin: 'Admin', keeper: 'Score keeper', member: 'Member' };
@@ -260,18 +261,40 @@ export function weeklyDates(from, until) {
   return dates;
 }
 
+// The fields an admin edits; series edits copy these to every date.
+export const EVENT_FIELDS = ['type', 'date', 'start', 'end', 'location', 'courts', 'reminder'];
+
+// The derived times: when it starts and when to remind (null: no reminder).
+function times(F, e) {
+  const reminder = e.reminder === undefined ? smartReminder(e.start) : e.reminder;
+  const at = remindAt(e.date, reminder);
+  return {
+    startsAt: F.Timestamp.fromDate(startsAt(e.date, e.start)),
+    reminder,
+    remindAt: at ? F.Timestamp.fromDate(at) : null,
+    reminded: false, // a new or changed moment: (re)send at that moment
+  };
+}
+
+// For an edited event: new times, but "reminder sent" only resets when the reminder moment moved.
+function retimes(F, old, next) {
+  const t = times(F, next);
+  if ((old.remindAt?.toMillis?.() ?? null) === (t.remindAt?.toMillis() ?? null)) delete t.reminded;
+  return t;
+}
+
 function eventDoc(F, e) {
   return {
-    type: e.type, date: e.date, start: e.start, end: e.end,
-    startsAt: F.Timestamp.fromDate(startsAt(e.date, e.start)),
+    type: e.type ?? 'training', date: e.date, start: e.start, end: e.end,
     location: e.location ?? '', courts: e.courts ?? 2, note: e.note ?? '',
     status: e.status ?? 'planned', ...(e.seriesId && { seriesId: e.seriesId }),
+    ...times(F, e),
     schemaVersion: 1,
   };
 }
 
 // One event, or a weekly series: the series and all its dates are written at once, so every date
-// can be answered, moved or cancelled on its own.
+// can be answered, changed or cancelled on its own.
 export async function addEvents(user, clubId, e, repeatUntil = null) {
   const { db, F } = await cloud();
   const events = F.collection(db, 'clubs', clubId, 'events');
@@ -284,6 +307,7 @@ export async function addEvents(user, clubId, e, repeatUntil = null) {
   const batch = F.writeBatch(db);
   batch.set(series, {
     type: e.type, start: e.start, end: e.end, location: e.location ?? '', courts: e.courts ?? 2,
+    reminder: e.reminder === undefined ? null : e.reminder,
     from: e.date, until: repeatUntil, createdBy: user.uid, createdAt: F.serverTimestamp(), schemaVersion: 1,
   });
   for (const date of dates) {
@@ -295,11 +319,66 @@ export async function addEvents(user, clubId, e, repeatUntil = null) {
   return dates.length;
 }
 
-export async function updateEvent(clubId, eventId, e) {
+const sameValue = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+
+// The fields that differ between an event and the edited values.
+export function changedFields(event, edited) {
+  return EVENT_FIELDS.filter((k) => k in edited && !sameValue(event[k], edited[k]));
+}
+
+function shiftDate(iso, days) {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() + days);
+  return isoDate(d);
+}
+
+// Changes one date. Its changed fields are remembered as exceptions (`overrides`), so a later
+// change to the whole series leaves them as they are.
+export async function updateEvent(clubId, event, edited) {
   const { db, F } = await cloud();
-  const changes = { ...e };
-  if (e.date && e.start) changes.startsAt = F.Timestamp.fromDate(startsAt(e.date, e.start));
-  await F.updateDoc(F.doc(db, 'clubs', clubId, 'events', eventId), changes);
+  const changed = changedFields(event, edited);
+  if (!changed.length) return;
+  const next = { ...event, ...edited };
+  const update = Object.fromEntries(changed.map((k) => [k, edited[k]]));
+  if (event.seriesId) update.overrides = [...new Set([...(event.overrides ?? []), ...changed])];
+  await F.updateDoc(F.doc(db, 'clubs', clubId, 'events', event.id), { ...update, ...retimes(F, event, next) });
+}
+
+// Changes all upcoming dates of the series (from today on) the same way as this one was edited.
+// Dates where a field was changed on its own keep that field. A new date moves every date by the
+// same number of days.
+export async function updateSeries(clubId, event, edited) {
+  const { db, F } = await cloud();
+  const changed = changedFields(event, edited);
+  if (!changed.length) return 0;
+  const shift = changed.includes('date')
+    ? Math.round((new Date(`${edited.date}T12:00:00`) - new Date(`${event.date}T12:00:00`)) / 86400_000) : 0;
+  const snap = await F.getDocs(F.query(F.collection(db, 'clubs', clubId, 'events'), F.where('seriesId', '==', event.seriesId)));
+  const today = isoDate(new Date());
+  const batch = F.writeBatch(db);
+  let n = 0;
+  for (const d of snap.docs) {
+    const e = { id: d.id, ...d.data() };
+    if (e.date < today && e.id !== event.id) continue;
+    const keep = e.id === event.id ? [] : (e.overrides ?? []);
+    const update = {};
+    for (const k of changed) {
+      if (keep.includes(k)) continue;
+      update[k] = k === 'date' ? shiftDate(e.date, shift) : edited[k];
+    }
+    if (!Object.keys(update).length) continue;
+    batch.update(d.ref, { ...update, ...retimes(F, e, { ...e, ...update }) });
+    n += 1;
+  }
+  const seriesUpdate = Object.fromEntries(changed.filter((k) => k !== 'date').map((k) => [k, edited[k]]));
+  if (Object.keys(seriesUpdate).length) batch.update(F.doc(db, 'clubs', clubId, 'series', event.seriesId), seriesUpdate);
+  await batch.commit();
+  return n;
+}
+
+export async function setEventStatus(clubId, eventId, status) {
+  const { db, F } = await cloud();
+  await F.updateDoc(F.doc(db, 'clubs', clubId, 'events', eventId), { status });
 }
 
 export async function deleteEvent(clubId, eventId) {

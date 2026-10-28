@@ -1,10 +1,5 @@
-// Which reminders are due, and what they say. Plain functions, unit-tested in
+// Whether a reminder is due, and what it says. Plain functions, unit-tested in
 // tests/reminders.test.js; index.js does the database work and the sending.
-
-export const REMINDERS = [
-  { key: 'day', before: 24 * 3600_000 },
-  { key: 'hours', before: 3 * 3600_000 },
-];
 
 const TYPES = {
   training: 'Training',
@@ -13,15 +8,11 @@ const TYPES = {
   knockout: 'Knockout tournament',
 };
 
-// The reminder to send now for an event, or null. When several are due at once (an event planned
-// at short notice, or the function was down), only the latest one is sent; all are marked sent.
-export function dueReminder(event, now) {
-  if (event.status === 'cancelled') return null;
-  const start = event.startsAt;
-  if (start <= now) return null;
-  const due = REMINDERS.filter((r) => start - r.before <= now && !event.reminded?.[r.key]);
-  if (!due.length) return null;
-  return { send: due.at(-1).key, mark: due.map((r) => r.key) };
+// Whether an event's reminder should go out now: its moment (chosen when the event was planned,
+// see alpha/js/reminder.js) has come, it wasn't sent yet, and the event is still ahead.
+export function reminderDue(event, now) {
+  return event.status !== 'cancelled' && !event.reminded && Boolean(event.remindAt)
+    && event.remindAt <= now && event.startsAt > now;
 }
 
 function dayWord(event, now, timeZone) {

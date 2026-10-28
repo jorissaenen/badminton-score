@@ -4,32 +4,32 @@ import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { logger } from 'firebase-functions';
-import { REMINDERS, dueReminder, reminderText } from './reminders.js';
+import { reminderDue, reminderText } from './reminders.js';
 
 initializeApp();
 const db = getFirestore();
 
-// Every 15 minutes: send the reminders that are due, a day and 3 hours before each event, to
-// every member's devices, except people who said they're not coming.
+// Every 15 minutes: send the reminders whose moment has come (each event has its own, set when it
+// was planned: by default the same morning for an evening event, the evening before for a morning
+// event), to every member's devices, except people who said they're not coming.
 export const sendReminders = onSchedule(
   { schedule: 'every 15 minutes', region: 'europe-west1', timeZone: 'Europe/Brussels', retryCount: 0 },
   async () => {
     const now = new Date();
-    const horizon = new Date(now.getTime() + Math.max(...REMINDERS.map((r) => r.before)) + 3600_000);
     const snap = await db.collectionGroup('events')
-      .where('startsAt', '>', Timestamp.fromDate(now))
-      .where('startsAt', '<=', Timestamp.fromDate(horizon))
+      .where('remindAt', '<=', Timestamp.fromDate(now))
+      .where('remindAt', '>', Timestamp.fromDate(new Date(now.getTime() - 7 * 86400_000)))
       .get();
 
     for (const doc of snap.docs) {
-      const event = { ...doc.data(), startsAt: doc.data().startsAt.toDate() };
-      const due = dueReminder(event, now);
-      if (!due) continue;
+      const data = doc.data();
+      const event = { ...data, startsAt: data.startsAt.toDate(), remindAt: data.remindAt.toDate() };
+      if (!reminderDue(event, now)) continue;
       // Mark first, so an overlapping run can't send the same reminder twice.
       const marked = await db.runTransaction(async (tx) => {
         const fresh = await tx.get(doc.ref);
-        if (due.mark.every((k) => fresh.data().reminded?.[k])) return false;
-        tx.update(doc.ref, Object.fromEntries(due.mark.map((k) => [`reminded.${k}`, true])));
+        if (fresh.data().reminded) return false;
+        tx.update(doc.ref, { reminded: true });
         return true;
       });
       if (marked) await remind(doc.ref, event, now).catch((e) => logger.error('reminder failed', doc.ref.path, e));

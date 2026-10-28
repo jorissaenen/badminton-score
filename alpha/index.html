@@ -355,48 +355,6 @@
             <p class="note" id="noEvents" hidden>No events planned yet.</p>
             <ul class="club-list event-list" id="eventList"></ul>
             <button type="button" class="link-btn" id="eventAddBtn" hidden>Plan an event</button>
-            <div class="event-form" id="eventForm" hidden>
-              <label class="field">What
-                <select id="eventType">
-                  <option value="training">Training</option>
-                  <option value="random">Random tournament</option>
-                  <option value="weighted">Weighted tournament</option>
-                  <option value="knockout">Knockout tournament</option>
-                </select>
-              </label>
-              <div class="row">
-                <label class="field">Date
-                  <input type="date" id="eventDate">
-                </label>
-                <label class="field">Repeat
-                  <select id="eventRepeat">
-                    <option value="">Only this date</option>
-                    <option value="weekly">Every week</option>
-                  </select>
-                </label>
-              </div>
-              <label class="field" id="eventUntilField" hidden>Every week until
-                <input type="date" id="eventUntil">
-              </label>
-              <div class="row">
-                <label class="field">From
-                  <input type="time" id="eventStart" value="20:00" step="300">
-                </label>
-                <label class="field">Until
-                  <input type="time" id="eventEnd" value="21:30" step="300">
-                </label>
-                <label class="field narrow">Courts
-                  <input type="number" id="eventCourts" value="2" min="1" max="12" inputmode="numeric">
-                </label>
-              </div>
-              <label class="field">Where
-                <input type="text" id="eventLocation" maxlength="80" placeholder="Sports hall" autocomplete="off">
-              </label>
-              <div class="row">
-                <button type="button" class="btn primary" id="eventSaveBtn">Plan</button>
-                <button type="button" class="btn outline" id="eventCancelBtn">Cancel</button>
-              </div>
-            </div>
           </div>
         </section>
 
@@ -507,8 +465,14 @@
   <dialog id="eventDialog">
     <form method="dialog" class="settings-form">
       <header class="settings-head">
-        <h2 id="eventTitle">Event</h2>
+        <div class="event-title-row">
+          <h2 id="eventTitle">Event</h2>
+          <button type="button" class="btn icon edit-btn" id="eventEditBtn" title="Edit this event" aria-label="Edit this event" hidden>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/><path d="m15 5 4 4"/></svg>
+          </button>
+        </div>
         <p class="event-when" id="eventWhen"></p>
+        <p class="event-when" id="eventReminderText"></p>
       </header>
 
       <div class="settings-body">
@@ -554,6 +518,94 @@
       <footer class="dialog-buttons">
         <button type="submit" class="btn primary">Done</button>
       </footer>
+    </form>
+  </dialog>
+
+  <dialog id="eventEditDialog">
+    <form method="dialog" class="settings-form">
+      <header class="settings-head"><h2 id="eventEditTitle">Plan an event</h2></header>
+      <div class="settings-body">
+        <div class="card event-form">
+          <label class="field">What
+            <select id="eventType">
+              <option value="training" selected>Training</option>
+              <option value="random">Random tournament</option>
+              <option value="weighted">Weighted tournament</option>
+              <option value="knockout">Knockout tournament</option>
+            </select>
+          </label>
+          <div class="row">
+            <label class="field">Date
+              <input type="date" id="eventDate">
+            </label>
+            <label class="field" id="eventRepeatField">Repeat
+              <select id="eventRepeat">
+                <option value="">Once</option>
+                <option value="weekly">Every week</option>
+              </select>
+            </label>
+          </div>
+          <label class="field" id="eventUntilField" hidden>Every week until
+            <input type="date" id="eventUntil">
+          </label>
+          <div class="row">
+            <label class="field">From
+              <input type="time" id="eventStart" value="20:00" step="300">
+            </label>
+            <label class="field">Until
+              <input type="time" id="eventEnd" value="21:30" step="300">
+            </label>
+          </div>
+          <div class="row">
+            <label class="field">Where
+              <input type="text" id="eventLocation" maxlength="80" placeholder="Sports hall" autocomplete="off">
+            </label>
+            <label class="field courts-field">Courts
+              <input type="number" id="eventCourts" value="2" min="1" max="12" inputmode="numeric">
+            </label>
+          </div>
+          <label class="field">Reminder
+            <select id="eventReminder"></select>
+          </label>
+          <div class="row" id="reminderOther" hidden>
+            <label class="field">Day
+              <select id="reminderDays">
+                <option value="0">Same day</option>
+                <option value="1">1 day before</option>
+                <option value="2">2 days before</option>
+                <option value="3">3 days before</option>
+                <option value="4">4 days before</option>
+                <option value="5">5 days before</option>
+                <option value="6">6 days before</option>
+                <option value="7">A week before</option>
+              </select>
+            </label>
+            <label class="field">At
+              <input type="time" id="reminderTime" value="09:00" step="300">
+            </label>
+          </div>
+          <p class="note" id="reminderWhen"></p>
+          <p class="note" id="eventEditStatus" aria-live="polite"></p>
+        </div>
+      </div>
+      <footer class="dialog-buttons">
+        <button type="button" class="btn outline" id="eventEditCancel">Cancel</button>
+        <button type="button" class="btn primary" id="eventSaveBtn">Plan</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="scopeDialog" class="small-dialog">
+    <form method="dialog" class="settings-form">
+      <header class="settings-head"><h2>Change which dates?</h2></header>
+      <div class="settings-body">
+        <p class="note scope-text">This date is part of a weekly series.</p>
+        <div class="scope-buttons">
+          <button type="button" class="btn primary" id="scopeOne">Only this date</button>
+          <button type="button" class="btn outline" id="scopeAll">All upcoming dates</button>
+          <button type="button" class="btn outline" id="scopeCancel">Cancel</button>
+        </div>
+      </div>
     </form>
   </dialog>
 

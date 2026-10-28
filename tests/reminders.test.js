@@ -1,30 +1,22 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { dueReminder, reminderText } from '../functions/reminders.js';
+import { reminderDue, reminderText } from '../functions/reminders.js';
 
 const H = 3600_000;
 const start = new Date('2026-11-03T19:00:00Z'); // 20:00 in Brussels
 const event = { type: 'training', date: '2026-11-03', start: '20:00', end: '21:30', location: 'Sporthal', startsAt: start, status: 'planned' };
 
-test('a day before: the day reminder', () => {
-  assert.equal(dueReminder(event, new Date(start - 25 * H)), null);
-  assert.deepEqual(dueReminder(event, new Date(start - 23.9 * H)), { send: 'day', mark: ['day'] });
+test('due once its moment has come, until the event starts', () => {
+  const e = { ...event, remindAt: new Date(start - 11 * H) }; // 09:00 the same day
+  assert.equal(reminderDue(e, new Date(start - 12 * H)), false);
+  assert.equal(reminderDue(e, new Date(start - 10 * H)), true);
+  assert.equal(reminderDue({ ...e, reminded: true }, new Date(start - 10 * H)), false);
+  assert.equal(reminderDue(e, new Date(start.getTime() + H)), false);
 });
 
-test('3 hours before: the hours reminder, once', () => {
-  const after = { ...event, reminded: { day: true } };
-  assert.equal(dueReminder(after, new Date(start - 4 * H)), null);
-  assert.deepEqual(dueReminder(after, new Date(start - 2.9 * H)), { send: 'hours', mark: ['hours'] });
-  assert.equal(dueReminder({ ...after, reminded: { day: true, hours: true } }, new Date(start - 2 * H)), null);
-});
-
-test('planned at short notice: only the latest reminder, both marked', () => {
-  assert.deepEqual(dueReminder(event, new Date(start - 2 * H)), { send: 'hours', mark: ['day', 'hours'] });
-});
-
-test('nothing for cancelled or past events', () => {
-  assert.equal(dueReminder({ ...event, status: 'cancelled' }, new Date(start - 2 * H)), null);
-  assert.equal(dueReminder(event, new Date(start.getTime() + H)), null);
+test('never for cancelled events or events without a reminder', () => {
+  assert.equal(reminderDue({ ...event, status: 'cancelled', remindAt: new Date(start - 11 * H) }, new Date(start - H)), false);
+  assert.equal(reminderDue({ ...event, remindAt: null }, new Date(start - H)), false);
 });
 
 test('texts: tomorrow / today, by answer; nothing for people not coming', () => {

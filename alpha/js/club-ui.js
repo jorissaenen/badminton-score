@@ -283,7 +283,6 @@ export function setupClub($, account, notify = () => {}, defaults = () => ({})) 
     editingSeason = null;
     $('seasonForm').hidden = true;
     $('inviteOut').hidden = true;
-    $('eventForm').hidden = true;
     dstatus('');
     events.watch(id);
     stopWatching = await Club.watchClub(id, Club.isAdmin(view.myRole), (state) => {
