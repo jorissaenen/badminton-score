@@ -95,6 +95,12 @@ only works if it sends a regular key such as Enter. Many remotes have a separate
 button that sends Enter — try both buttons in the tester. Some remotes send nothing while the
 button is held; on those, long press can't be detected and you'll need the on-screen ↶ button.
 
+## Plans
+
+The next big step (Firebase, sign-in, seasons, live screens, statistics, watch apps) is described
+in [docs/architecture.md](docs/architecture.md), with the task list in
+[docs/roadmap.md](docs/roadmap.md). Production is frozen at v28 (branch `release/v28`).
+
 ## Running / hosting
 
 It's plain static files with no build step. A PWA needs HTTPS (or `localhost`):
