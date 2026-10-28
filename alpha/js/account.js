@@ -6,6 +6,11 @@ import {
   signOut, storedEmail,
 } from './cloud.js';
 
+// When the last sign-in link was sent, so "Resend" waits a minute, also after switching to the
+// mail app and back (which may reload the app).
+const SENT_KEY = `${EDITION.storageKey}-signin-sent`;
+const RESEND_AFTER_MS = 60_000;
+
 // Remembers that someone was signed in, so the next start reconnects without opening settings.
 const SIGNED_IN_KEY = `${EDITION.storageKey}-signed-in`;
 
@@ -47,7 +52,35 @@ export function setupAccount($, notify = () => {}, openSettings = () => {}) {
     for (const id of ['signInGoogle', 'signInEmailBtn', 'signInLinkBtn', 'signInHereBtn', 'signOutBtn']) {
       $(id).disabled = on;
     }
+    if (!on) showResend();
   };
+
+  // The Send link button: "Sending…" with a spinner, then "Resend in 59 s" counting down, then
+  // "Resend link".
+  let sending = false;
+  let resendTimer = null;
+  function sentAt() {
+    try { return Number(localStorage.getItem(SENT_KEY)) || 0; } catch { return 0; }
+  }
+  function showResend() {
+    const btn = $('signInEmailBtn');
+    clearTimeout(resendTimer);
+    btn.classList.toggle('sending', sending);
+    if (sending) {
+      btn.disabled = true;
+      btn.textContent = 'Sending\u2026';
+      return;
+    }
+    const left = Math.ceil((sentAt() + RESEND_AFTER_MS - Date.now()) / 1000);
+    if (left > 0 && left <= RESEND_AFTER_MS / 1000) {
+      btn.disabled = true;
+      btn.textContent = `Resend in ${left} s`;
+      resendTimer = setTimeout(showResend, 1000);
+    } else {
+      btn.disabled = false;
+      btn.textContent = sentAt() ? 'Resend link' : 'Send link';
+    }
+  }
 
   // A link that opened this page but was asked for elsewhere (see the landing section below).
   let landingLink = null;
@@ -114,23 +147,31 @@ export function setupAccount($, notify = () => {}, openSettings = () => {}) {
       status('Type your e-mail address first.');
       return;
     }
+    sending = true;
+    $('emailSent').hidden = true;
     busy(true);
+    showResend();
     try {
       await start();
       await sendEmailLink(email);
+      try { localStorage.setItem(SENT_KEY, String(Date.now())); } catch { /* no countdown then */ }
       $('accountPaste').hidden = false;
-      status(`Sign-in link sent to ${email}. It may take a minute (check spam too).`);
+      $('emailSent').textContent = `\u2713 Sign-in link sent to ${email}. It may take a minute; check spam too.`;
+      $('emailSent').hidden = false;
+      status('');
     } catch (e) {
       status(explain(e));
     } finally {
+      sending = false;
       busy(false);
     }
   }
   $('signInEmailBtn').addEventListener('click', sendLink);
+  showResend();
   $('signInEmail').addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
     e.preventDefault(); // Enter would otherwise close the settings
-    sendLink();
+    if (!$('signInEmailBtn').disabled) sendLink();
   });
 
   async function signInWithLink(link, email) {
