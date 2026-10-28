@@ -37,7 +37,7 @@ Result: you can sign in to the beta with Google or an e-mail link.
 Result: you create a season, invite the group by WhatsApp or QR code, and give admin rights.
 
 - [ ] Create, edit, archive a season; defaults (points, format) (M)
-- [ ] Roles owner / admin / scorer / member, enforced by security rules (M)
+- [ ] Roles owner / admin / score keeper / member, enforced by security rules (M)
 - [ ] Invite link and QR code with role and expiry; join flow after sign-in (M)
 - [ ] Player list with guests (no account); claim a guest player after signing in (M)
 - [ ] Member management: change roles, remove members (S)
@@ -51,11 +51,14 @@ Result: two phones score two courts; any screen follows them live.
 - [ ] Attendance: check-in, late arrivals, leaving early (S)
 - [ ] Match as an event log in Firestore; the scoreboard writes events and shows the computed
       score (L)
-- [ ] Every event records scorer, device and input (tap, remote, earbuds, watch); undo and
-      after-match fixes are events that refer to what they correct, never deletions (M)
-- [ ] Scorer selection on the scoring phone: me, another member, or a scorer without an account
-      (standing next to the court); several scorers per match (M)
-- [ ] Scorer mode: bind a phone to a court; remote, earbuds and taps work as today (M)
+- [ ] Every event records the score keeper who entered it, the device and the input (tap, remote,
+      earbuds, watch); undo and after-match fixes are events that point to the update they
+      correct, never deletions. Which player won a rally is not recorded, only the team (M)
+- [ ] "Keeping score" on the scoring phone: shows the current keeper; one tap hands over to another
+      member or to a keeper without an account (someone next to the court) (M)
+- [ ] Keeper list per match: everyone who entered updates, with first/last update, number of
+      updates and corrections (S)
+- [ ] Score keeping mode: bind a phone to a court; remote, earbuds and taps work as today (M)
 - [ ] One player, one live match (transaction) (S)
 - [ ] Display mode: one court full screen, or a grid of all courts; read-only share link without
       sign-in (M)
@@ -81,9 +84,10 @@ Result: player pages with progress charts, session summary, season leaderboard.
 - [ ] Pairs and head-to-head (M)
 - [ ] Session summary: winner of the evening, longest/closest match (S)
 - [ ] Season leaderboard (rating and win %, minimum number of matches) and records (M)
-- [ ] Scorer statistics: matches and points scored, per input method, corrections, error rate,
-      time to correct, scoring while playing vs from the side (M)
-- [ ] Match history: replay every event of a match, with scorer and corrections (S)
+- [ ] Score keeper statistics: matches kept, score updates entered, corrections (their updates
+      later undone or fixed), error rate = corrections ÷ updates, per input method, time to
+      correct, keeping score while playing vs from the side (M)
+- [ ] Match history: replay every event of a match, with keeper and corrections (S)
 
 ## Phase 6 — Watch apps
 
@@ -95,7 +99,7 @@ Result: scoring from the wrist; the phone or TV only shows the score.
       USB install steps — free
 - [ ] Wear OS app (L), sideloaded: APK plus install steps — **You:** free "limited distribution"
       Android developer account (optional: €25 Google Play account for a private test track)
-- [ ] Watch events carry the paired scorer and device, like any other event (S)
+- [ ] Watch events carry the paired keeper and device, like any other event (S)
 - No Apple Watch app (it would need the paid Apple Developer Program); Apple Watch owners use
   *Headphone controls*
 

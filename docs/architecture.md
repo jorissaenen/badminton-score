@@ -7,8 +7,9 @@ built and tested in the beta first.
 
 - Score with one click, as today, from a phone, a remote, earbuds or a **dedicated watch app**
   (Garmin and Wear OS; no Apple Watch, see section 9).
-- **Every match is fully recorded**, including who scored each point, on which device, and every
-  correction; scorers may be players or someone standing next to the court.
+- **Every match is fully recorded**: every score update and every correction, with the **score
+  keeper** who entered it (a player or someone next to the court) and the device used. The keeper
+  can change during a match; each match keeps its list of keepers.
 - Every screen (phone, tablet, TV) shows the **live** state of a match; several screens at once,
   and screens that follow **all courts** of a session.
 - Seasons with sessions (training evenings), players, roles and invitations.
@@ -23,7 +24,7 @@ built and tested in the beta first.
 ```mermaid
 flowchart LR
   subgraph Clients
-    PWA[PWA: scorer / display / organiser / player]
+    PWA[PWA: score keeping / display / organiser / player]
     WEAR[Wear OS app, sideloaded]
     GARMIN[Garmin Connect IQ app, sideloaded]
   end
@@ -47,7 +48,7 @@ flowchart LR
   PAGES --> PWA
 ```
 
-Key idea: **the database is the single source of truth.** A scorer (phone, remote, watch) only
+Key idea: **the database is the single source of truth.** A score keeper (phone, remote, watch) only
 *adds events* to a match; every screen just shows the latest state it receives. A screen that
 loses its connection catches up automatically.
 
@@ -78,7 +79,7 @@ The single PWA gets four **modes** (one app, chosen per device):
 
 | Mode | Who | What |
 |---|---|---|
-| Scorer | Phone at a court | Today's scoreboard, bound to a court; remote, earbuds, taps |
+| Score keeping | Phone at a court | Today's scoreboard, bound to a court; remote, earbuds, taps |
 | Display | Tablet / TV / spare phone | Read-only, large; one court, or a grid of all courts |
 | Organiser | Session manager | Attendance, courts, queue, next matches (automatic or drag & drop) |
 | Player | Everyone | Live courts, my waiting time, my stats, leaderboard |
@@ -102,7 +103,7 @@ Technology:
 ```
 users/{uid}                     name, photo, linked playerId per season
 seasons/{seasonId}              name, start, end, defaults (points, format)
-  members/{uid}                 role: owner | admin | scorer | member
+  members/{uid}                 role: owner | admin | keeper | member
   invites/{token}               role, expiry, created by (link and QR code)
   players/{playerId}            display name, uid (optional: guests have none), rating
   sessions/{sessionId}          date, courts (changeable during the session), format:
@@ -111,38 +112,46 @@ seasons/{seasonId}              name, start, end, defaults (points, format)
     queue                       derived: waiting order, games played tonight
     matches/{matchId}           court, teams [[ids],[ids]], rules, server, sides,
                                 status: planned | live | finished, startedAt, endedAt
-      events/{eventId}          see "Match events and scorers" below
-  scorers/{scorerId}            name, uid (optional: a guest scorer has none)
+      events/{eventId}          see "Match events and score keepers" below
+    (match).keepers             summary per keeper: updates, corrections, first/last update
+  keepers/{keeperId}            name, uid (optional: a keeper without an account has none)
   stats/…                       derived per player, pair, session, season (by Cloud Functions)
 devices/{deviceId}              paired watch: owner uid, season, allowed courts, token hash
 ```
 
-### Match events and scorers
+### Match events and score keepers
 
 Every change to a match is an event; nothing is overwritten or deleted, so the full history of
 every match is kept.
+
+The **score keeper** is the person entering the score: a player with a remote, someone next to the
+court with the phone or a watch. The app records **who entered each update**, not which player won
+the rally: a point belongs to a team, not to a player.
 
 | Field | Meaning |
 |---|---|
 | `id` | unique per event, created on the device (`clientId`): a resent event counts once |
 | `type` | `point`, `undo`, `sides`, `start`, `end`, `fix` |
-| `team` | for `point`: 0 or 1 |
-| `undoes` | for `undo`: the id of the point it takes back |
-| `scorer` | who entered it: a member (`uid`), or a scorer without an account (`scorerId`) |
+| `team` | for `point`: the team that won the rally (0 or 1) |
+| `undoes` | for `undo` and `fix`: the id of the update it corrects |
+| `keeper` | who entered this update: a member (`uid`) or a keeper without an account (`keeperId`) |
 | `device` | phone, Garmin or Wear OS watch, with a device id |
 | `input` | tap, remote, earbuds/headphones, watch, screen-as-remote |
 | `at`, `clientAt` | server time and the device's own time (for offline scoring) |
 | `reason` | for `fix`: an admin's correction after the match, with a short note |
 
-- **Several scorers:** any number of scorers can work on one match (a player with a remote, a
-  scorer next to the court with a watch); each event records its own scorer.
-- **Corrections are kept:** an undo doesn't delete the point; it is an event that refers to it. The
-  score counts only points that weren't undone, and the statistics can see every correction.
-- **Scorers without an account:** the person standing next to the court can be picked from the
-  season's scorer list (or added by name) on the scoring phone; a paired watch belongs to a member
-  or a named scorer.
+- **Keeper changes during a match:** the scoring phone shows who is keeping score; one tap hands
+  over to someone else (a member, or a name from the keeper list for people without an account).
+  A paired watch always belongs to one person. Several keepers can even work at the same time
+  (a remote on court and a watch next to it); every update carries its own keeper.
+- **Keeper list per match:** each match keeps a summary of everyone who entered updates, in order:
+  name, first and last update, number of updates, and number of corrections. It is derived from
+  the events, so it can never disagree with them.
+- **Corrections are kept:** an undo doesn't delete the update; it is a new event that points to the
+  update it cancels. The score counts only updates that weren't cancelled, and the statistics see
+  every correction and whose update it corrected.
 
-- **Event log per match:** each point is a separate event with a unique `clientId`. Two scorers
+- **Event log per match:** each point is a separate event with a unique `clientId`. Two keepers
   pressing at the same time can't overwrite each other, a repeated send (a watch retrying) is
   recognised by its `clientId` and counted once, and an undo is an event too. The score itself is
   calculated from the events with `match.js`, the same code as today.
@@ -161,8 +170,8 @@ every match is kept.
   | Role | Can |
   |---|---|
   | Owner | Everything, including deleting the season and changing owners |
-  | Admin | Manage sessions, courts, players, matches; invite; give scorer/admin rights |
-  | Scorer | Start and score matches on a court (players and non-players) |
+  | Admin | Manage sessions, courts, players, matches; invite; give keeper/admin rights |
+  | Score keeper | Start matches and enter scores on a court (players and non-players) |
   | Member | View everything; check in; see own stats |
 
 - **Sharing:** an invite link or QR code (WhatsApp, or on screen) carries a one-time or expiring
@@ -199,11 +208,12 @@ summaries, so screens load instantly.
 - **Pairs and head-to-head:** best partnerships, results between players or pairs.
 - **Session:** winner of the evening, matches played, longest/closest match, biggest win.
 - **Season:** leaderboard (rating and win % with a minimum number of matches), records, attendance.
-- **Scorers:** matches and points scored, per input method (tap, remote, earbuds, watch);
-  corrections made; **error rate** (share of their points later undone or fixed); how fast
-  mistakes were corrected; scoring done while playing versus from the side of the court. An undo
-  is not always the scorer's mistake (a let or a changed line call also leads to one), so the error
-  rate is shown as an indication, not a verdict.
+- **Score keepers:** per keeper, per session and per season: matches kept, **score updates
+  entered**, **corrections** (their updates that were later undone or fixed, by themselves or
+  someone else), and the **error rate** = corrections ÷ score updates. Also per input method (tap,
+  remote, earbuds, watch), how quickly mistakes were corrected, and keeping score while playing
+  versus from the side of the court. An undo is not always a mistake (a let or a changed line call
+  also leads to one), so the error rate is an indication, not a verdict.
 - **Note on "longest rally":** the app knows who won a rally, not how many shots it had. It can
   measure the **longest time between two points** (a proxy that includes pauses), the longest
   point streak and the longest game exactly.
@@ -217,7 +227,7 @@ Apple Developer Program. Apple Watch owners can still score with the watch's mus
 
 Both apps talk to the same small **watch API** (Cloud Functions): `pair`, `current match`,
 `point`, `undo`. The watch only sends events and shows the score it gets back. Each event carries
-the watch's scorer and device, like any other event.
+the watch's keeper and device, like any other event.
 
 - **Pairing:** the watch shows a 6-character code; an admin enters it in the PWA, which gives the
   watch a token limited to that season (and optionally one court). No password on the watch.
