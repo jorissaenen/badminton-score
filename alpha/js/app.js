@@ -519,7 +519,11 @@ async function showAbout() {
   const s = installStatus();
   let version = '?';
   try {
-    version = (await caches.keys()).find((k) => k.startsWith(EDITION.cachePrefix))?.replace(EDITION.cachePrefix, '') ?? 'not cached';
+    // The app's own offline copy is named after its version (other caches, like "pending", aren't).
+    const versions = (await caches.keys()).filter((k) => k.startsWith(`${EDITION.cachePrefix}v`))
+      .map((k) => k.replace(EDITION.cachePrefix, ''))
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    version = versions.at(-1) ?? 'not cached';
   } catch { /* caches unavailable */ }
   const where = s.installed ? 'installed app' : 'browser tab';
   const offer = s.installed ? '' : ` · install offer: ${s.oneTap ? 'one-tap' : 'steps'}${s.shown ? ', shown' : ''}${s.dismissed ? ', dismissed this visit' : ''}`;
