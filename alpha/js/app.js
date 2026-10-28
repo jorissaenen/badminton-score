@@ -5,6 +5,7 @@ import * as Audio from './audio.js';
 import { isInstalled, setupInstallPrompt, installStatus } from './install.js';
 import { BreakTimer, INTERVAL_SECONDS, BETWEEN_GAMES_SECONDS, formatClock } from './breaks.js';
 import { watchLayout } from './layout.js';
+import { setupAccount } from './account.js';
 import { createMediaRemote, createRepeatFilter, mediaControlsSupported } from './media.js';
 import { createMatchSetup } from './setup.js';
 
@@ -491,6 +492,7 @@ const form = $('settingsForm');
 
 $('settingsBtn').addEventListener('click', () => {
   resetRemotes();
+  account.start(); // load sign-in only when someone looks at it
   form.points.value = settings.points;
   form.bestOf.value = settings.bestOf;
   form.voice.checked = settings.voice;
@@ -669,6 +671,10 @@ if ('serviceWorker' in navigator) {
 
 // Headphone controls come back after a reload; audio starts on the first tap or key press.
 mediaRemote.enable(settings.headphones);
+
+// ---------- account (Firebase) ----------
+
+const account = setupAccount($, toast);
 
 // ---------- install prompt (browser tabs only) ----------
 

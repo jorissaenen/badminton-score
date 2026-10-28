@@ -174,6 +174,29 @@
       <header class="settings-head"><h2>Settings</h2></header>
 
       <div class="settings-body">
+        <section class="group" id="accountGroup">
+          <h3>Account</h3>
+          <div class="card">
+            <div class="account-out" id="accountOut">
+              <p class="note">Sign in to share sessions and keep statistics. Scoring works without signing in.</p>
+              <button type="button" class="btn primary" id="signInGoogle">Continue with Google</button>
+              <label class="note" for="signInEmail">Or get a sign-in link by e-mail:</label>
+              <div class="row account-email">
+                <input type="email" id="signInEmail" autocomplete="email" inputmode="email" placeholder="you@example.com" aria-label="E-mail address">
+                <button type="button" class="btn outline" id="signInEmailBtn">Send link</button>
+              </div>
+            </div>
+            <div class="account-in" id="accountIn" hidden>
+              <div class="account-user">
+                <img id="accountPhoto" alt="" referrerpolicy="no-referrer" hidden>
+                <div><strong id="accountName"></strong><small id="accountDb"></small></div>
+              </div>
+              <button type="button" class="btn outline small-btn" id="signOutBtn">Sign out</button>
+            </div>
+            <p class="note" id="accountStatus" aria-live="polite"></p>
+          </div>
+        </section>
+
         <section class="group">
           <h3>Match rules</h3>
           <div class="card">

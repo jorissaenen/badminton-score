@@ -48,6 +48,18 @@ payment card.
 4. Security rules: **Start in production mode** (everything locked; I'll write the real rules).
 5. Click **Create**.
 
+## 4b. Publish the security rules
+
+The rules decide who may read and write what. They live in the repository as
+[`firestore.rules`](../firestore.rules); when they change, I'll tell you to publish them again.
+
+1. Left menu: **Build → Firestore Database** → tab **Rules**.
+2. Replace everything in the editor with the contents of `firestore.rules`.
+3. Click **Publish**.
+
+Check: in the alpha, sign in (⚙ → Account). It should say **Database: connected ✓**. If it says the
+rules aren't published yet, repeat these steps.
+
 ## 5. Pay-as-you-go plan with a budget alert (can wait)
 
 Cloud Functions (the watch apps' connection and the statistics) only run on the **Blaze**

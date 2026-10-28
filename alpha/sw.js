@@ -3,7 +3,7 @@
 // Bump VERSION whenever any app file changes.
 // Alpha edition (served from /alpha/): its own cache names, so it never removes another edition's cache.
 // The prefix must match EDITION.cachePrefix in js/edition.js.
-const VERSION = 'v30-alpha.1';
+const VERSION = 'v30-alpha.2';
 const CACHE_PREFIX = 'badminton-score-alpha-';
 const CACHE = `${CACHE_PREFIX}${VERSION}`;
 const NETWORK_TIMEOUT_MS = 3000;
@@ -22,6 +22,8 @@ const ASSETS = [
   'js/random.js',
   'js/setup.js',
   'js/edition.js',
+  'js/cloud.js',
+  'js/account.js',
   'manifest.webmanifest',
   'icons/shuttle-192.png',
   'icons/shuttle-512.png',
@@ -48,6 +50,19 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// The Firebase SDK files are versioned and never change: keep a copy and use it first.
+const FIREBASE_SDK = 'https://www.gstatic.com/firebasejs/';
+
+function fromCacheFirst(request) {
+  return caches.match(request).then((hit) => hit || fetch(request).then((response) => {
+    if (response.ok) {
+      const copy = response.clone();
+      caches.open(CACHE).then((c) => c.put(request, copy));
+    }
+    return response;
+  }));
+}
+
 function fromNetwork(request) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('timeout')), NETWORK_TIMEOUT_MS);
@@ -67,6 +82,14 @@ function fromNetwork(request) {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  const url = event.request.url;
+  if (url.startsWith(FIREBASE_SDK)) {
+    event.respondWith(fromCacheFirst(event.request));
+    return;
+  }
+  // Leave everything else that isn't the app's own (sign-in, the database's long-running live
+  // connections) to the browser: the 3-second network timeout below would cut those off.
+  if (new URL(url).origin !== self.location.origin) return;
   event.respondWith(
     fromNetwork(event.request).catch(() =>
       caches.match(event.request, { ignoreSearch: true }).then((hit) => hit || fetch(event.request))),

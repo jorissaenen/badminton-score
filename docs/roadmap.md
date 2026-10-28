@@ -25,14 +25,18 @@ features are built, on mock data.
 
 Result: you can sign in to the alpha with Google or an e-mail link.
 
-- [ ] **You:** in `badminton-dev`, turn on sign-in and create the database (steps 3 and 4 of
+- [x] **You:** in `badminton-dev`, turn on sign-in and create the database (steps 3 and 4 of
       [firebase-setup.md](firebase-setup.md))
+- [ ] **You:** publish the security rules (step 4b)
 - [ ] **You:** create `badminton-prod` the same way (for beta and production) and send me its
       `firebaseConfig`
 - [ ] Decide when the build step arrives: commit the built beta into `beta/` from a GitHub Actions
       workflow, or switch Pages to "GitHub Actions" as its source (S)
 - [ ] Move the app to a Vite build, keeping the scoring code unchanged; tests in CI (M)
-- [ ] Firebase Authentication: Google and e-mail link (no Apple sign-in) (M)
+- [x] Firebase Authentication in alpha: Google (pop-up, redirect if pop-ups are blocked) and
+      e-mail link; Account section in settings; Firebase loaded only when needed, cached offline
+- [x] First database use: own profile in `users/{uid}`; rules in `firestore.rules`
+- [ ] Verify sign-in on real phones (Safari tab, installed iPhone app, Android) (S)
 - [ ] Firestore with offline persistence; Firebase Emulator Suite for local tests (S)
 - [ ] Security rules skeleton with automated rule tests (M)
 - [ ] Mock data generator for alpha: a season with players, sessions, matches, keepers and
