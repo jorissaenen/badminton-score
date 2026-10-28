@@ -49,7 +49,7 @@ const expiresText = (ts) => {
 };
 
 // account: from setupAccount; defaults(): the current points and match length for a new club.
-export function setupClub($, account, notify = () => {}, defaults = () => ({})) {
+export function setupClub($, account, notify = () => {}, defaults = () => ({}), openSettings = () => {}) {
   const group = $('clubGroup');
   if (!EDITION.firebase) return { refresh() {}, openedFromInvite: false };
 
@@ -68,9 +68,23 @@ export function setupClub($, account, notify = () => {}, defaults = () => ({})) 
   try { pendingJoin = JSON.parse(stored(JOIN_KEY)); } catch { pendingJoin = null; }
 
   // A reminder was tapped: …/?event=<clubId>.<eventId> opens that event once signed in.
-  const eventLink = /[?&]event=([A-Za-z0-9]+)\.([A-Za-z0-9_-]+)/.exec(location.search);
-  let pendingEvent = eventLink ? { clubId: eventLink[1], eventId: eventLink[2] } : null;
+  const parseEventLink = (search) => {
+    const m = /[?&]event=([A-Za-z0-9]+)\.([A-Za-z0-9_-]+)/.exec(search);
+    return m ? { clubId: m[1], eventId: m[2] } : null;
+  };
+  const eventLink = parseEventLink(location.search);
+  let pendingEvent = eventLink;
   if (eventLink) history.replaceState(null, '', location.pathname);
+
+  // Tapped while the app was already open: the service worker passes the event's address here.
+  navigator.serviceWorker?.addEventListener('message', (e) => {
+    if (e.data?.type !== 'open') return;
+    const target = parseEventLink(new URL(e.data.url, location.href).search);
+    if (!target) return;
+    openSettings();
+    if (user()) events.openEvent(target.clubId, target.eventId);
+    else pendingEvent = target; // opens once signed in
+  });
 
   // ---------- the section in settings ----------
 

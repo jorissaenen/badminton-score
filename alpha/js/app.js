@@ -677,7 +677,8 @@ mediaRemote.enable(settings.headphones);
 // ---------- account (Firebase) ----------
 
 const account = setupAccount($, toast, () => $('settingsBtn').click());
-const club = setupClub($, account, toast, () => ({ points: settings.points, bestOf: settings.bestOf }));
+const club = setupClub($, account, toast, () => ({ points: settings.points, bestOf: settings.bestOf }),
+  () => { if (!$('settings').open) $('settingsBtn').click(); });
 if (club.openedFromInvite) $('settingsBtn').click(); // an invite link or a reminder: show it right away
 
 // ---------- install prompt (browser tabs only) ----------

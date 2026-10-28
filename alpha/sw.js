@@ -3,7 +3,7 @@
 // Bump VERSION whenever any app file changes.
 // Alpha edition (served from /alpha/): its own cache names, so it never removes another edition's cache.
 // The prefix must match EDITION.cachePrefix in js/edition.js.
-const VERSION = 'v30-alpha.11';
+const VERSION = 'v30-alpha.12';
 const CACHE_PREFIX = 'badminton-score-alpha-';
 const CACHE = `${CACHE_PREFIX}${VERSION}`;
 const NETWORK_TIMEOUT_MS = 3000;
@@ -54,18 +54,18 @@ self.addEventListener('push', (event) => {
   }));
 });
 
-// Tapping a reminder opens the event: in the open app if there is one, otherwise a new window.
+// Tapping a reminder opens the event. If the app is still open (in the background), it is brought
+// forward and told which event to show: iOS ignores navigating an open app to another address.
+// Otherwise the app starts on the event's address.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = event.notification.data?.url || self.registration.scope;
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const app = windows.find((w) => w.url.startsWith(self.registration.scope));
-    if (app) {
-      await app.focus();
-      return app.navigate(url).catch(() => self.clients.openWindow(url));
-    }
-    return self.clients.openWindow(url);
+    if (!app) return self.clients.openWindow(url);
+    await app.focus().catch(() => {});
+    app.postMessage({ type: 'open', url });
   })());
 });
 
