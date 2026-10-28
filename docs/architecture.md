@@ -217,8 +217,10 @@ the rally: a point belongs to a team, not to a player.
   an apology) for each upcoming event; admins do it for players without an account. Everyone sees
   who is coming, which helps planning (number of courts, a tournament's size). An optional
   deadline closes registration. On the day itself, check-in records who actually came.
-- **Reminders:** a notification a day before and a few hours before (times set per series or
-  event), with *Going / Not going*. Uses web push (Firebase Cloud Messaging, free) sent by a
+- **Reminders:** one notification per event, at a moment suggested from its start time: an
+  afternoon or evening event the same morning at 09:00, a morning event the evening before at
+  19:00. The admin can choose 1–3 days before, another day and time, or none, per event or for a
+  whole series. People who said they're not coming get none. Uses web push (Firebase Cloud Messaging, free) sent by a
   scheduled Cloud Function, so it needs the **Blaze** plan. iPhone: only in the installed app
   (iOS 16.4+), after allowing notifications; tapping opens the event (iOS shows no answer buttons).
   Free addition: an **"Add to calendar"** link (an `.ics` subscription per member), so events and

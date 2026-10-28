@@ -72,7 +72,6 @@ reminder.
 - [x] One-off events: type, date, time window, location, number of courts
 - [x] Weekly events ("every Tuesday 20:00–21:30" until the end of the season); cancel or delete
       one date, or this and all later dates, without touching the rest
-- [ ] Move or edit one date or the whole series (S)
 - [x] Answer in advance: going / not going with an optional reason; admins answer for anyone,
       including players without an account; going / not going / no answer, visible to all
 - [ ] Optional registration deadline (S)
@@ -80,9 +79,12 @@ reminder.
 - [ ] "Add to calendar" (.ics subscription per member) (S)
 - [ ] **You:** Blaze plan (firebase-setup.md, step 5), Web Push key (step 7), GitHub secret for
       deploying (step 8)
-- [x] Reminders by web push a day and 3 hours before (scheduled Cloud Function, every 15
-      minutes); not for people who said they're not coming; tapping opens the event; on/off per
-      device
+- [x] Reminders by web push at a smart moment (evening event: the same morning; morning event:
+      the evening before), or 1–3 days before, another day and time, or none; scheduled Cloud
+      Function every 15 minutes; not for people who said they're not coming; tapping opens the
+      event; on/off per device
+- [x] Edit an event (pencil): only this date or all upcoming dates of the series; dates changed on
+      their own keep those changes
 - [x] GitHub Actions: tests, then deploys rules, indexes and functions to badminton-dev
 
 ## Phase 3 — Events on the day: courts and live scoring

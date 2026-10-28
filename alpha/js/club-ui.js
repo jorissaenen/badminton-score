@@ -113,10 +113,10 @@ export function setupClub($, account, notify = () => {}, defaults = () => ({})) 
   }
   $('clubSelect').addEventListener('change', showMyRole);
 
-  // Reminders a day and a few hours before each event, per device.
+  // Reminders before each event (when: set per event), on or off per device.
   const REMINDER_TEXT = {
-    on: 'On for this device, a day and 3 hours before each event.',
-    off: 'A notification a day and 3 hours before each event.',
+    on: 'On for this device: a reminder before each event.',
+    off: 'A notification before each event, e.g. the same morning for an evening training.',
     blocked: 'Notifications are blocked for this app. Allow them in the phone’s settings first.',
     'install-first': 'On iPhone and iPad, only the installed app can show reminders.',
   };
