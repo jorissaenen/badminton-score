@@ -6,6 +6,7 @@ import { isInstalled, setupInstallPrompt, installStatus } from './install.js';
 import { BreakTimer, INTERVAL_SECONDS, BETWEEN_GAMES_SECONDS, formatClock } from './breaks.js';
 import { watchLayout } from './layout.js';
 import { setupAccount } from './account.js';
+import { setupSeason } from './season.js';
 import { createMediaRemote, createRepeatFilter, mediaControlsSupported } from './media.js';
 import { createMatchSetup } from './setup.js';
 
@@ -493,6 +494,7 @@ const form = $('settingsForm');
 $('settingsBtn').addEventListener('click', () => {
   resetRemotes();
   account.start(); // load sign-in only when someone looks at it
+  season.refresh();
   form.points.value = settings.points;
   form.bestOf.value = settings.bestOf;
   form.voice.checked = settings.voice;
@@ -675,6 +677,8 @@ mediaRemote.enable(settings.headphones);
 // ---------- account (Firebase) ----------
 
 const account = setupAccount($, toast, () => $('settingsBtn').click());
+const season = setupSeason($, account, toast, () => ({ points: settings.points, bestOf: settings.bestOf }));
+if (season.openedFromInvite) $('settingsBtn').click(); // show the invite right away
 
 // ---------- install prompt (browser tabs only) ----------
 

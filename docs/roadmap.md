@@ -27,7 +27,8 @@ Result: you can sign in to the alpha with Google or an e-mail link.
 
 - [x] **You:** in `badminton-dev`, turn on sign-in and create the database (steps 3 and 4 of
       [firebase-setup.md](firebase-setup.md))
-- [ ] **You:** publish the security rules (step 4b)
+- [ ] **You:** publish the security rules (step 4b), and again after every change to
+      `firestore.rules` (last change: seasons, members, invites, players)
 - [ ] **You:** create `badminton-prod` the same way (for beta and production) and send me its
       `firebaseConfig`
 - [ ] Decide when the build step arrives: commit the built beta into `beta/` from a GitHub Actions
@@ -37,23 +38,27 @@ Result: you can sign in to the alpha with Google or an e-mail link.
       e-mail link; Account section in settings; Firebase loaded only when needed, cached offline
 - [x] First database use: own profile in `users/{uid}`; rules in `firestore.rules`
 - [ ] Verify sign-in on real phones (Safari tab, installed iPhone app, Android) (S)
-- [ ] Firestore with offline persistence; Firebase Emulator Suite for local tests (S)
-- [ ] Security rules skeleton with automated rule tests (M)
+- [x] Firestore with offline persistence; Firebase Emulator Suite for local tests (`npm run
+      emulators`; the alpha on localhost with `?emulator` uses it, with a fake sign-in)
+- [x] Security rules with automated rule tests (`npm run test:rules`)
 - [ ] Mock data generator for alpha: a season with players, sessions, matches, keepers and
       corrections; "reset demo data" in alpha only (M)
 - [ ] Data compatibility between beta and production: `schemaVersion` on documents, additive
       changes, one-off migrations at release (S)
-- [ ] Account screen: name, photo, sign out, delete account (S)
+- [x] Account screen: name, photo (initials without one), online status, sign out
+- [ ] Delete account (S)
 
 ## Phase 2 — Seasons, members, roles, invitations
 
 Result: you create a season, invite the group by WhatsApp or QR code, and give admin rights.
 
-- [ ] Create, edit, archive a season; defaults (points, format) (M)
-- [ ] Roles owner / admin / score keeper / member, enforced by security rules (M)
-- [ ] Invite link and QR code with role and expiry; join flow after sign-in (M)
-- [ ] Player list with guests (no account); claim a guest player after signing in (M)
-- [ ] Member management: change roles, remove members (S)
+- [x] Create, rename and delete a season; defaults (points, match length) saved with it
+- [ ] Archive a season; edit its defaults (S)
+- [x] Roles owner / admin / score keeper / member, enforced by security rules
+- [x] Invite link and QR code with role and expiry (1, 7 or 30 days), shared by WhatsApp, the
+      share sheet or copying; withdrawing a link; join flow, also when signing in first
+- [x] Player list with guests (no account); "That's me" claims a guest player after joining
+- [x] Member management: change roles, remove members, leave a season
 
 ## Phase 3 — Sessions, courts and live scoring
 

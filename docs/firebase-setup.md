@@ -52,6 +52,8 @@ payment card.
 
 The rules decide who may read and write what. They live in the repository as
 [`firestore.rules`](../firestore.rules); when they change, I'll tell you to publish them again.
+Before every change they are tested automatically against a local copy of Firestore (`npm run
+test:rules`).
 
 1. Left menu: **Build → Firestore Database** → tab **Rules**.
 2. Replace everything in the editor with the contents of `firestore.rules`.

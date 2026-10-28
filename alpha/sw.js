@@ -3,7 +3,7 @@
 // Bump VERSION whenever any app file changes.
 // Alpha edition (served from /alpha/): its own cache names, so it never removes another edition's cache.
 // The prefix must match EDITION.cachePrefix in js/edition.js.
-const VERSION = 'v30-alpha.5';
+const VERSION = 'v30-alpha.6';
 const CACHE_PREFIX = 'badminton-score-alpha-';
 const CACHE = `${CACHE_PREFIX}${VERSION}`;
 const NETWORK_TIMEOUT_MS = 3000;
@@ -24,6 +24,9 @@ const ASSETS = [
   'js/edition.js',
   'js/cloud.js',
   'js/account.js',
+  'js/club.js',
+  'js/season.js',
+  'js/vendor/qrcode.js',
   'manifest.webmanifest',
   'icons/shuttle-192.png',
   'icons/shuttle-512.png',

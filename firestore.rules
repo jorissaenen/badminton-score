@@ -1,16 +1,163 @@
 rules_version = '2';
 
-// Security rules for Firestore (same rules for badminton-dev and badminton-prod).
-// Publish: Firebase console → Firestore Database → Rules → paste this file → Publish.
+// Who may read and write what. Tested in tests/rules/ against the emulator (npm run test:rules).
+// Publish after every change: Firebase console → Firestore Database → Rules (see
+// docs/firebase-setup.md, step 4b).
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // A user's own profile: only they can read or write it.
-    match /users/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+    function signedIn() {
+      return request.auth != null;
     }
 
-    // Everything else stays locked until the matching feature arrives.
+    function isMe(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // Changes only these fields (and maybe not all of them).
+    function onlyChanges(fields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+    }
+
+    // ---------- users ----------
+
+    // Own profile (name, photo; no e-mail address), and the list of seasons the user belongs to.
+    match /users/{uid} {
+      allow read, write: if isMe(uid);
+
+      match /seasons/{seasonId} {
+        allow read, write: if isMe(uid);
+      }
+    }
+
+    // ---------- seasons ----------
+
+    match /seasons/{seasonId} {
+      function memberPath(uid) {
+        return /databases/$(database)/documents/seasons/$(seasonId)/members/$(uid);
+      }
+
+      // The signed-in user's role in this season, or '' when not a member.
+      function myRole() {
+        return signedIn() && exists(memberPath(request.auth.uid))
+          ? get(memberPath(request.auth.uid)).data.role : '';
+      }
+
+      function rank(role) {
+        return role == 'owner' ? 4 : role == 'admin' ? 3 : role == 'keeper' ? 2 : role == 'member' ? 1 : 0;
+      }
+
+      function isMember() { return rank(myRole()) >= 1; }
+      function isKeeper() { return rank(myRole()) >= 2; }
+      function isAdmin() { return rank(myRole()) >= 3; }
+      function isOwner() { return myRole() == 'owner'; }
+
+      function validSeason(d) {
+        return d.keys().hasAll(['name', 'createdBy', 'schemaVersion'])
+          && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+          && d.schemaVersion is int;
+      }
+
+      // Read by members. Created by anyone signed in, who becomes its owner in the same write
+      // (see members). Changed by admins; the creator never changes. Deleted by owners.
+      allow read: if isMember();
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid
+        && validSeason(request.resource.data);
+      allow update: if isAdmin() && validSeason(request.resource.data)
+        && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if isOwner();
+
+      // ---------- members: one document per signed-in member, id = their uid ----------
+
+      match /members/{uid} {
+        function validMember(d) {
+          return d.keys().hasAll(['role', 'name']) && rank(d.role) >= 1
+            && d.name is string && d.name.size() <= 60;
+        }
+
+        function invitePath(token) {
+          return /databases/$(database)/documents/seasons/$(seasonId)/invites/$(token);
+        }
+
+        // Joining with an invite that hasn't expired, with exactly the invite's role.
+        function joinsWithInvite(d) {
+          return d.keys().hasAll(['invite']) && exists(invitePath(d.invite))
+            && get(invitePath(d.invite)).data.expiresAt > request.time
+            && get(invitePath(d.invite)).data.role == d.role;
+        }
+
+        // The season's creator, as owner, in the same write that creates the season.
+        function createsOwnSeason(d) {
+          return d.role == 'owner'
+            && !exists(/databases/$(database)/documents/seasons/$(seasonId))
+            && getAfter(/databases/$(database)/documents/seasons/$(seasonId)).data.createdBy == uid;
+        }
+
+        allow read: if isMember();
+
+        allow create: if isMe(uid) && validMember(request.resource.data)
+          && (createsOwnSeason(request.resource.data) || joinsWithInvite(request.resource.data));
+
+        // Everyone updates their own name and photo. Admins change roles of non-owners, up to
+        // admin; only owners make or unmake owners. Nobody changes their own role (an owner hands
+        // over by making someone else owner first, who can then change the old owner's role).
+        allow update: if validMember(request.resource.data) && (
+          (isMe(uid) && onlyChanges(['name', 'photoURL']))
+          || (!isMe(uid) && isOwner())
+          || (!isMe(uid) && isAdmin() && resource.data.role != 'owner'
+              && request.resource.data.role != 'owner' && onlyChanges(['role']))
+        );
+
+        // Leaving (anyone but an owner), or removal: admins remove non-owners, owners anyone else.
+        // After deleting the season, its owner clears out the rest, their own entry last.
+        allow delete: if (isMe(uid) && resource.data.role != 'owner')
+          || (isMe(uid) && !exists(/databases/$(database)/documents/seasons/$(seasonId)))
+          || (!isMe(uid) && isOwner())
+          || (!isMe(uid) && isAdmin() && resource.data.role != 'owner');
+      }
+
+      // ---------- invites: id = a long random token, shared as a link or QR code ----------
+
+      match /invites/{token} {
+        function validInvite(d) {
+          return d.keys().hasAll(['role', 'expiresAt', 'createdBy', 'seasonName'])
+            && d.role in ['admin', 'keeper', 'member'] && d.expiresAt is timestamp
+            && d.expiresAt > request.time && d.expiresAt < request.time + duration.value(31, 'd')
+            && d.createdBy == request.auth.uid && token.size() >= 20;
+        }
+
+        // Anyone signed in who has the link may read that one invite (to see the season's name
+        // and join). Listing invites is for admins only, so tokens can't be collected.
+        allow get: if signedIn();
+        allow list: if isAdmin();
+        allow create: if isAdmin() && validInvite(request.resource.data);
+        allow delete: if isAdmin();
+      }
+
+      // ---------- players: everyone who plays, with or without an account ----------
+
+      match /players/{playerId} {
+        function validPlayer(d) {
+          return d.keys().hasAll(['name']) && d.name is string && d.name.size() > 0
+            && d.name.size() <= 40;
+        }
+
+        allow read: if isMember();
+        // Admins add and edit anyone, including guests (no account). A member adds or edits
+        // their own player, or claims a guest player (one without an account) as theirs.
+        allow create: if validPlayer(request.resource.data) && (isAdmin()
+          || (isMember() && request.resource.data.get('uid', null) == request.auth.uid));
+        allow update: if validPlayer(request.resource.data) && (isAdmin()
+          || (isMember() && resource.data.get('uid', null) == request.auth.uid
+              && request.resource.data.get('uid', null) == request.auth.uid)
+          || (isMember() && resource.data.get('uid', null) == null
+              && request.resource.data.get('uid', null) == request.auth.uid
+              && onlyChanges(['uid', 'claimedAt'])));
+        allow delete: if isAdmin();
+      }
+    }
+
+    // Everything else is locked.
     match /{document=**} {
       allow read, write: if false;
     }

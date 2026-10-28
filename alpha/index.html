@@ -218,6 +218,40 @@
           </div>
         </section>
 
+        <section class="group" id="seasonGroup" hidden>
+          <h3>Season</h3>
+          <div class="card">
+            <div class="season-join" id="joinCard" hidden>
+              <p id="joinText"></p>
+              <div class="row">
+                <button type="button" class="btn primary" id="joinBtn">Join</button>
+                <button type="button" class="btn outline" id="joinLaterBtn">Not now</button>
+              </div>
+            </div>
+            <div class="season-pick" id="seasonPick" hidden>
+              <div class="row">
+                <label class="field">Your season
+                  <select id="seasonSelect"></select>
+                </label>
+                <button type="button" class="btn outline" id="seasonOpenBtn">Open</button>
+              </div>
+              <p class="note" id="seasonRole"></p>
+            </div>
+            <p class="note" id="seasonNone" hidden>You’re not in a season yet. Open the invite link from your organiser, or start a new season.</p>
+            <button type="button" class="link-btn" id="seasonNewBtn">Start a new season</button>
+            <div class="season-new" id="seasonNew" hidden>
+              <div class="row">
+                <label class="field">Season name
+                  <input type="text" id="seasonName" maxlength="60" placeholder="Autumn 2026" autocomplete="off">
+                </label>
+                <button type="button" class="btn primary" id="seasonCreateBtn">Create</button>
+              </div>
+              <p class="note">You become its owner. Matches use the points and match length set below.</p>
+            </div>
+            <p class="note" id="seasonStatus" aria-live="polite"></p>
+          </div>
+        </section>
+
         <section class="group">
           <h3>Match rules</h3>
           <div class="card">
@@ -298,6 +332,92 @@
       <footer class="dialog-buttons">
         <button type="button" class="btn outline" id="resetBtn">New match</button>
         <button type="submit" class="btn primary" value="save" autofocus>Done</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="seasonDialog">
+    <form method="dialog" class="settings-form">
+      <header class="settings-head season-head">
+        <h2 id="seasonTitle">Season</h2>
+        <span class="role-tag" id="seasonMyRole"></span>
+      </header>
+
+      <div class="settings-body">
+        <section class="group" id="inviteGroup" hidden>
+          <h3>Invite people</h3>
+          <div class="card">
+            <div class="row">
+              <label class="field">As
+                <select id="inviteRole">
+                  <option value="member">Member</option>
+                  <option value="keeper">Score keeper</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </label>
+              <label class="field">Link works for
+                <select id="inviteDays">
+                  <option value="1">1 day</option>
+                  <option value="7" selected>7 days</option>
+                  <option value="30">30 days</option>
+                </select>
+              </label>
+            </div>
+            <button type="button" class="btn primary" id="inviteCreateBtn">Create invite link</button>
+            <div class="invite-out" id="inviteOut" hidden>
+              <img id="inviteQr" alt="QR code of the invite link" width="200" height="200">
+              <p class="note invite-what" id="inviteWhat"></p>
+              <div class="row invite-share">
+                <button type="button" class="btn primary" id="inviteShareBtn">Share…</button>
+                <a class="btn outline" id="inviteWhatsApp" target="_blank" rel="noopener">WhatsApp</a>
+                <button type="button" class="btn outline" id="inviteCopyBtn">Copy</button>
+              </div>
+            </div>
+            <ul class="season-list" id="inviteList"></ul>
+          </div>
+        </section>
+
+        <section class="group">
+          <h3>Members</h3>
+          <div class="card">
+            <ul class="season-list" id="memberList"></ul>
+            <p class="note">Members have an account. Score keepers also start matches and enter scores; admins also invite people and manage the season.</p>
+          </div>
+        </section>
+
+        <section class="group">
+          <h3>Players</h3>
+          <div class="card">
+            <p class="note" id="claimHint" hidden>Are you on this list? Tap <em>That’s me</em> next to your name, or add yourself.</p>
+            <button type="button" class="btn outline small-btn" id="addMeBtn" hidden>Add me as a player</button>
+            <ul class="season-list" id="playerList"></ul>
+            <div class="row" id="addGuestRow" hidden>
+              <label class="field">Add a player without an account
+                <input type="text" id="guestName" maxlength="40" placeholder="Name" autocomplete="off">
+              </label>
+              <button type="button" class="btn outline" id="addGuestBtn">Add</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="group" id="seasonManage">
+          <h3>This season</h3>
+          <div class="card">
+            <div class="row" id="renameRow" hidden>
+              <label class="field">Name
+                <input type="text" id="seasonRename" maxlength="60" autocomplete="off">
+              </label>
+              <button type="button" class="btn outline" id="seasonRenameBtn">Save</button>
+            </div>
+            <button type="button" class="btn outline danger" id="seasonLeaveBtn" hidden>Leave this season</button>
+            <button type="button" class="btn outline danger" id="seasonDeleteBtn" hidden>Delete this season</button>
+          </div>
+        </section>
+        <p class="note season-status" id="seasonDialogStatus" aria-live="polite"></p>
+      </div>
+
+      <footer class="dialog-buttons">
+        <button type="submit" class="btn primary">Done</button>
       </footer>
     </form>
   </dialog>

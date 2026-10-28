@@ -62,7 +62,7 @@ function withTimeout(promise, ms) {
 export function setupAccount($, notify = () => {}, openSettings = () => {}) {
   if (!EDITION.firebase) {
     $('accountGroup').hidden = true;
-    return { start() {} };
+    return { start() {}, user: () => null, onUserChange() {} };
   }
   let started = false;
   const status = (text) => { $('accountStatus').textContent = text; };
@@ -294,8 +294,11 @@ export function setupAccount($, notify = () => {}, openSettings = () => {}) {
     $('accountInitials').hidden = true;
   });
 
+  const userListeners = [];
+
   function showUser(user) {
     currentUser = user;
+    userListeners.forEach((cb) => cb(user));
     failures = 0;
     checkId += 1;
     clearTimeout(connTimer);
@@ -367,5 +370,9 @@ export function setupAccount($, notify = () => {}, openSettings = () => {}) {
     start(); // reconnect in the background after the scoreboard is up
   }
 
-  return { start };
+  return {
+    start,
+    user: () => currentUser,
+    onUserChange(cb) { userListeners.push(cb); },
+  };
 }

@@ -7,6 +7,16 @@ export const SDK = 'https://www.gstatic.com/firebasejs/13.0.0';
 
 let loading = null;
 
+// Automated tests: on localhost, `?emulator` connects to the local Firebase emulators instead of
+// the real project (npm run emulators), and offers a fake sign-in.
+const EMULATOR = (() => {
+  if (location.hostname !== 'localhost') return false;
+  try {
+    if (new URLSearchParams(location.search).has('emulator')) sessionStorage.setItem('emulator', '1');
+    return sessionStorage.getItem('emulator') === '1';
+  } catch { return false; }
+})();
+
 // Resolves to { auth, db, A (auth functions), F (Firestore functions) }.
 export function cloud() {
   loading ??= (async () => {
@@ -16,7 +26,7 @@ export function cloud() {
       import(`${SDK}/firebase-auth.js`),
       import(`${SDK}/firebase-firestore.js`),
     ]);
-    const app = initializeApp(EDITION.firebase);
+    const app = initializeApp(EMULATOR ? { ...EDITION.firebase, projectId: 'demo-badminton' } : EDITION.firebase);
     const auth = A.initializeAuth(app, {
       persistence: [A.indexedDBLocalPersistence, A.browserLocalPersistence],
       popupRedirectResolver: A.browserPopupRedirectResolver,
@@ -24,6 +34,13 @@ export function cloud() {
     const db = F.initializeFirestore(app, {
       localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }),
     });
+    if (EMULATOR) {
+      A.connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+      F.connectFirestoreEmulator(db, 'localhost', 8085);
+      globalThis.testSignIn = (uid, name) => A.signInWithCredential(auth, A.GoogleAuthProvider.credential(
+        JSON.stringify({ sub: uid, name, email: `${uid}@example.com`, email_verified: true }),
+      ));
+    }
     return { auth, db, A, F };
   })();
   loading.catch(() => { loading = null; }); // allow a retry, e.g. once back online

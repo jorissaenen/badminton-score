@@ -151,3 +151,12 @@ npm test
 
 Unit tests cover the scoring rules (`js/match.js`) and the click/double-click/long-press
 recognizer (`js/gesture.js`).
+
+```
+npm run test:rules
+```
+
+Tests the database's security rules (`firestore.rules`) against the Firestore emulator (needs
+Java). `npm run emulators` starts the sign-in and database emulators; the alpha opened on
+`localhost` with `?emulator` then uses them instead of the real project, and `testSignIn(uid,
+name)` in the browser console signs in a fake user.
