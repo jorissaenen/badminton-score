@@ -27,8 +27,7 @@ Result: you can sign in to the alpha with Google or an e-mail link.
 
 - [x] **You:** in `badminton-dev`, turn on sign-in and create the database (steps 3 and 4 of
       [firebase-setup.md](firebase-setup.md))
-- [ ] **You:** publish the security rules (step 4b), and again after every change to
-      `firestore.rules` (last change: seasons, members, invites, players)
+- [x] Security rules published automatically by GitHub Actions after every change
 - [ ] **You:** create `badminton-prod` the same way (for beta and production) and send me its
       `firebaseConfig`
 - [ ] Decide when the build step arrives: commit the built beta into `beta/` from a GitHub Actions
@@ -77,7 +76,7 @@ reminder.
 - [ ] Optional registration deadline (S)
 - [x] The next event in settings, with your own answer; upcoming events in the Club window
 - [ ] "Add to calendar" (.ics subscription per member) (S)
-- [ ] **You:** Blaze plan (firebase-setup.md, step 5), Web Push key (step 7), GitHub secret for
+- [x] **You:** Blaze plan (firebase-setup.md, step 5), Web Push key (step 7), GitHub secret for
       deploying (step 8)
 - [x] Reminders by web push at a smart moment (evening event: the same morning; morning event:
       the evening before), or 1–3 days before, another day and time, or none; scheduled Cloud
@@ -85,7 +84,7 @@ reminder.
       event; on/off per device
 - [x] Edit an event (pencil): only this date or all upcoming dates of the series; dates changed on
       their own keep those changes
-- [x] GitHub Actions: tests, then deploys rules, indexes and functions to badminton-dev
+- [x] GitHub Actions: tests, then deploys rules, indexes and functions to badminton-dev (working)
 
 ## Phase 3 — Events on the day: courts and live scoring
 
