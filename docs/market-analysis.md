@@ -172,6 +172,36 @@ many clubs you can win and support.
    it.
 5. **Measure**: how many free groups become paying clubs. 2–5 % is normal for this kind of app.
 
+## 8. Update: casual teams first (see decisions D18–D22)
+
+The first target moved from clubs to **informal teams and friend groups**, then **event
+organisers**. That changes the numbers:
+
+- **The market is larger but harder to count.** Belgium has thousands of loose five-a-side teams
+  (Ghent alone has a separate hall rate for "loose" minivoetbal teams), growing pub darts leagues
+  (the Limburg darts league alone added 20 teams in one year), padel groups on top of Padel Belgium's
+  95,000 members, and friend groups renting badminton courts. No source gives a total; a careful
+  guess for Belgium is **10,000+ casual teams**.
+- **They pay less per team but there are many more**, and they spread the app themselves: every
+  challenge or tournament brings in other teams.
+- **The free core (D19, "will we be enough?") must win against WhatsApp polls and Spond.** Revenue
+  comes from personal statistics, team extras and organisers.
+
+Example after about 3 years, Belgium and the Netherlands:
+
+| Source | Assumption | Revenue per year |
+|---|---|---|
+| Team Plus | 1,500 active teams, 15 % pay €49 | ~€11,000 |
+| Player Plus | 12,000 active players, 4 % pay €19 | ~€9,100 |
+| Organisers | 150 tournaments at €19 on average | ~€2,900 |
+| Clubs | 40 clubs at €95 on average | ~€3,800 |
+| **Total** | | **~€27,000** |
+
+Costs stay small: a casual team with one game a week uses about the same as the club in section 5
+(about €0.03 per month); a tournament page with 200 live viewers costs a few cents. Payment fees
+weigh more on small amounts (€0.25 + 1.5 % on €1.99 is 14 %), so **yearly plans** should be the
+default.
+
 ## Sources
 
 - Statistiek Vlaanderen, members of sports clubs: <https://www.vlaanderen.be/statistiek-vlaanderen/sport/ledencijfers-sportclubs>
@@ -190,3 +220,6 @@ many clubs you can win and support.
 - SportEasy (FitGap): <https://us.fitgap.com/products/024553/sporteasy>
 - TeamSnap pricing (Zoftwarehub): <https://zoftwarehub.com/products/teamsnap/pricing>
 - Firestore pricing: <https://cloud.google.com/firestore/pricing>
+- VRT, Ghent hall rates for loose minivoetbal teams (Apr 2026): <https://www.vrt.be/vrtnws/nl/2026/04/14/gent-minivoetbal-kritiek-tarieven-prijsverhoging-besparing-zaalv/>
+- Gent, minivoetbal: <https://stad.gent/nl/sport/aanbod/vind-een-sport/minivoetbal>
+- VRT, darts growth in Limburg (Oct 2023): <https://www.vrt.be/vrtnws/nl/2023/10/12/eerste-internationale-darts-gala-vindt-plaats-in-hasselt-zo-fi/>

@@ -148,13 +148,76 @@ Firebase App Check protects the database and functions from bots, needed once pu
 ### D17. Native apps in the stores — later
 The web app can later be wrapped as a store app (better notifications on iPhone). Not needed now.
 
+## Direction
+
+### D18. First users: informal teams and friend groups — decided
+The first target is **people who play for fun**: friends who rent a badminton court every week, a
+pub darts team, five-a-side football friends, a padel group. They don't train; they play, now and
+then challenge another team (often found through Facebook groups), and sometimes organise a
+tournament. Order:
+
+1. **Pilot:** badminton with the owner's own group of friends.
+2. **Other casual sports** under the new name (D1): darts, five-a-side football, padel, table
+   tennis, pool, and so on.
+3. **Event organisers** (D21).
+
+Clubs stay fully supported: a group of friends is simply a club with one team (D6). The wording in
+the app follows the casual user: "team", "game night", "challenge", not federation language.
+
+### D19. The core job: "Will we be enough?" — decided
+The biggest frustration of casual teams is getting enough people together, and cancelling when they
+don't. Each event therefore gets:
+
+- a **minimum** (and optional maximum) number of players;
+- a clear status for everyone: **on** (enough), **at risk** (not yet enough, with "2 more needed"),
+  **full** (waiting list), or **cancelled**;
+- a **decision moment**: by a set time (for example the day before at 18:00) the event either goes
+  ahead or is cancelled automatically, with a notification to everyone, so nobody drives to the hall
+  for nothing;
+- **reminders to those who haven't answered**, and a "we need 2 more" message the captain can send
+  with one tap;
+- **reserves and guests**: a reserve list, and a link to invite someone from outside the team for
+  one evening, without an account;
+- when a full event gets a cancellation, the first person on the waiting list is asked automatically.
+
+This is free for every team: it is why people start using the app.
+
+### D20. Finding opponents and challenging teams — decided
+Teams can choose to be **findable** (sport, area, level, usual day) and post "looking for an
+opponent" for a date. Another team's captain sends a **challenge**, which the first team accepts
+(the flow of D8). This replaces searching in Facebook groups. Findable is opt-in per team; persons
+are never findable, only teams. (Answers O3 for teams.)
+
+### D21. Event organisers without a club — decided
+Anyone can be an **organiser**: create a tournament or event, invite teams by link (teams already
+using the app, or not yet: a team without the app joins as a guest team with just names), plan the
+rounds, let teams score their own matches, and show everything live on a public tournament page and
+a big screen. Teams that like it can then continue in the app as their own team. Organisers are a
+paying group (D22).
+
+### D22. Pricing for casual teams — proposed
+Casual players will pay about €1–2 per person, but collecting that from each person is a hassle and
+the core (D19) must stay free to compete with WhatsApp polls and Spond. Proposal:
+
+| | For | Price | Adds |
+|---|---|---|---|
+| **Free** | Every team | €0 | Events, minimum players, reminders, scoring, results of the current season |
+| **Player Plus** | One person | ~€1.99 per month or €19 per year | Own statistics over all seasons and sports, progress, records, head-to-head |
+| **Team Plus** | The captain, for the team | ~€4.99 per month or €49 per year (≈ €0.50–1 per player) | All seasons of team statistics, challenges and findable profile, viewers, own tournaments |
+| **Organiser** | One tournament | ~€9–29 per tournament, or a share of entry fees collected through the app | Tournament page, any number of teams, big screen, results to all teams |
+| **Club / Club Plus** | Clubs | €59 / €149 per year (see market-analysis.md) | As before |
+
+The entitlements of D10 make it possible to combine these freely. Open question O8: does a team
+pay through the captain, or does the app split the cost over the players?
+
 ## Open questions
 
 - **O1.** Name and domain (D1).
 - **O2.** One season per club, or per team (youth teams may follow other calendars)?
-- **O3.** Public clubs: only reachable by link, or also findable in the app?
+- **O3.** Public clubs: only reachable by link, or also findable? (Teams: opt-in findable, D20.)
 - **O4.** Viewer notifications: only when a match ends, or also after each game?
 - **O5.** Role name: "team admin" or "coach"?
 - **O6.** Accepting a match invitation: is the other team's admin enough, or must their club admin
   approve too?
 - **O7.** Person and parent model (D5): confirm.
+- **O8.** Team Plus: paid by the captain, or split over the players in the app (D22)?
