@@ -24,6 +24,6 @@ export const EDITION = {
     appId: '1:1053789964444:web:4df95d8ed203f31a084559',
   },
   // Public key for reminders by web push (Firebase console → Project settings → Cloud Messaging →
-  // Web Push certificates). Not secret either. Until it's filled in, reminders stay switched off.
-  vapidKey: null,
+  // Web Push certificates). Not secret either.
+  vapidKey: 'BPJKQvi4IkumF9ysEUDT5YTaYwqcImIjC_fnydI1EK1z5NJMvNVUXgqyXbKUYPLxGTNzflpVI0rimndkXNF7Ivw',
 };
