@@ -1,5 +1,7 @@
+import Toybox.Communications;
 import Toybox.Graphics;
 import Toybox.Lang;
+import Toybox.System;
 import Toybox.Timer;
 import Toybox.WatchUi;
 
@@ -19,7 +21,7 @@ class MatchesView extends WatchUi.View {
     function onShow() as Void {
         load();
         _timer = new Timer.Timer();
-        _timer.start(method(:load), 10000, true);
+        _timer.start(method(:load), 15000, true); // a new match is rare: every 15 s saves battery
     }
 
     function onHide() as Void {
@@ -31,6 +33,10 @@ class MatchesView extends WatchUi.View {
     function load() as Void {
         if (_busy) {
             return;
+        }
+        if (!System.getDeviceSettings().phoneConnected && matches == null) {
+            _message = Api.problem(Communications.BLE_CONNECTION_UNAVAILABLE);
+            WatchUi.requestUpdate();
         }
         _busy = true;
         Api.get("/matches", null, method(:onMatches));

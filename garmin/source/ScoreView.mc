@@ -18,14 +18,14 @@ module Score {
 //! the side that serves in green. UP gives the team on top a point, DOWN the one below, BACK
 //! undoes, START opens the menu (or the next game).
 //!
-//! The watch only scores while it's sure it has the latest score: it asks every 2.5 seconds, and
-//! shows LIVE (green) while the last answer is less than 8 seconds old, OFFLINE (orange) otherwise,
-//! with scoring paused. Every press says which version of the score it was made on; the server
+//! The watch only scores while it's sure it has the latest score. It asks for it every 3 seconds
+//! right after a point, every 5 seconds during play, every 10 after two quiet minutes and every 15
+//! once the match is won: every request wakes the Bluetooth link, the largest part of the battery
+//! the app uses. It shows LIVE (green) while the last answer is recent, OFFLINE (orange) otherwise,
+//! with scoring paused. The screen is only drawn again when something on it changes. Every press says which version of the score it was made on; the server
 //! counts the first press only, and freezes the score for 5 seconds after a point (undo still
 //! works). A press that doesn't count gets an orange NOT COUNTED card and a different buzz.
 class ScoreView extends WatchUi.View {
-    const POLL_TICKS = 5; // ticks of 500 ms between two checks
-    const LIVE_MS = 8000;
 
     var club as String;
     var match as String;
@@ -39,7 +39,9 @@ class ScoreView extends WatchUi.View {
     var alertLine as String = "";
     var alertUntil as Number = 0;
     private var _pollBusy as Boolean = false;
-    private var _ticks as Number = 0;
+    private var _nextPoll as Number = 0;
+    private var _lastChange as Number = 0; // when the score last changed, or this watch pressed
+    private var _drawnLive as Boolean = true;
     private var _timer as Timer.Timer?;
 
     function initialize(clubId as String, matchId as String, first as Dictionary) {
@@ -48,12 +50,31 @@ class ScoreView extends WatchUi.View {
         match = matchId;
         s = first;
         lastOk = System.getTimer();
+        _lastChange = lastOk;
         frozenUntil = lastOk + (first["frozenMs"] as Number);
+    }
+
+    //! How long to wait before asking for the score again (see above).
+    function pollMs() as Number {
+        var quiet = System.getTimer() - _lastChange;
+        if (s["matchWinner"] != null) {
+            return 15000;
+        }
+        return quiet < 20000 ? 3000 : quiet < 120000 ? 5000 : 10000;
+    }
+
+    //! Whether the watch can reach Skoor now: through the phone (Bluetooth), or Wi-Fi/LTE.
+    function connected() as Boolean {
+        var settings = System.getDeviceSettings();
+        if (settings has :connectionAvailable) {
+            return settings.connectionAvailable;
+        }
+        return settings.phoneConnected;
     }
 
     function onShow() as Void {
         _timer = new Timer.Timer();
-        _timer.start(method(:onTick), 500, true);
+        _timer.start(method(:onTick), 1000, true);
         poll();
     }
 
@@ -63,21 +84,32 @@ class ScoreView extends WatchUi.View {
         }
     }
 
+    //! Live: connected, and the last answer is no older than two waits (plus a margin).
     function live() as Boolean {
-        return lastOk != 0 && System.getTimer() - lastOk < LIVE_MS;
+        return lastOk != 0 && connected() && System.getTimer() - lastOk < 2 * pollMs() + 3000;
     }
 
+    //! Once a second: ask when it's time, and draw only what changed (the frozen bar running down,
+    //! a card coming or going, LIVE turning OFFLINE).
     function onTick() as Void {
-        _ticks += 1;
-        if (_ticks % POLL_TICKS == 0) {
+        var now = System.getTimer();
+        if (now >= _nextPoll) {
             poll();
         }
-        WatchUi.requestUpdate();
+        var isLive = live();
+        var moving = (frozenUntil > now - 1000) || (refusedUntil > now - 1000) || (alertUntil > now - 1000);
+        if (moving || isLive != _drawnLive) {
+            WatchUi.requestUpdate();
+        }
     }
 
     function poll() as Void {
         if (_pollBusy || pressBusy) {
             return;
+        }
+        _nextPoll = System.getTimer() + pollMs();
+        if (!connected()) {
+            return; // nothing to ask through; checked again at the next tick
         }
         _pollBusy = true;
         Api.get("/match", { "club" => club, "match" => match }, method(:onMatch));
@@ -99,6 +131,7 @@ class ScoreView extends WatchUi.View {
     function take(d as Dictionary) as Void {
         if ((d["version"] as Number) > (s["version"] as Number)) {
             alertFor(s, d);
+            _lastChange = System.getTimer();
         }
         if ((d["version"] as Number) >= (s["version"] as Number)) {
             s = d;
@@ -140,15 +173,23 @@ class ScoreView extends WatchUi.View {
     }
 
     //! 'point0', 'point1', 'undo' or 'next'.
+    //! Every press gets an answer at once when it can't be sent: no connection (it would only time
+    //! out after half a minute), or the last press still on its way.
     function press(action as String) as Void {
+        if (!connected()) {
+            refuse("No connection to your phone");
+            return;
+        }
         if (pressBusy) {
+            refuse("Still sending your last press");
             return;
         }
         if (!live()) {
-            refuse("Scoring paused: no connection");
+            refuse("Scoring paused: checking the score");
             return;
         }
         pressBusy = true;
+        _lastChange = System.getTimer();
         Api.post("/press", { "club" => club, "match" => match, "basedOn" => s["version"], "action" => action }, method(:onPress));
     }
 
@@ -268,6 +309,7 @@ class ScoreView extends WatchUi.View {
         var now = System.getTimer();
         dc.setColor(Look.BLACK, Look.BLACK);
         dc.clear();
+        _drawnLive = live();
 
         // A game or the match won: a screen of its own (no card over the score).
         if (s["gameOver"] == true) {

@@ -22,9 +22,15 @@ else keeps it on a phone or another watch.
 - **Several keepers.** The first press on a score counts; a press on a score that has just
   changed doesn't, and gets an orange *Not counted* card with who was first, and a different
   buzz. After a point the score is frozen for 5 seconds (undo still works).
-- **Live or not.** The watch asks for the score every 2.5 seconds. With an answer in the last 8
-  seconds it shows LIVE in green; otherwise OFFLINE in orange and a grey *Scoring paused* card,
-  and presses don't count until it's live again.
+- **Live or not.** The watch asks for the score every 3 seconds right after a point, every 5 during
+  play, every 10 after two quiet minutes and every 15 once the match is won (each request wakes the
+  Bluetooth link: the main battery cost). With a recent answer it shows LIVE in green; otherwise
+  OFFLINE in orange and a grey *Scoring paused* card. Without a connection a press is refused at
+  once, with why.
+- **Leaving.** As in Garmin's own activities, BACK is a button of the match (undo, like LAP), and you
+  leave through START → *Other match* (the list) or *Close Skoor*; on the list, BACK closes it.
+  The match goes on for the others. The watch's app list then shows Skoor first, as the last app
+  used: it isn't running in the background (Connect IQ apps can't).
 
 ## Build it yourself
 

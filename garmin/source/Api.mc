@@ -86,12 +86,16 @@ module Api {
 
     //! A short text for a failed request: no phone, or the server's answer code.
     function problem(code as Number) as String {
+        // In words, never Garmin's numbers (-104, -300…): they mean nothing to a player.
         if (code == Communications.BLE_CONNECTION_UNAVAILABLE) {
-            return "No phone: open Garmin Connect";
+            return "No connection to your phone";
+        }
+        if (code == Communications.NETWORK_REQUEST_TIMED_OUT || code == Communications.BLE_HOST_TIMEOUT) {
+            return "No answer: is your phone online?";
         }
         if (code < 0) {
-            return "No connection (" + code.toString() + ")";
+            return "No connection right now";
         }
-        return "Skoor didn't answer (" + code.toString() + ")";
+        return "Skoor can't be reached right now";
     }
 }

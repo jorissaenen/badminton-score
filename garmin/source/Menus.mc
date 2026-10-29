@@ -11,6 +11,7 @@ module Menus {
         menu.addItem(new WatchUi.ToggleMenuItem("My team on UP", "When you play in the match", :myUp, Api.isOn("myUp"), null));
         menu.addItem(new WatchUi.ToggleMenuItem("Interval alerts", "Interval and change ends", :alerts, Api.isOn("alerts"), null));
         menu.addItem(new WatchUi.MenuItem("Other match", null, :other, null));
+        menu.addItem(new WatchUi.MenuItem("Close Skoor", "The match goes on", :close, null));
         menu.addItem(new WatchUi.MenuItem("Unlink watch", null, :unlink, null));
         WatchUi.pushView(menu, new MatchMenuDelegate(view), WatchUi.SLIDE_UP);
     }
@@ -60,6 +61,8 @@ class MatchMenuDelegate extends WatchUi.Menu2InputDelegate {
             (_view as ScoreView).press("undo");
         } else if (id == :other && _view != null) {
             WatchUi.popView(WatchUi.SLIDE_RIGHT);
+        } else if (id == :close) {
+            System.exit(); // as Save or Discard ends an activity; the others keep scoring
         } else if (id == :unlink) {
             unlinked();
         }
