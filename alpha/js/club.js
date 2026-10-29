@@ -502,7 +502,7 @@ export async function addMatch(user, clubId, m) {
   const ref = F.doc(F.collection(db, 'clubs', clubId, 'matches'));
   F.setDoc(ref, {
     eventId: m.eventId, sport: m.sport, rules: m.rules, home: m.home, away: m.away, state: m.state,
-    status: 'live', winner: null, keeper: user.uid,
+    court: m.court ?? null, status: 'live', winner: null, keeper: user.uid,
     startedAt: F.serverTimestamp(), updatedAt: F.serverTimestamp(), schemaVersion: 1,
   }).catch(() => { /* reported by the connection status; retried by Firestore */ });
   return ref.id;
@@ -535,4 +535,69 @@ export function eventPhase(e, now = Date.now()) {
   if (e.status === 'cancelled') return 'cancelled';
   if (now < startsAt(e.date, e.start).getTime()) return 'upcoming';
   return now < startsAt(e.date, e.end).getTime() ? 'live' : 'ended';
+}
+
+// ---------- screens (displays) ----------
+// A screen on /link signs in anonymously and shows a key that changes every minute
+// (displayCodes/{key} → its uid). A score keeper, admin or owner links it to an event with that
+// key: displays/{uid} = { clubId, eventId, mode: 'court' | 'overview', court, announce }.
+
+// Letters and digits that can't be mixed up (no 0/O, 1/I/L).
+export const KEY_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+export function newKey(random = crypto.getRandomValues(new Uint8Array(6))) {
+  return [...random].map((b) => KEY_CHARS[b % KEY_CHARS.length]).join('');
+}
+export const cleanKey = (typed) => String(typed).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+
+// The screen's uid for a key, or null when the key is unknown or too old.
+export async function screenForKey(key) {
+  const { db, F } = await cloud();
+  const d = await F.getDoc(F.doc(db, 'displayCodes', key));
+  if (!d.exists()) return null;
+  const { display, expiresAt } = d.data();
+  return expiresAt.toMillis() + 120_000 > Date.now() ? display : null;
+}
+
+export async function linkScreen(user, displayId, key, link) {
+  const { db, F } = await cloud();
+  await F.setDoc(F.doc(db, 'displays', displayId), {
+    clubId: link.clubId, eventId: link.eventId, mode: link.mode, court: link.mode === 'court' ? link.court : null,
+    announce: Boolean(link.announce), linkedBy: user.uid, code: key, linkedAt: F.serverTimestamp(),
+  });
+}
+
+export async function changeScreen(user, displayId, changes) {
+  const { db, F } = await cloud();
+  await F.updateDoc(F.doc(db, 'displays', displayId), { ...changes, linkedBy: user.uid });
+}
+
+export async function unlinkScreen(displayId) {
+  const { db, F } = await cloud();
+  await F.deleteDoc(F.doc(db, 'displays', displayId));
+}
+
+export async function watchEventScreens(clubId, eventId, on) {
+  const { db, F } = await cloud();
+  const q = F.query(F.collection(db, 'displays'), F.where('clubId', '==', clubId), F.where('eventId', '==', eventId));
+  return F.onSnapshot(q, (s) => on(s.docs.map((d) => ({ id: d.id, ...d.data() }))), () => on([]));
+}
+
+// Events today and later in the clubs where the user may link screens (keeper, admin, owner).
+export async function eventsToLinkTo(user) {
+  const clubs = await myClubs(user);
+  const out = [];
+  await Promise.all(clubs.map(async (c) => {
+    const role = await myRoleIn(user, c.id);
+    if (!['owner', 'admin', 'keeper'].includes(role)) return;
+    const { db, F } = await cloud();
+    const snap = await F.getDocs(F.query(F.collection(db, 'clubs', c.id, 'events'), F.where('date', '==', isoDate(new Date()))));
+    snap.docs.forEach((d) => out.push({ club: c, event: { id: d.id, ...d.data() } }));
+  }));
+  return out.filter((x) => x.event.status !== 'cancelled').sort((a, b) => (a.event.start).localeCompare(b.event.start));
+}
+
+// A message admins pin on the event's screens (the overview), e.g. "Bar open until 23:00".
+export async function setPinned(clubId, eventId, text) {
+  const { db, F } = await cloud();
+  await F.updateDoc(F.doc(db, 'clubs', clubId, 'events', eventId), { pinned: text.slice(0, 280) });
 }

@@ -560,3 +560,62 @@ input::placeholder { color: #5a5a5a; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- a screen at the venue (/link) ---------- */
+/* Sized from the screen (vh/vw), for TVs and tablets alike. */
+
+.screen-page { overflow: hidden; }
+.screen { position: fixed; inset: 0; display: flex; flex-direction: column; background: #000; padding: 2.5vh 3vw; gap: 2vh; }
+.screen .muted { color: var(--muted); }
+.screen-top { display: flex; align-items: center; justify-content: space-between; gap: 2vw; font-size: clamp(16px, 2.6vh, 34px); }
+.screen-top .display { font-size: clamp(20px, 4vh, 54px); letter-spacing: 0.08em; }
+
+/* Not linked: slides, and the key at the bottom */
+.screen .slides { flex: 1; display: grid; place-items: center; text-align: center; min-height: 0; }
+.slide { display: flex; flex-direction: column; align-items: center; gap: 3vh; max-width: 70vw; animation: fade 0.8s ease-out; }
+.slide .logo { height: clamp(40px, 9vh, 130px); }
+.slide h1 { margin: 0; font-family: var(--display); font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; font-size: clamp(32px, 8vh, 120px); line-height: 1; }
+.slide p { margin: 0; color: var(--muted); font-size: clamp(16px, 3vh, 40px); line-height: 1.35; }
+.key-bar { border-top: 1px solid var(--line); padding-top: 2vh; }
+.key-block { display: flex; align-items: center; gap: 3vw; }
+.key-block .qr { padding: 1vh; border-radius: 1.5vh; line-height: 0; background: #fff; }
+.key-block .qr img { width: clamp(90px, 16vh, 240px); height: auto; image-rendering: pixelated; }
+.key-text { display: flex; flex-direction: column; gap: 1vh; }
+.key-label { font-size: clamp(14px, 2.4vh, 32px); color: var(--muted); }
+.key-code { display: inline-flex; align-items: center; gap: 2vw; font-size: clamp(36px, 9vh, 130px); letter-spacing: 0.12em; line-height: 1; }
+.key-help { font-size: clamp(13px, 2vh, 26px); color: var(--faint); max-width: 60vw; }
+.ring { width: clamp(28px, 6vh, 80px); height: clamp(28px, 6vh, 80px); transform: rotate(-90deg); }
+.ring-track { fill: none; stroke: var(--line); stroke-width: 3.5; }
+.ring-left { fill: none; stroke: var(--green); stroke-width: 3.5; stroke-linecap: round; transition: stroke-dashoffset 0.25s linear; }
+
+/* One court */
+.screen.court .sides { flex: 1; display: flex; flex-direction: row; min-height: 0; --tile-h: min(46vh, 19vw); }
+.screen.court .team { --tile-h: inherit; }
+.screen.court .net { width: 1px; height: auto; background: var(--line); margin: 6vh 2vw; }
+.last-result { font-size: clamp(16px, 3vh, 40px); display: flex; gap: 1.5vw; align-items: baseline; justify-content: center; flex-wrap: wrap; }
+.sound-on { position: absolute; left: 50%; bottom: 4vh; transform: translateX(-50%); padding: 1.5vh 3vw; border-radius: 999px; border: 0; background: var(--green); color: #000; font-weight: 700; font-size: clamp(16px, 2.6vh, 32px); cursor: pointer; }
+
+/* The event overview */
+.ov-title { display: inline-flex; align-items: center; gap: 1vw; }
+.pinned { padding: 1.5vh 2vw; border-radius: 1.5vh; background: var(--fg); color: #000; font-weight: 600; font-size: clamp(16px, 3vh, 40px); }
+.ov-grid { flex: 1; display: grid; grid-template-columns: 1fr minmax(240px, 28vw); gap: 2vw; min-height: 0; }
+.ov-courts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 30vw), 1fr)); gap: 1.5vw; align-content: start; overflow: hidden; }
+.ov-court { background: var(--card); border: 1px solid var(--line); border-radius: 2vh; padding: 1.5vh 1.5vw; display: flex; flex-direction: column; gap: 1vh; }
+.ov-court.free { justify-content: center; }
+.ov-label { font-family: var(--display); font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-size: clamp(13px, 2vh, 26px); }
+.ov-side { display: flex; align-items: center; justify-content: space-between; gap: 1vw; }
+.ov-name { font-size: clamp(16px, 2.8vh, 38px); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-name.serving { color: var(--green); }
+.ov-tiles { display: flex; gap: 0.4vh; --tile-h: clamp(30px, 6vh, 80px); }
+.ov-tiles .tile { --tile-h: inherit; }
+.ov-side-col { display: flex; flex-direction: column; gap: 2vh; min-height: 0; overflow: hidden; }
+.ov-side-col .h3 { font-size: clamp(12px, 1.8vh, 24px); }
+.ov-stats, .ov-feed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.8vh; font-size: clamp(14px, 2.4vh, 32px); }
+.ov-stats { counter-reset: rank; }
+.ov-stats li { display: flex; justify-content: space-between; gap: 1vw; counter-increment: rank; }
+.ov-stats li::before { content: counter(rank); color: var(--faint); width: 2em; }
+.ov-stats li span:first-child { flex: 1; }
+.ov-feed li { display: flex; flex-wrap: wrap; gap: 0.6vw; align-items: baseline; color: var(--muted); }
+.ov-feed li strong { color: var(--fg); }
+.ov-feed li .display { margin-left: auto; color: var(--fg); }
+.ov-foot { font-size: clamp(11px, 1.6vh, 20px); text-align: right; }

@@ -122,7 +122,15 @@ tabs (Play, Clubs, You) and full screens instead of the settings window.
       name); matches saved to the club as they're scored; live and finished matches and
       statistics on the event, final once it has ended
 - [ ] Admins start a tournament in an event (Phase 4)
-- [ ] Follow a court: a screen that shows a live match full screen
+- [x] Screens at the venue: open /link on a TV or tablet; it shows a key and QR code that change
+      every minute (a ring shows the time left). Score keepers, admins and owners link it to an
+      event: one court or table (with score calls on or off, from the phone), or the event
+      overview (all courts, statistics, latest results, a pinned message). Not linked, it shows
+      slides with the key at the bottom
+- [ ] Slides from venues and sponsors (advertising, a new source of income): who books them, the
+      images or video, when they show (not linked, or a free court), and reporting
+- [ ] Tournament planning on the overview (with tournaments, Phase 4)
+- [ ] **You:** switch on Anonymous sign-in in Firebase (firebase-setup.md, step 3)
 - [ ] Player picker for a match (Fill in for me; here and not playing first, by waiting time;
       playing now with their court; didn't say they'd come; a guest by name) (Phase 3)
 - [ ] Head-to-head on New match and when accepting a challenge: the exact line-up for racket and

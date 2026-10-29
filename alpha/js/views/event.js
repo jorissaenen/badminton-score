@@ -9,6 +9,7 @@ import { sportOf } from '../sports.js';
 import { eventStats } from '../stats.js';
 import { state, isFinished } from '../state.js';
 import { sportName, rulesSummary } from './rules.js';
+import { canLinkScreens, screensSection, wireScreens } from './screens.js';
 import { clubScreen } from './clubview.js';
 import { answerButtons, wireAnswers, dayName, eventName, noPlayer } from './common.js';
 
@@ -22,6 +23,9 @@ export function show(el, [clubId, eventId], { go }) {
   let waiting = false;
   let matches = [];
   let stopMatches = null;
+  let screens = [];
+  let stopScreens = null;
+  let pinned = null; // the pinned message being typed
 
   function draw(v) {
     view = v;
@@ -59,6 +63,11 @@ export function show(el, [clubId, eventId], { go }) {
         ${phase === 'ended' ? html`<p class="chip" style="display:inline-block;margin:10px 4px 0">${t('event.ended')}</p>` : ''}
       </div>
       ${phase === 'live' || phase === 'ended' ? playing(v) : ''}
+      ${canLinkScreens(v.myRole) && (phase === 'live' || phase === 'upcoming') ? screensSection(screens, v.club.sport ?? 'badminton') : ''}
+      ${admin && (phase === 'live' || phase === 'upcoming') ? html`<section><h2 class="h3">${t('screen.pinned')}</h2>
+        <div class="inline"><input type="text" data-pinned maxlength="280" value="${pinned ?? e.pinned ?? ''}" placeholder="${t('screen.pinnedExample')}" style="margin:0">
+        <button type="button" class="btn small primary" data-save-pinned>${t('common.save')}</button></div>
+        <p class="note">${t('screen.pinnedNote')}</p></section>` : ''}
       <div class="card">
         ${e.location ? html`<a class="row" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.location)}" target="_blank" rel="noopener">${icon('pin', 20)}<span class="grow">${e.location}</span><span class="val">${t('event.maps')}</span></a>` : ''}
         <div class="row">${icon('courts', 20)}<span class="grow">${t('event.nCourts', { n: e.courts })}</span></div>
@@ -81,6 +90,12 @@ export function show(el, [clubId, eventId], { go }) {
       </div></section>` : ''}
     </div>`.s;
 
+    wireScreens(el, screens, { clubId, eventId, courts: e.courts, sport: v.club.sport ?? 'badminton' });
+    const pin = el.querySelector('[data-pinned]');
+    pin?.addEventListener('input', () => { pinned = pin.value; });
+    el.querySelector('[data-save-pinned]')?.addEventListener('click', async () => {
+      if (await attempt(Club.setPinned(clubId, eventId, (pinned ?? e.pinned ?? '').trim()), t('common.saveFailed'))) { pinned = null; toast(t('common.saved')); }
+    });
     el.querySelector('[data-continue]')?.addEventListener('click', () => go('#/match'));
     el.querySelectorAll('[data-match]').forEach((b) => b.addEventListener('click', () => matchSheet(matches.find((m) => m.id === b.dataset.match))));
     if (myPlayer && phase === 'upcoming') {
@@ -196,6 +211,12 @@ export function show(el, [clubId, eventId], { go }) {
       matches = list;
       if (!document.activeElement?.matches?.('[data-note]')) screen.redraw();
     }).then((stop) => { if (closed) stop(); else stopMatches = stop; });
+    if (canLinkScreens(view?.myRole)) {
+      Club.watchEventScreens(clubId, eventId, (list) => {
+        screens = list;
+        if (!document.activeElement?.matches?.('input')) screen.redraw();
+      }).then((stop) => { if (closed) stop(); else stopScreens = stop; });
+    }
     const stop = await Club.watchEvent(clubId, eventId, (s) => {
       event = s.event;
       regs = s.registrations;
@@ -210,5 +231,5 @@ export function show(el, [clubId, eventId], { go }) {
   const screen = clubScreen(el, clubId, draw);
   // Starts and ends on its own: redraw each minute while the screen is open.
   const tick = setInterval(() => { if (!document.activeElement?.matches?.('input')) screen.redraw(); }, 60_000);
-  return () => { closed = true; saveNote(); screen.cleanup(); stopEvent?.(); stopMatches?.(); clearInterval(tick); };
+  return () => { closed = true; saveNote(); screen.cleanup(); stopEvent?.(); stopMatches?.(); stopScreens?.(); clearInterval(tick); };
 }

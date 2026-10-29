@@ -10,6 +10,7 @@ import { $, toast } from './ui.js';
 import { t, people } from './i18n.js';
 import { screenHeight } from './layout.js';
 import { sportOf } from './sports.js';
+import { scoreCall as callFor, results as resultsFor } from './calls.js';
 
 const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab']);
 const SLEEP_AFTER_MS = 30000;
@@ -60,32 +61,10 @@ const tennis = () => sport().scoring === 'tennis';
 const unit = () => (tennis() ? 'set' : 'game');
 const serverNow = (match = state.match) => M.server(M.currentGame(match), state.rules, match);
 
-// The call after a point, server's score first. Rally sports: "20, match point, 0", "29 all".
-// Tennis: "15 love", "30 all", "deuce", "advantage Joris"; a tiebreak like a rally game.
-function scoreCall() {
-  const { match, rules } = state;
-  const srv = serverNow();
-  const call = M.pointCall(match, rules);
-  const point = call ? t(`call.${call}Point`) : '';
-  if (tennis() && !M.display(match, rules).tiebreak) {
-    const p = M.tennisPoints(match, rules);
-    const word = (x) => (x === '0' ? t('call.love') : x);
-    let text;
-    if (p[0] === '40' && p[1] === '40') text = t('call.deuce');
-    else if (p.includes('AD')) text = t('call.advantage', { name: names()[p[0] === 'AD' ? 0 : 1] });
-    else if (p[srv] === p[1 - srv]) text = t('call.all', { a: word(p[srv]) });
-    else text = t('call.score', { a: word(p[srv]), b: word(p[1 - srv]) });
-    return point ? `${text}. ${point}` : text;
-  }
-  const sc = tennis() ? M.display(match, rules).tiles.map(Number) : M.gameScore(M.currentGame(match), rules);
-  const a = sc[srv];
-  const b = sc[1 - srv];
-  if (call) return t(a === b ? 'call.pointAll' : 'call.point', { a, b, point });
-  return t(a === b ? 'call.all' : 'call.score', { a, b });
-}
+// The call after a point (see calls.js).
+const scoreCall = () => callFor(state.match, state.rules, names());
 
-// "6 4, 6 3": the score of every game (set), winner's view.
-const results = (match) => M.gameScores(match, state.rules).map((x) => `${Math.max(...x)} ${Math.min(...x)}`).join(', ');
+const results = (match) => resultsFor(match, state.rules);
 
 // ---------- actions ----------
 

@@ -17,6 +17,8 @@ const sideName = (players) => players.map((p) => p.name).join(' & ');
 export function show(el, [clubId, eventId], { go }) {
   const sides = [[], []]; // picked players: { id?, name }
   let server = 0;
+  let court = null; // picked, or the first free one
+  let ev = null;
   let regs = {};
   let matches = [];
   let view = null;
@@ -57,6 +59,7 @@ export function show(el, [clubId, eventId], { go }) {
       <div class="top"><a class="back" href="#/club/${clubId}/event/${eventId}">${icon('back', 22)}${t('event.event')}</a></div>
       <h1 class="title">${t('newMatch.title')}</h1>
       <div class="card row">${raw(sportIcon(rules.sport, 24))}<span class="grow"><strong>${sportName(rules.sport)}</strong><small>${rulesSummary(rules)}</small></span></div>
+      ${courtChips(rules.sport)}
       <button type="button" class="btn" data-fill>${icon('dice', 20)}${t('eventMatch.fill')}</button>
       <div class="form-row" style="align-items:flex-start">${side(0)}${side(1)}</div>
       <p class="note" style="text-align:center">${t('eventMatch.sidesHint')}</p>
@@ -71,7 +74,19 @@ export function show(el, [clubId, eventId], { go }) {
       draw(view);
     }));
     el.querySelector('[data-fill]').addEventListener('click', fill);
+    el.querySelectorAll('[data-court]').forEach((b) => b.addEventListener('click', () => { court = Number(b.dataset.court); draw(view); }));
     el.querySelector('[data-start]').addEventListener('click', () => start(rules));
+  }
+
+  // Which court (or table): the courts of the event; busy ones say so.
+  function courtChips(sport) {
+    const n = Math.max(1, ev?.courts ?? 1);
+    const busy = new Set(matches.filter((m) => m.status === 'live').map((m) => m.court));
+    const chosen = court ?? (Array.from({ length: n }, (_, i) => i + 1).find((c) => !busy.has(c)) ?? 1);
+    court = chosen;
+    const word = (c) => t(sport === 'tabletennis' ? 'screen.tableN' : 'screen.courtN', { n: c });
+    return html`<section><h2 class="h3">${t(sport === 'tabletennis' ? 'eventMatch.table' : 'eventMatch.court')}</h2><div class="chips">
+      ${Array.from({ length: n }, (_, i) => i + 1).map((c) => html`<button type="button" class="pick" data-court="${c}" aria-pressed="${c === chosen}">${word(c)}${busy.has(c) ? ` · ${t('eventMatch.busy')}` : ''}</button>`)}</div></section>`;
   }
 
   // Fills the open places with the players waiting longest: doubles when four are free,
@@ -127,7 +142,7 @@ export function show(el, [clubId, eventId], { go }) {
     const home = sides[0].map((p) => (p.id ? { id: p.id, name: p.name } : { name: p.name }));
     const away = sides[1].map((p) => (p.id ? { id: p.id, name: p.name } : { name: p.name }));
     try {
-      const matchId = await Club.addMatch(session.user, clubId, { eventId, sport: rules.sport, rules, home, away, state });
+      const matchId = await Club.addMatch(session.user, clubId, { eventId, sport: rules.sport, rules, home, away, state, court });
       Board.startMatch({
         names: [sideName(home), sideName(away)], namesKnown: true, firstServer: server, swapped: false,
         rules, link: { clubId, eventId, matchId },
@@ -142,8 +157,8 @@ export function show(el, [clubId, eventId], { go }) {
 
   async function follow() {
     stops = [() => {}];
-    const s1 = await Club.watchEvent(clubId, eventId, (s) => { regs = s.registrations; if (view && !document.querySelector('.sheet-host')) draw(view); });
-    const s2 = await Club.watchEventMatches(clubId, eventId, (list) => { matches = list; });
+    const s1 = await Club.watchEvent(clubId, eventId, (s) => { regs = s.registrations; ev = s.event; if (view && !document.querySelector('.sheet-host')) draw(view); });
+    const s2 = await Club.watchEventMatches(clubId, eventId, (list) => { matches = list; if (view && !document.querySelector('.sheet-host')) draw(view); });
     stops = [s1, s2];
     if (closed) stops.forEach((s) => s());
   }

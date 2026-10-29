@@ -111,7 +111,8 @@ document.addEventListener('visibilitychange', () => {
   if (!document.hidden && s.user && s.conn.state !== 'online') check();
 });
 
-function showUser(u) {
+function showUser(user) {
+  const u = user?.isAnonymous ? null : user; // a screen on /link signs in anonymously: that's nobody
   s.user = u;
   s.ready = true;
   failures = 0;

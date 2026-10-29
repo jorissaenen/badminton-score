@@ -37,6 +37,8 @@ payment card.
    - **Google** → enable → choose your e-mail address as *project support e-mail* → **Save**.
    - **Email/Password** → enable **Email link (passwordless sign-in)** → **Save**. (The plain
      e-mail/password option can stay off.)
+   - **Anonymous** → enable → **Save**. Screens at the venue (the /link page) use it: they sign
+     in without an account, and only see the event a score keeper links them to.
 3. Tab **Settings → Authorized domains** → **Add domain** → `jorissaenen.github.io`.
    (`localhost` is already listed; that's for testing.)
 

@@ -22,6 +22,7 @@ import * as Event from './views/event.js';
 import * as EventEdit from './views/eventedit.js';
 import * as Join from './views/join.js';
 import * as EventMatch from './views/eventmatch.js';
+import * as LinkScreen from './views/linkscreen.js';
 import { keepClubMatchSaved, unlink } from './clubmatch.js';
 
 watchLayout();
@@ -46,6 +47,7 @@ const ROUTES = [
   [/^\/club\/(\w+)\/event\/([\w-]+)$/, Event],
   [/^\/club\/(\w+)\/event\/([\w-]+)\/edit$/, EventEdit],
   [/^\/club\/(\w+)\/event\/([\w-]+)\/match$/, EventMatch],
+  [/^\/screen\/([A-Z0-9]{6})$/, LinkScreen],
   [/^\/you$/, You, 'you'],
   [/^\/signin$/, SignIn],
   [/^\/join$/, Join],

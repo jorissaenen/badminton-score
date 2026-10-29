@@ -14,6 +14,17 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    // The signed-in user's role in a club ('' when not a member), and whether they may keep score
+    // there (score keepers, admins, owners): they link screens to the club's events.
+    function roleIn(clubId) {
+      let path = /databases/$(database)/documents/clubs/$(clubId)/members/$(request.auth.uid);
+      return signedIn() && exists(path) ? get(path).data.role : '';
+    }
+
+    function canKeepIn(clubId) {
+      return roleIn(clubId) in ['owner', 'admin', 'keeper'];
+    }
+
     // Changes only these fields (and maybe not all of them).
     function onlyChanges(fields) {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
@@ -34,6 +45,55 @@ service cloud.firestore {
       match /devices/{deviceId} {
         allow read, write: if isMe(uid);
       }
+    }
+
+    // ---------- screens (displays) ----------
+
+    // A screen opens /link and signs in anonymously. Every 60 seconds it shows a new key, stored
+    // here as displayCodes/{key} → its uid. Anyone signed in may look up one key (not list them),
+    // as phones do after scanning the QR code or typing the key.
+    match /displayCodes/{code} {
+      allow get: if signedIn();
+      allow create: if signedIn() && code.size() == 6
+        && request.resource.data.keys().hasOnly(['display', 'expiresAt'])
+        && request.resource.data.display == request.auth.uid
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt < request.time + duration.value(2, 'm');
+      allow delete: if signedIn() && resource.data.display == request.auth.uid;
+    }
+
+    // What a screen shows: { clubId, eventId, mode: 'court' | 'overview', court, announce,
+    // linkedBy, code }. A score keeper, admin or owner links it with a key that is still valid
+    // (up to 2 minutes after it was shown), and then changes it or unlinks it. The screen reads
+    // its own entry and only writes when it was last seen.
+    match /displays/{displayId} {
+      function codePath(code) {
+        return /databases/$(database)/documents/displayCodes/$(code);
+      }
+
+      function validKey(d) {
+        return d.code is string && d.code.size() == 6 && exists(codePath(d.code))
+          && get(codePath(d.code)).data.display == displayId
+          && get(codePath(d.code)).data.expiresAt + duration.value(2, 'm') > request.time;
+      }
+
+      function validLink(d) {
+        return d.clubId is string && d.eventId is string && d.mode in ['court', 'overview']
+          && (d.mode == 'overview' || (d.court is int && d.court >= 1 && d.court <= 40))
+          && d.announce is bool && d.linkedBy == request.auth.uid;
+      }
+
+      allow get: if isMe(displayId)
+        || (resource == null || canKeepIn(resource.data.clubId));
+      allow list: if canKeepIn(resource.data.clubId);
+      // Linking (or moving to another club or event) needs a valid key; changing what a linked
+      // screen shows, by someone of the same club, doesn't.
+      allow create: if canKeepIn(request.resource.data.clubId) && validLink(request.resource.data) && validKey(request.resource.data);
+      allow update: if (canKeepIn(request.resource.data.clubId) && validLink(request.resource.data)
+          && (validKey(request.resource.data)
+            || (resource.data.get('clubId', null) == request.resource.data.clubId && canKeepIn(resource.data.clubId))))
+        || (isMe(displayId) && onlyChanges(['lastSeen']));
+      allow delete: if isMe(displayId) || canKeepIn(resource.data.clubId);
     }
 
     // ---------- clubs ----------
@@ -58,6 +118,13 @@ service cloud.firestore {
       }
 
       function isMember() { return rank(myRole()) >= 1; }
+
+      // A screen linked to this club (signed in anonymously, see /displays below): it reads the
+      // club, its events and their matches, nothing else.
+      function isLinkedDisplay() {
+        let path = /databases/$(database)/documents/displays/$(request.auth.uid);
+        return signedIn() && exists(path) && get(path).data.get('clubId', null) == clubId;
+      }
       function isKeeper() { return rank(myRole()) >= 2; }
       function isAdmin() { return rank(myRole()) >= 3; }
       function isOwner() { return myRole() == 'owner'; }
@@ -70,7 +137,7 @@ service cloud.firestore {
 
       // Read by members. Created by anyone signed in, who becomes its owner in the same write
       // (see members). Changed by admins; the creator never changes. Deleted by owners.
-      allow read: if isMember();
+      allow read: if isMember() || isLinkedDisplay();
       allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid
         && validClub(request.resource.data);
       allow update: if isAdmin() && validClub(request.resource.data)
@@ -194,10 +261,11 @@ service cloud.firestore {
             && d.date is string && d.date.size() == 10
             && d.start is string && d.end is string && d.startsAt is timestamp
             && d.get('location', '') is string && d.get('location', '').size() <= 80
-            && d.get('note', '') is string && d.get('note', '').size() <= 280;
+            && d.get('note', '') is string && d.get('note', '').size() <= 280
+            && d.get('pinned', '') is string && d.get('pinned', '').size() <= 280;
         }
 
-        allow read: if isMember();
+        allow read: if isMember() || isLinkedDisplay();
         allow create, update: if isAdmin() && validEvent(request.resource.data);
         allow delete: if isAdmin();
 
@@ -245,10 +313,11 @@ service cloud.firestore {
             && d.sport is string && d.rules is map && d.state is map
             && validSide(d.home) && validSide(d.away)
             && d.status in ['live', 'finished', 'stopped']
-            && d.keeper is string;
+            && d.keeper is string
+            && (d.get('court', null) == null || (d.court is int && d.court >= 1 && d.court <= 40));
         }
 
-        allow read: if isMember();
+        allow read: if isMember() || isLinkedDisplay();
         allow create: if isMember() && validMatch(request.resource.data)
           && request.resource.data.keeper == request.auth.uid
           && request.resource.data.status == 'live';
