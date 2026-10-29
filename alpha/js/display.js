@@ -111,10 +111,10 @@ const tiles = (text, on) => [...text].map((d) => html`<span class="tile${on ? ' 
 // see the design board), what it shows, and LIVE.
 const top = (title, right = '') => html`<header class="screen-top"><img class="screen-logo" src="../icons/skoor-logo.svg" alt="Skoor">
   <span class="display">${title}</span><span class="screen-right">${right}</span></header>`;
-// LIVE while the event is on; while the screen has no connection, an orange note instead (Firestore
-// reconnects by itself).
+// LIVE while the event is on; nothing while the screen has no connection (a grey card says so, see
+// draw; Firestore reconnects by itself).
 const liveChip = () => {
-  if (!navigator.onLine) return html`<span class="chip late"><span class="dot late"></span>${t('screen.reconnecting')}</span>`;
+  if (!navigator.onLine) return '';
   return event && Club.eventPhase(event, Date.now(), matches) === 'live' ? html`<span class="chip live">${t('event.live')}</span>` : '';
 };
 // A match being played: a green dot, softly blinking; orange and still when no point came in for
@@ -288,6 +288,10 @@ function draw() {
   if (!link) drawUnlinked();
   else if (link.mode === 'court') drawCourt();
   else drawOverview();
+  // No connection: a grey card over the dimmed scores until it's back (it reconnects by itself).
+  const offline = Boolean(link) && !navigator.onLine;
+  root.classList.toggle('is-paused', offline);
+  if (offline) root.insertAdjacentHTML('beforeend', html`<div class="status-card paused" role="status"><b>${t('screen.noConnection')}</b><span>${t('screen.noConnectionText')}</span></div>`.s);
 }
 
 // ---------- following what it's linked to ----------

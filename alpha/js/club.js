@@ -585,14 +585,6 @@ export async function fetchMatch(clubId, matchId) {
   return d.exists() ? { id: d.id, ...d.data() } : null;
 }
 
-export async function updateMatch(clubId, matchId, changes) {
-  const { db, F } = await cloud();
-  await F.updateDoc(F.doc(db, 'clubs', clubId, 'matches', matchId), {
-    ...changes, updatedAt: F.serverTimestamp(),
-    ...(changes.status === 'finished' && { finishedAt: F.serverTimestamp() }),
-  });
-}
-
 export async function deleteMatch(clubId, matchId) {
   const { db, F } = await cloud();
   await F.deleteDoc(F.doc(db, 'clubs', clubId, 'matches', matchId));

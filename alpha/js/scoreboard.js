@@ -88,21 +88,33 @@ async function commit(action, next, changes = {}) {
   }
 }
 
+// A press that didn't count: an orange card in the middle (NOT COUNTED and why, with the score
+// that stands), a low double beep, a buzz and the spoken "Not counted".
+let refusedTimer = null;
+// The score as text: "14–11" (tiles without their leading zero), "40–AD" in tennis.
+const scoreText = () => M.display(state.match, state.rules).tiles.map((x) => x.replace(/^0(\d)$/, '$1')).join('–');
 function refusedFeedback(e) {
   if (e.code === 'skoor/busy') { beep(220); return; }
+  if (e.code === 'skoor/gone') { toast(t('board.refusedGone')); return; }
+  render(); // the score that stands (taken over from the server meanwhile)
+  const score = scoreText();
   const text = {
-    'skoor/stale': e.by ? t('board.refusedFirst', { name: e.by }) : t('board.refusedChanged'),
+    'skoor/stale': e.by ? t('board.refusedFirst', { name: e.by, score }) : t('board.refusedChanged', { score }),
     // Frozen by someone else's point a moment ago: say who was first.
-    'skoor/frozen': e.by ? t('board.refusedJustBefore', { name: e.by }) : t('board.refusedFrozen', { s: Club.FREEZE_SECONDS }),
+    'skoor/frozen': e.by ? t('board.refusedJustBefore', { name: e.by, score }) : t('board.refusedFrozen', { s: Club.FREEZE_SECONDS }),
     'skoor/offline': t('board.refusedOffline'),
     'skoor/notlive': t('board.refusedNotLive'),
-    'skoor/gone': t('board.refusedGone'),
   }[e.code] ?? t('board.refusedOther', { error: e.code || e.message });
   beep(180, 2);
   navigator.vibrate?.([90, 70, 90]);
-  toast(text);
   say(t('call.notCounted'));
-  render();
+  $('refusedText').textContent = text;
+  $('refused').hidden = false;
+  $('refused').classList.remove('pop');
+  void $('refused').offsetWidth;
+  $('refused').classList.add('pop');
+  clearTimeout(refusedTimer);
+  refusedTimer = setTimeout(() => { $('refused').hidden = true; }, 2600);
 }
 
 // What a club match records with a new score: finished (and who won) after its last point.
@@ -243,7 +255,16 @@ function remoteChange(m) {
   if (m === 'gone') { toast(t('board.refusedGone')); render(); return; }
   stopBreak();
   render();
+  // The orange card shows the score that stands: keep it up to date.
+  if (!$('refused').hidden && m.lastByName) {
+    $('refusedText').textContent = t('board.refusedFirst', { name: m.lastByName, score: scoreText() });
+  }
   if (m.lastAction === 'point0' || m.lastAction === 'point1') flash(Number(m.lastAction.slice(-1)));
+}
+
+function setPaused(on) {
+  $('paused').hidden = !on;
+  $('board').classList.toggle('is-paused', on);
 }
 
 // Whether this device has the latest score (club matches): Live or Offline at the top, and while
@@ -256,6 +277,11 @@ export function renderSync() {
   el.className = `sync ${sync.live ? 'live' : 'offline'}`;
   el.textContent = sync.live ? t('board.syncLive') : t('board.syncOffline');
   el.title = sync.live ? t('board.syncLiveTitle') : t('board.syncOfflineTitle');
+  // Not live for more than a moment: a grey card, the score dimmed behind it.
+  const paused = Boolean(state.link) && !sync.live;
+  clearTimeout(renderSync.pausedTimer);
+  if (!paused) setPaused(false);
+  else renderSync.pausedTimer = setTimeout(() => setPaused(!Shared.syncState().live && Boolean(state.link)), 1500);
   const bar = $('freezeBar');
   const left = sync.frozenUntil - Date.now();
   if (state.link && left > 0 && bar.dataset.until !== String(sync.frozenUntil)) {

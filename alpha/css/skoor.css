@@ -719,3 +719,19 @@ input::placeholder, textarea::placeholder { color: #5a5a5a; }
 .board-top { position: relative; }
 .freeze-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--fg); transform-origin: left; opacity: 0.7; }
 @keyframes freeze { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+/* Status cards over the score: orange when a press didn't count, grey while scoring is paused
+   (not live) with the score dimmed behind it. The same on the watches and venue screens. */
+.status-card { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; width: min(86vw, calc(560px * var(--u, 1))); box-sizing: border-box; padding: calc(14px * var(--u, 1)) calc(18px * var(--u, 1)); border-radius: calc(18px * var(--u, 1)); text-align: center; display: flex; flex-direction: column; gap: 4px; pointer-events: none; }
+.status-card b { font-family: var(--display); font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; font-size: calc(26px * var(--u, 1)); line-height: 1; }
+.status-card span { font-size: calc(15px * var(--u, 1)); font-weight: 600; }
+.status-card.refused { background: #f59e0b; color: #000; box-shadow: 0 0 0 6px #000; }
+.status-card.refused.pop { animation: pop 0.25s ease-out; }
+@keyframes pop { from { transform: translate(-50%, -50%) scale(0.9); opacity: 0; } }
+.status-card.paused { background: var(--card); color: var(--fg); box-shadow: 0 0 0 6px #000; }
+.status-card.paused span { font-weight: 400; color: var(--muted); }
+.board.is-paused .sides { opacity: 0.35; }
+.screen .status-card { width: min(70vw, 760px); padding: 2.4vh 3vw; border-radius: 2.4vh; }
+.screen .status-card b { font-size: clamp(24px, 5vh, 64px); }
+.screen .status-card span { font-size: clamp(14px, 2.6vh, 34px); }
+.screen.is-paused > :not(.status-card):not(.screen-top) { opacity: 0.35; }
