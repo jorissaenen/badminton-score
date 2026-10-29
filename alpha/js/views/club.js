@@ -19,7 +19,8 @@ export function show(el, [clubId]) {
     view = v;
     const { club, myRole, admin, players, seasons, myPlayer } = v;
     const season = Club.currentSeason(seasons);
-    const upcoming = events ?? [];
+    // An event that has ended (its last matches done) makes room for the next one.
+    const upcoming = (events ?? []).filter((e) => !hasEnded(e));
     const next = upcoming.find((e) => e.status !== 'cancelled');
     const later = upcoming.filter((e) => e !== next);
     el.innerHTML = html`<div class="page">
@@ -59,17 +60,16 @@ export function show(el, [clubId]) {
     const c = counts(r);
     const going = r ? view.players.filter((p) => r[p.id]?.status === 'going') : [];
     const noAnswer = r ? view.players.length - c.going - c.notGoing : null;
-    const phase = Club.eventPhase(e, Date.now(), nextMatches?.id === e.id ? nextMatches.list : null);
-    if (Club.pastEnd(e) && nextMatches?.id !== e.id) loadMatches(e);
+    const phase = Club.eventPhase(e, Date.now(), matchesOf[e.id] ?? null);
     return html`<div class="event-card" role="link" tabindex="0" data-next>
-      <div class="line1"><span>${phase === 'live' ? html`<span class="chip live">${t('event.live')}</span> ${eventName(e)}` : t('event.next', { event: eventName(e) })}</span><span>${dayName(e.date)}</span></div>
+      <div class="line1"><span>${phase === 'live' ? html`<span class="chip live">${t('event.live')}</span> ${eventName(e)}` : phase === 'finishing' ? t('event.finishingName', { event: eventName(e) }) : t('event.next', { event: eventName(e) })}</span><span>${dayName(e.date)}</span></div>
       <div class="time"><span class="cap">${e.start}</span></div>
       <div class="meta">${[t('event.until', { end: e.end }), e.location, t('event.nCourts', { n: e.courts })].filter(Boolean).join(' · ')}</div>
       ${r ? html`<div style="display:flex;align-items:center;gap:10px;margin-top:12px">
         <span style="display:flex">${going.slice(0, 5).map((p, i) => html`<span style="margin-left:${i ? -8 : 0}px">${face(view, p, p.id === myPlayer?.id ? 'me' : '')}</span>`)}</span>
         <span class="muted" style="font-size:13px">${t('event.counts', { going: c.going, notGoing: c.notGoing, noAnswer })}</span></div>` : ''}
       ${phase === 'upcoming' ? answerButtons(myPlayer ? r?.[myPlayer.id]?.status : null, myPlayer ? '' : noPlayer())
-        : html`<div class="go-on">${phase === 'live' ? t('event.tapToPlay') : t('event.seeResults')}${icon('chevron', 18)}</div>`}
+        : html`<div class="go-on">${phase === 'live' ? t('event.tapToPlay') : phase === 'finishing' ? t('event.seeLastMatches') : t('event.seeResults')}${icon('chevron', 18)}</div>`}
     </div>`;
   }
 
@@ -87,22 +87,27 @@ export function show(el, [clubId]) {
       <span class="grow"><strong>${eventName(e)}</strong><small>${details}</small></span>${chip}</a>`;
   }
 
-  // After its end time, the next event goes on while its last matches are played: they decide.
-  let nextMatches = null; // { id, list }
-  let loadingFor = null;
+  // After its end time, an event finishes its last matches: they decide when it has ended. Until
+  // they're known, it shows as finishing.
+  const matchesOf = {}; // event id → its matches
+  const loading = new Set();
   function loadMatches(e) {
-    if (loadingFor === e.id) return;
-    loadingFor = e.id;
+    if (loading.has(e.id)) return;
+    loading.add(e.id);
     Club.eventMatches(clubId, e.id).catch(() => null).then((list) => {
-      loadingFor = null;
-      nextMatches = { id: e.id, list };
+      loading.delete(e.id);
+      matchesOf[e.id] = list ?? [];
       screen.redraw();
     });
   }
+  function hasEnded(e) {
+    if (e.status === 'cancelled' || !Club.pastEnd(e)) return false;
+    if (!(e.id in matchesOf)) { loadMatches(e); return false; }
+    return Club.eventPhase(e, Date.now(), matchesOf[e.id]) === 'ended';
+  }
   const tick = setInterval(() => {
-    const e = events?.find((x) => x.id === nextMatches?.id);
-    if (e) loadMatches(e);
-    else screen.redraw();
+    (events ?? []).filter((e) => Club.pastEnd(e) && e.status !== 'cancelled').forEach(loadMatches);
+    screen.redraw();
   }, 60_000);
 
   // Starts once the club is open (signed in, and a member).

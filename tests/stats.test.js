@@ -51,11 +51,12 @@ test('after its end time, an event goes on while its last matches are played', (
   const e = { date: '2026-11-03', start: '20:00', end: '21:30', status: 'planned' };
   const ms = (time) => new Date(`2026-11-03T${time}:00`).getTime();
   const live = { status: 'live', startedAt: at(ms('21:20')), updatedAt: at(ms('21:40')) };
-  assert.equal(eventPhase(e, ms('21:45'), [live]), 'live', 'a match is still being played');
+  assert.equal(eventPhase(e, ms('21:45'), [live]), 'finishing', 'a match is still being played: it can be finished');
   assert.equal(eventPhase(e, ms('22:30'), [live]), 'ended', 'nobody scored that match for half an hour');
   const done = { status: 'finished', startedAt: at(ms('21:20')), finishedAt: at(ms('21:50')) };
-  assert.equal(eventPhase(e, ms('22:04'), [done]), 'live', 'less than 15 minutes after the last match');
+  assert.equal(eventPhase(e, ms('22:04'), [done]), 'finishing', 'less than 15 minutes after the last match');
   assert.equal(eventPhase(e, ms('22:05'), [done]), 'ended');
   assert.equal(eventPhase(e, ms('21:30'), []), 'ended', 'no matches: ends at its end time');
   assert.equal(eventPhase(e, ms('21:30')), 'ended', 'matches not known: ends at its end time');
+  assert.equal(eventPhase(e, ms('21:45'), [{ status: 'live' }]), 'ended', 'a match without times (never reached the server) keeps nothing going');
 });

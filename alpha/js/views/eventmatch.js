@@ -138,6 +138,8 @@ export function show(el, [clubId, eventId], { go }) {
 
   async function start(rules) {
     if (starting || !sides[0].length || !sides[1].length) return;
+    // After the end time no new match (the last ones can still be finished): open from an old link.
+    if (ev && Club.pastEnd(ev)) { toast(t('event.endedNoNew', { end: ev.end })); return; }
     starting = true;
     const state = { games: [{ firstServer: server, rallies: [] }] };
     const home = sides[0].map((p) => (p.id ? { id: p.id, name: p.name } : { name: p.name }));

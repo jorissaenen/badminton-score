@@ -14,7 +14,8 @@ const NEXT_KEY = `${EDITION.storageKey}-next`;
 function cachedNext(uid) {
   try {
     const c = JSON.parse(localStorage.getItem(NEXT_KEY));
-    return c?.uid === uid && c.event?.date >= new Date().toISOString().slice(0, 10) ? c.next : null;
+    // Not one that has ended meanwhile: the fresh look decides whether it's finishing its last matches.
+    return c?.uid === uid && c.event?.date >= new Date().toISOString().slice(0, 10) && !Club.pastEnd(c.event) ? c.next : null;
   } catch { return null; }
 }
 function cacheNext(uid, next) {
@@ -63,14 +64,14 @@ export function show(el, _params, { go }) {
     const mine = player ? registrations?.[player.id]?.status : null;
     // While it's on: LIVE, who's here, and a tap opens it to play; before: are you coming?
     const phase = Club.eventPhase(e, Date.now(), next.matches ?? null);
-    const on = phase === 'live' || phase === 'ended';
+    const on = phase !== 'upcoming';
     const meta = [on ? t('event.until', { end: e.end }) : t('event.dayUntil', { day: dayName(e.date), end: e.end }), e.location,
       registrations ? t(on ? 'event.nHere' : 'event.nGoing', { n: c.going }) : null].filter(Boolean).join(' · ');
     return html`<div class="event-card${phase === 'live' ? ' is-live' : ''}" role="link" tabindex="0" data-go="#/club/${club.id}/event/${e.id}">
-      <div class="line1"><span>${phase === 'live' ? html`<span class="chip live">${t('event.live')}</span> ${eventName(e)}` : phase === 'ended' ? t('event.endedName', { event: eventName(e) }) : t('event.next', { event: eventName(e) })}</span><span>${club.name}</span></div>
+      <div class="line1"><span>${phase === 'live' ? html`<span class="chip live">${t('event.live')}</span> ${eventName(e)}` : phase === 'finishing' ? t('event.finishingName', { event: eventName(e) }) : phase === 'ended' ? t('event.endedName', { event: eventName(e) }) : t('event.next', { event: eventName(e) })}</span><span>${club.name}</span></div>
       <div class="time"><span class="cap">${e.start}</span></div>
       <div class="meta">${meta}</div>
-      ${on ? html`<div class="go-on">${phase === 'live' ? t('event.tapToPlay') : t('event.seeResults')}${icon('chevron', 18)}</div>` : answerButtons(mine, player ? '' : noPlayer())}
+      ${on ? html`<div class="go-on">${phase === 'live' ? t('event.tapToPlay') : phase === 'finishing' ? t('event.seeLastMatches') : t('event.seeResults')}${icon('chevron', 18)}</div>` : answerButtons(mine, player ? '' : noPlayer())}
     </div>`;
   }
 

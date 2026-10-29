@@ -120,7 +120,7 @@ const top = (title, right = '') => html`<header class="screen-top"><img class="s
 // draw; Firestore reconnects by itself).
 const liveChip = () => {
   if (!navigator.onLine) return '';
-  return event && Club.eventPhase(event, Date.now(), matches) === 'live' ? html`<span class="chip live">${t('event.live')}</span>` : '';
+  return event && ['live', 'finishing'].includes(Club.eventPhase(event, Date.now(), matches)) ? html`<span class="chip live">${t('event.live')}</span>` : '';
 };
 // A match being played: a green dot, softly blinking; orange and still when no point came in for
 // LATE_MS (the phone scoring it may have lost its connection).

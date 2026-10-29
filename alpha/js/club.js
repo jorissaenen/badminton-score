@@ -435,14 +435,22 @@ export async function watchUpcoming(clubId, on, limit = 12) {
     .sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))), () => on([]));
 }
 
+// The club's next event: the one on now (or finishing its last matches), else the next one.
+// An event that has ended makes room for the next.
 export async function nextEvent(clubId) {
   const { db, F } = await cloud();
   const q = F.query(F.collection(db, 'clubs', clubId, 'events'),
     F.where('date', '>=', isoDate(new Date())), F.orderBy('date'), F.limit(5));
   const snap = await F.getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-    .filter((e) => e.status !== 'cancelled' && e.startsAt.toMillis() > Date.now() - 3 * 3600_000)
-    .sort((a, b) => a.startsAt.toMillis() - b.startsAt.toMillis())[0] ?? null;
+  const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    .filter((e) => e.status !== 'cancelled')
+    .sort((a, b) => a.startsAt.toMillis() - b.startsAt.toMillis());
+  for (const e of list) {
+    if (!pastEnd(e)) return e;
+    const matches = await eventMatches(clubId, e.id).catch(() => null);
+    if (eventPhase(e, Date.now(), matches) === 'finishing') return e;
+  }
+  return null;
 }
 
 export async function getEvent(clubId, eventId) {
@@ -598,10 +606,10 @@ export async function watchEventMatches(clubId, eventId, on) {
     .sort((a, b) => (a.startedAt?.toMillis?.() ?? Date.now()) - (b.startedAt?.toMillis?.() ?? Date.now()))), () => on([]));
 }
 
-// Before, during or after an event (in this device's time zone): 'upcoming', 'live', 'ended',
-// or 'cancelled'. With its matches, an event runs past its end time while a match is still
-// being played, or one started or finished less than WIND_DOWN ago; a match nobody scored for
-// STALE doesn't keep it going.
+// Before, during or after an event (in this device's time zone): 'upcoming', 'live', 'finishing',
+// 'ended' or 'cancelled'. Live until its end time. After it, 'finishing' while a match is still
+// being played, or one finished less than WIND_DOWN ago: those matches can be finished (and
+// screens stay on), but no new one starts. A match nobody scored for STALE doesn't count.
 export const WIND_DOWN = 15 * 60_000;
 const STALE = 30 * 60_000;
 const ms = (ts) => ts?.toMillis?.() ?? (typeof ts === 'number' ? ts : 0);
@@ -610,15 +618,15 @@ export function eventPhase(e, now = Date.now(), matches = null) {
   if (e.status === 'cancelled') return 'cancelled';
   if (now < startsAt(e.date, e.start).getTime()) return 'upcoming';
   if (now < startsAt(e.date, e.end).getTime()) return 'live';
-  return matches && now < lastActivity(matches, now) + WIND_DOWN ? 'live' : 'ended';
+  return matches && now < lastActivity(matches, now) + WIND_DOWN ? 'finishing' : 'ended';
 }
 
 // When the last thing happened in these matches: a match still being scored counts as now.
 export function lastActivity(matches, now = Date.now()) {
   let last = 0;
   for (const m of matches) {
-    const updated = ms(m.updatedAt) || ms(m.startedAt) || now; // just started here: not on the server yet
-    if (m.status === 'live' && now - updated < STALE) return now;
+    const updated = ms(m.updatedAt) || ms(m.startedAt);
+    if (m.status === 'live' && updated && now - updated < STALE) return now;
     last = Math.max(last, ms(m.finishedAt), ms(m.startedAt));
   }
   return last;

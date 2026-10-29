@@ -41,7 +41,7 @@ export function show(el, [clubId, eventId], { go }) {
     const e = event;
     const { admin, players, myPlayer } = v;
     const cancelled = e.status === 'cancelled';
-    const phase = Club.eventPhase(e, Date.now(), matches); // upcoming, live (also while the last matches go on), ended
+    const phase = Club.eventPhase(e, Date.now(), matches); // upcoming, live, finishing (the last matches), ended
     const mine = myPlayer ? regs[myPlayer.id] : null;
     const byName = (a, b) => a.name.localeCompare(b.name);
     const going = players.filter((p) => regs[p.id]?.status === 'going').sort(byName);
@@ -49,7 +49,7 @@ export function show(el, [clubId, eventId], { go }) {
     const noAnswer = players.filter((p) => !regs[p.id]).sort(byName);
     const at = e.remindAt?.toDate();
     // While it's on (and after), who's here instead of who's coming; score keepers mark that too.
-    const during = phase === 'live' || phase === 'ended';
+    const during = ['live', 'finishing', 'ended'].includes(phase);
     const canMark = !cancelled && (admin || (during && Club.isKeeper(v.myRole)));
     const person = (p) => html`<button type="button" class="row" data-player="${p.id}" ${canMark ? '' : raw('disabled style="cursor:default"')}>
         ${face(v, p, p.id === myPlayer?.id ? 'me' : '')}<span class="grow"><strong>${p.name}${p.id === myPlayer?.id ? html` <span class="muted" style="font-weight:400">${t('common.you')}</span>` : ''}</strong>
@@ -65,9 +65,10 @@ export function show(el, [clubId, eventId], { go }) {
         <p class="sub">${t('event.until', { end: e.end })}</p>
         ${cancelled ? html`<p class="chip notgoing" style="display:inline-block;margin:10px 4px 0">${t('event.cancelled')}</p>` : ''}
         ${phase === 'live' ? html`<p class="chip live" style="display:inline-flex;margin:10px 4px 0">${t('event.live')}</p>` : ''}
+        ${phase === 'finishing' ? html`<p class="chip" style="display:inline-block;margin:10px 4px 0">${t('event.finishing')}</p>` : ''}
         ${phase === 'ended' ? html`<p class="chip" style="display:inline-block;margin:10px 4px 0">${t('event.ended')}</p>` : ''}
       </div>
-      ${phase === 'live' || phase === 'ended' ? playing(v) : ''}
+      ${during ? playing(v) : ''}
       ${canLinkScreens(v.myRole) && (phase === 'live' || phase === 'upcoming') ? screensSection(screens, v.club.sport ?? 'badminton') : ''}
       ${admin && (phase === 'live' || phase === 'upcoming') ? html`<section><h2 class="h3">${t('screen.pinned')}</h2>
         <div class="inline"><input type="text" data-pinned maxlength="280" value="${pinned ?? e.pinned ?? ''}" placeholder="${t('screen.pinnedExample')}" style="margin:0">
@@ -124,7 +125,9 @@ export function show(el, [clubId, eventId], { go }) {
   // During and after the event: start a match (while it's on), the matches played and being
   // played, and the statistics so far (final once the event has ended).
   function playing(v) {
-    const live = Club.eventPhase(event, Date.now(), matches) === 'live';
+    const phase = Club.eventPhase(event, Date.now(), matches);
+    const live = phase === 'live'; // new matches only while it's on
+    const going = live || phase === 'finishing';
     const mineHere = state.link?.eventId === eventId && !isFinished();
     const shown = matches.filter((m) => m.status !== 'stopped');
     const now = shown.filter((m) => m.status === 'live');
@@ -143,11 +146,13 @@ export function show(el, [clubId, eventId], { go }) {
         ${m.status === 'live' ? html`<span class="chip live">${t('event.liveShort')}</span>` : ''}</button>`;
     };
     return html`
-      ${live ? html`<div class="btns">${mineHere ? html`<button type="button" class="btn primary" data-continue>${t('event.continueScoring')}</button>`
-        : html`<a class="btn primary" href="#/club/${clubId}/event/${eventId}/match">${icon('plus', 20)}${t('event.startMatch')}</a>`}</div>` : ''}
+      ${going && mineHere ? html`<div class="btns"><button type="button" class="btn primary" data-continue>${t('event.continueScoring')}</button></div>`
+        : live ? html`<div class="btns"><a class="btn primary" href="#/club/${clubId}/event/${eventId}/match">${icon('plus', 20)}${t('event.startMatch')}</a></div>`
+        : going ? html`<div class="btns"><button type="button" class="btn primary" disabled>${icon('plus', 20)}${t('event.startMatch')}</button></div>
+          <p class="note" style="margin:0 4px">${t(view.admin ? 'event.endedNoNewAdmin' : 'event.endedNoNew', { end: event.end })}</p>` : ''}
       <section><h2 class="h3">${t('event.matchesN', { n: shown.length })}</h2><div class="card">
         ${shown.length ? [...now, ...done].map(row) : html`<p class="empty">${live ? t('event.noMatchesYet') : t('event.noMatches')}</p>`}</div></section>
-      ${stats.length ? html`<section><h2 class="h3">${live ? t('event.statsSoFar') : t('event.stats')}</h2><div class="card">
+      ${stats.length ? html`<section><h2 class="h3">${going ? t('event.statsSoFar') : t('event.stats')}</h2><div class="card">
         <div class="row muted" style="min-height:0;font-size:12px;font-weight:600;letter-spacing:.06em">
           <span class="grow"></span><span class="stat">${t('stats.played')}</span><span class="stat">${t('stats.won')}</span><span class="stat">${t('stats.diff')}</span></div>
         ${stats.map((r, i) => html`<div class="row" style="min-height:48px"><span class="muted display" style="width:22px">${i + 1}</span>${face(v, r, r.id && r.id === v.myPlayer?.id ? 'me' : '')}
@@ -213,7 +218,7 @@ export function show(el, [clubId, eventId], { go }) {
   }
 
   async function answerFor(p) {
-    const during = ['live', 'ended'].includes(Club.eventPhase(event, Date.now(), matches));
+    const during = ['live', 'finishing', 'ended'].includes(Club.eventPhase(event, Date.now(), matches));
     if (!p || !(view.admin || (during && Club.isKeeper(view.myRole)))) return;
     const answer = await choose(p.name, t(during ? 'event.markFor' : 'event.answerFor'), [
       { label: t(during ? 'answer.here' : 'answer.going'), value: 'going', style: 'primary' },
