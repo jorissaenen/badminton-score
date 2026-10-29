@@ -354,23 +354,33 @@ export function render() {
   fitTiles();
 }
 
-// The tiles fill the space they have: two tiles per side, as tall as fits.
+// The tiles take the space they have, with room around them, on any screen from a phone to a TV.
+// Names, dots and SERVES scale with the tiles (see skoor.css), so one side is about 1.5 tiles tall
+// and 1.46 tiles wide. --u scales the top bar and buttons with the screen.
+const ROOM = 0.8; // share of a side the score may fill; the rest is breathing space
+
+// The height of one side's content for tiles of height h (mirrors the sizes in skoor.css).
+const sideHeight = (h) => h + Math.max(20, 0.15 * h) + Math.max(8, 0.045 * h) + Math.max(16, 0.1 * h) + 3 * Math.max(10, 0.075 * h);
+
 function fitTiles() {
   const board = $('board');
   if (board.hidden) return;
   const w = window.innerWidth;
   const h = window.innerHeight;
+  const u = Math.min(2.6, Math.max(1, Math.min(w, h) / 430));
   const landscape = document.documentElement.classList.contains('landscape');
-  const top = 64; // the bar with the buttons
-  let tileH;
-  if (landscape) {
-    const sideW = (w - 48) / 2 - 24;
-    tileH = Math.min((h - top - 90) * 0.98, (sideW - 12) / 2 / 0.7);
-  } else {
-    const sideH = (h - top - 30) / 2 - 86;
-    tileH = Math.min(sideH, (w - 48 - 12) / 2 / 0.7);
+  const top = (44 + 12) * u; // the bar with the buttons
+  const sideW = landscape ? (w - 48 * u) / 2 : w;
+  const sideH = landscape ? h - top : (h - top) / 2;
+  let lo = 40;
+  let hi = 2000;
+  while (hi - lo > 1) { // the largest tiles that fit, with room around them
+    const mid = (lo + hi) / 2;
+    if (sideHeight(mid) <= sideH * ROOM && 1.46 * mid <= sideW * ROOM) lo = mid;
+    else hi = mid;
   }
-  board.style.setProperty('--tile-h', `${Math.max(60, Math.floor(tileH))}px`);
+  board.style.setProperty('--tile-h', `${Math.floor(lo)}px`);
+  board.style.setProperty('--u', u.toFixed(3));
 }
 // Once more after the layout has settled: js/layout.js switches portrait/landscape a moment later.
 window.addEventListener('resize', () => {
