@@ -166,8 +166,39 @@ function drawCourt() {
   const title = view.tiebreak ? t('board.tiebreak') : t(tennis ? 'board.setN' : 'board.gameN', { n: live.state.games.length });
   root.innerHTML = html`${top(`${label} · ${title}`, html`${link.announce && !soundOn ? soundHint() : ''}${navigator.onLine && isLate(live) ? liveDot(live) : liveChip()}`)}
     <div class="sides">${side(0)}<div class="net"></div>${side(1)}</div>
-`.s;
+    ${news().length ? html`<footer class="news" id="news">${newsItem()}</footer>` : ''}`.s;
 }
+
+// News along the bottom of a court screen, one item at a time, changing every 8 seconds (no
+// scrolling text: it has to be readable from the court in a glance): the organisers' message and
+// results from the other courts. "Next on this court" joins it once matches are planned ahead.
+let newsAt = 0;
+function news() {
+  if (link?.mode !== 'court') return [];
+  const items = [];
+  if (event?.pinned) items.push({ kind: 'pinned', text: event.pinned });
+  const sport = sportOf(club?.sport);
+  matches.filter((m) => m.status === 'finished' && m.court !== link.court)
+    .sort((a, b) => (b.finishedAt?.toMillis?.() ?? 0) - (a.finishedAt?.toMillis?.() ?? 0)).slice(0, 3)
+    .forEach((m) => items.push({ kind: 'result', where: m.court ? t(sport.id === 'tabletennis' ? 'screen.tableN' : 'screen.courtN', { n: m.court }) : '', m }));
+  return items;
+}
+function newsItem() {
+  const items = news();
+  if (!items.length) return '';
+  const it = items[newsAt % items.length];
+  const body = it.kind === 'pinned'
+    ? html`<span class="news-label">${t('screen.fromOrganisers')}</span><span>${it.text}</span>`
+    : html`<span class="news-label">${it.where}</span><strong>${names(it.m)[it.m.winner ?? 0]}</strong><span class="ov-vs">${t('screen.vs')}</span><span class="muted">${names(it.m)[1 - (it.m.winner ?? 0)]}</span>
+      <span class="news-score">${M.gameScores(it.m.state, it.m.rules).map((g) => (it.m.winner === 1 ? [g[1], g[0]] : g).join('–')).join('  ')}</span>`;
+  return html`<span class="news-item">${body}</span>${items.length > 1 ? html`<span class="news-dots">${items.map((_, i) => html`<i class="${i === newsAt % items.length ? 'on' : ''}"></i>`)}</span>` : ''}`;
+}
+setInterval(() => {
+  const el = document.getElementById('news');
+  if (!el) return;
+  newsAt += 1;
+  el.innerHTML = newsItem().s;
+}, 8_000);
 
 // The last match of a free court, as a small scoreboard: a row per side, a column per game; the
 // winner of each game and of the match in white, the rest grey.

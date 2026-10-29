@@ -644,6 +644,7 @@ export default {
   'screen.lastMatchAt': 'Laatste wedstrijd · {time}',
   'screen.noUpdate': 'Geen update sinds {n} min',
   'screen.reconnecting': 'Opnieuw verbinden…',
+  'screen.fromOrganisers': 'Van de organisatie',
   'screen.latest': 'Laatste uitslagen',
   'screen.noCourt': 'Geen veld',
   'screen.soundHint': 'Geluid uit: druk op OK of tik',

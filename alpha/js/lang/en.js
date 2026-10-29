@@ -646,6 +646,7 @@ export default {
   'screen.lastMatchAt': 'Last match · {time}',
   'screen.noUpdate': 'No update for {n} min',
   'screen.reconnecting': 'Reconnecting…',
+  'screen.fromOrganisers': 'From the organisers',
   'screen.latest': 'Latest results',
   'screen.noCourt': 'No court',
   'screen.soundHint': 'Sound off: press OK or tap',
