@@ -149,7 +149,8 @@ async function press(db, me, body, now) {
     const m = d.data();
     const { rules, state } = m;
     const refuse = (reason) => ok({ counted: false, reason, by: m.lastBy !== me.uid ? m.lastByName ?? '' : '', ...summary(d.id, club, m, now) });
-    if (m.status !== 'live') return refuse('over');
+    // A finished match takes one thing: undoing its last point, which reopens it (as on the phone).
+    if (m.status !== 'live' && !(m.status === 'finished' && action === 'undo')) return refuse('over');
     if ((m.version ?? 0) !== basedOn) return refuse('stale');
     const point = action.startsWith('point');
     if (point && m.lastPointAt && now < m.lastPointAt.toMillis() + FREEZE_MS) return refuse('frozen');

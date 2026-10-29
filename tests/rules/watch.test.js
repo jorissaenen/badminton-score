@@ -147,6 +147,13 @@ describe('scoring with a watch', () => {
     assert.equal(m.lastByName, 'Joris');
     const late = await call('POST', '/watch/press', { token, body: { club: C, match: 'm1', basedOn: 1, action: 'point1' } });
     assert.equal(late.json.reason, 'over');
+    // Undoing the last point (BACK on the match-won screen) reopens it.
+    const undo = await call('POST', '/watch/press', { token, body: { club: C, match: 'm1', basedOn: 1, action: 'undo' } });
+    assert.equal(undo.json.counted, true);
+    assert.equal(undo.json.matchWinner, null);
+    assert.equal(undo.json.tiles[0], '20');
+    const reopened = (await db.doc(`clubs/${C}/matches/m1`).get()).data();
+    assert.deepEqual([reopened.status, reopened.winner], ['live', null]);
   });
 
   test('not in someone else\'s club', async () => {

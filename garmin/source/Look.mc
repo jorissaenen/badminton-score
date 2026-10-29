@@ -1,6 +1,7 @@
 import Toybox.Attention;
 import Toybox.Graphics;
 import Toybox.Lang;
+import Toybox.Math;
 import Toybox.System;
 
 //! Skoor's colours and the buzzes, the same on every screen of the app.
@@ -54,6 +55,86 @@ module Look {
     function text(dc as Graphics.Dc, x as Numeric, y as Numeric, font as Graphics.FontType, s as String, color as Number) as Void {
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x.toNumber(), y.toNumber(), font, s, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    //! A text starting at x (left-aligned), with its middle at y.
+    function textLeft(dc as Graphics.Dc, x as Numeric, y as Numeric, font as Graphics.FontType, s as String, color as Number) as Void {
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x.toNumber(), y.toNumber(), font, s, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    //! How wide the screen is at height y, less a margin on both sides: on a round screen less
+    //! near the top and the bottom.
+    function widthAt(dc as Graphics.Dc, y as Numeric, margin as Number) as Number {
+        var w = dc.getWidth();
+        if (System.getDeviceSettings().screenShape != System.SCREEN_SHAPE_ROUND) {
+            return w - 2 * margin;
+        }
+        var r = w / 2.0;
+        var dy = y - dc.getHeight() / 2.0;
+        var half = dy * dy < r * r ? Math.sqrt(r * r - dy * dy) : 0;
+        return (2 * half).toNumber() - 2 * margin;
+    }
+
+    //! "Joris Saenen & Maarten Loyens" → "Joris & Maarten".
+    function firstNames(side as String) as String {
+        var out = "";
+        var rest = side;
+        while (true) {
+            var amp = rest.find(" & ");
+            var part = amp == null ? rest : rest.substring(0, amp) as String;
+            var space = part.find(" ");
+            out += space == null ? part : part.substring(0, space) as String;
+            if (amp == null) {
+                return out;
+            }
+            out += " & ";
+            rest = rest.substring(amp + 3, rest.length()) as String;
+        }
+        return out;
+    }
+
+    //! The text, cut short with "…" when it is wider than maxW.
+    function cut(dc as Graphics.Dc, s as String, font as Graphics.FontType, maxW as Number) as String {
+        if (dc.getTextWidthInPixels(s, font) <= maxW) {
+            return s;
+        }
+        for (var n = s.length() - 1; n > 1; n--) {
+            var t = (s.substring(0, n) as String) + "…";
+            if (dc.getTextWidthInPixels(t, font) <= maxW) {
+                return t;
+            }
+        }
+        return "…";
+    }
+
+    //! A side's name that fits in maxW: the full names, else first names, else first names cut short.
+    function name(dc as Graphics.Dc, side as String, font as Graphics.FontType, maxW as Number, upper as Boolean) as String {
+        var full = upper ? side.toUpper() : side;
+        if (dc.getTextWidthInPixels(full, font) <= maxW) {
+            return full;
+        }
+        var first = firstNames(side);
+        return cut(dc, upper ? first.toUpper() : first, font, maxW);
+    }
+
+    //! Marks on the edge next to the START (top right) and BACK (bottom right) buttons, so the
+    //! hints on screen point at the button to press. Round screens only.
+    function buttonMarks(dc as Graphics.Dc, startColor as Number?, backColor as Number?) as Void {
+        if (System.getDeviceSettings().screenShape != System.SCREEN_SHAPE_ROUND) {
+            return;
+        }
+        var c = dc.getWidth() / 2;
+        dc.setPenWidth(6);
+        if (startColor != null) {
+            dc.setColor(startColor, Graphics.COLOR_TRANSPARENT);
+            dc.drawArc(c, c, c - 3, Graphics.ARC_COUNTER_CLOCKWISE, 22, 38);
+        }
+        if (backColor != null) {
+            dc.setColor(backColor, Graphics.COLOR_TRANSPARENT);
+            dc.drawArc(c, c, c - 3, Graphics.ARC_COUNTER_CLOCKWISE, 322, 338);
+        }
+        dc.setPenWidth(1);
     }
 
     //! A card in the middle of the screen with a big title and a line under it: orange for "Not

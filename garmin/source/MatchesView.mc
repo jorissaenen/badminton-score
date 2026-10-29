@@ -101,7 +101,10 @@ class MatchesView extends WatchUi.View {
             var tiles = m["tiles"] as Array;
             var court = m["court"] == null ? "" : "COURT " + (m["court"] as Number).toString() + "  ";
             Look.text(dc, w / 2, y + (rowH - 6) * 0.32, Graphics.FONT_TINY, court + Score.plain(tiles[0] as String) + "–" + Score.plain(tiles[1] as String), Look.WHITE);
-            Look.text(dc, w / 2, y + (rowH - 6) * 0.72, Graphics.FONT_XTINY, (m["home"] as String) + " – " + (m["away"] as String), Look.MUTED);
+            // Both sides on one line, as long as fits in the row: full names, else first names.
+            var half = (rw - 24 - dc.getTextWidthInPixels(" – ", Graphics.FONT_XTINY)) / 2;
+            var names = Look.name(dc, m["home"] as String, Graphics.FONT_XTINY, half, false) + " – " + Look.name(dc, m["away"] as String, Graphics.FONT_XTINY, half, false);
+            Look.text(dc, w / 2, y + (rowH - 6) * 0.72, Graphics.FONT_XTINY, names, Look.WHITE);
             y += rowH;
         }
     }

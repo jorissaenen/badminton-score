@@ -206,7 +206,8 @@ class ScoreView extends WatchUi.View {
         var w = dc.getWidth();
         var serving = (s["server"] as Number) == team;
         var name = team == 0 ? s["home"] as String : s["away"] as String;
-        Look.text(dc, w / 2, nameY, Graphics.FONT_XTINY, name.toUpper(), serving ? Look.GREEN : Look.WHITE);
+        var shown = Look.name(dc, name, Graphics.FONT_XTINY, Look.widthAt(dc, nameY, 14), true);
+        Look.text(dc, w / 2, nameY, Graphics.FONT_XTINY, shown, serving ? Look.GREEN : Look.WHITE);
         var past = s["past"] as Array;
         var tilesText = (s["tiles"] as Array)[team] as String;
         var pastW = past.size() * (th * 0.42).toNumber();
@@ -229,6 +230,17 @@ class ScoreView extends WatchUi.View {
         var now = System.getTimer();
         dc.setColor(Look.BLACK, Look.BLACK);
         dc.clear();
+
+        // A game or the match won: a screen of its own (no card over the score).
+        if (s["gameOver"] == true) {
+            if (s["matchWinner"] != null) {
+                drawMatchWon(dc);
+            } else {
+                drawGameWon(dc);
+            }
+            cards(dc, now);
+            return;
+        }
 
         // Top: LIVE or OFFLINE, and which game.
         var isLive = live();
@@ -259,54 +271,112 @@ class ScoreView extends WatchUi.View {
             Look.text(dc, w / 2, (h * 0.90).toNumber(), Graphics.FONT_XTINY, "COURT " + (s["court"] as Number).toString(), Look.FAINT);
         }
 
-        // A game or the match won.
-        if (s["gameOver"] == true) {
-            drawOver(dc);
-        }
-        // Not counted (orange), or scoring paused (grey).
+        cards(dc, now);
+    }
+
+    //! Not counted (orange), or scoring paused (grey), over whatever is on screen.
+    function cards(dc as Graphics.Dc, now as Number) as Void {
         if (refusedText != null && now < refusedUntil) {
             Look.card(dc, "NOT COUNTED", refusedText as String, true);
-        } else if (!isLive) {
+        } else if (!live()) {
             Look.card(dc, "SCORING PAUSED", "No connection: checking…", false);
         }
     }
 
-    function drawOver(dc as Graphics.Dc) as Void {
+    //! The scores of all games, the one just finished last, as [team 1, team 2] numbers.
+    function allGames() as Array {
+        var games = (s["past"] as Array).slice(0, null) as Array;
+        var tiles = s["tiles"] as Array;
+        games.add([Score.plain(tiles[0] as String).toNumber(), Score.plain(tiles[1] as String).toNumber()]);
+        return games;
+    }
+
+    //! Game won (more games to play): who won it, the score, and START for the next game.
+    function drawGameWon(dc as Graphics.Dc) as Void {
         var w = dc.getWidth();
         var h = dc.getHeight();
-        var cw = (w * 0.84).toNumber();
-        var ch = (h * 0.46).toNumber();
-        var x = (w - cw) / 2;
-        var y = (h - ch) / 2;
-        dc.setColor(Look.BLACK, Look.BLACK);
-        dc.fillRoundedRectangle(x - 4, y - 4, cw + 8, ch + 8, 20);
-        dc.setColor(Look.CARD, Look.CARD);
-        dc.fillRoundedRectangle(x, y, cw, ch, 16);
-        var matchWinner = s["matchWinner"];
-        var winner = matchWinner != null ? matchWinner as Number : s["gameWinner"] as Number;
-        var name = (winner == 0 ? s["home"] : s["away"]) as String;
-        var scores = (s["past"] as Array).slice(0, null);
-        var tiles = s["tiles"] as Array;
-        if (matchWinner != null) {
-            Look.text(dc, w / 2, y + ch * 0.17, Graphics.FONT_XTINY, name.toUpper() + " WIN", Look.WHITE);
-        } else {
-            Look.text(dc, w / 2, y + ch * 0.17, Graphics.FONT_XTINY, "GAME " + (s["gameNo"] as Number).toString() + " · " + name.toUpper(), Look.WHITE);
-        }
-        // The games as columns: a row per side, each game's winner white.
-        scores.add([Score.plain(tiles[0] as String).toNumber(), Score.plain(tiles[1] as String).toNumber()]);
-        var col = (cw * 0.16).toNumber();
-        var x0 = w / 2 - (scores.size() * col) / 2 + col / 2;
-        for (var team = 0; team < 2; team++) {
-            var ry = y + ch * (team == 0 ? 0.40 : 0.60);
-            for (var i = 0; i < scores.size(); i++) {
-                var g = scores[i] as Array;
-                var mine = g[team];
-                var theirs = g[1 - team];
-                var won = mine != null && theirs != null && (mine as Number) > (theirs as Number);
-                Look.text(dc, x0 + i * col, ry, Graphics.FONT_TINY, mine == null ? "–" : (mine as Number).toString(), won ? Look.WHITE : Look.FAINT);
+        var winner = s["gameWinner"] as Number;
+        var game = (allGames()[(s["gameNo"] as Number) - 1]) as Array;
+        Look.text(dc, w / 2, h * 0.20, Graphics.FONT_XTINY, "GAME " + (s["gameNo"] as Number).toString(), Look.MUTED);
+        var who = (winner == 0 ? s["home"] : s["away"]) as String;
+        Look.text(dc, w / 2, h * 0.32, Graphics.FONT_SMALL, Look.name(dc, who, Graphics.FONT_SMALL, Look.widthAt(dc, h * 0.32, 14), true), Look.WHITE);
+        // The score, the winner's first: two numbers and a dash between (number fonts have digits only).
+        var font = Graphics.FONT_NUMBER_MEDIUM;
+        var a = (game[winner] as Number).toString();
+        var b = (game[1 - winner] as Number).toString();
+        var gap = 14;
+        var aw = dc.getTextWidthInPixels(a, font);
+        var bw = dc.getTextWidthInPixels(b, font);
+        var x = (w - aw - bw - 2 * gap - 12) / 2;
+        var y = (h * 0.50).toNumber();
+        Look.textLeft(dc, x, y, font, a, Look.WHITE);
+        dc.setColor(Look.MUTED, Look.MUTED);
+        dc.fillRectangle(x + aw + gap, y - 2, 12, 4);
+        Look.textLeft(dc, x + aw + 2 * gap + 12, y, font, b, Look.WHITE);
+        var won = s["won"] as Array;
+        Look.text(dc, w / 2, h * 0.64, Graphics.FONT_XTINY, "GAMES " + (won[0] as Number).toString() + "–" + (won[1] as Number).toString(), Look.MUTED);
+        // START: next game (green, as the mark at the button); BACK: undo.
+        var bw2 = (w * 0.56).toNumber();
+        var by = (h * 0.74).toNumber();
+        dc.setColor(Look.GREEN, Look.GREEN);
+        dc.fillRoundedRectangle((w - bw2) / 2, by, bw2, 32, 16);
+        Look.text(dc, w / 2, by + 16, Graphics.FONT_TINY, "Next game", Look.BLACK);
+        Look.text(dc, w / 2, h * 0.90, Graphics.FONT_XTINY, "BACK: undo", Look.MUTED);
+        Look.buttonMarks(dc, Look.GREEN, Look.MUTED);
+    }
+
+    //! Match won: who, and every game as a column (each game's winner white), then Done.
+    function drawMatchWon(dc as Graphics.Dc) as Void {
+        var w = dc.getWidth();
+        var h = dc.getHeight();
+        var winner = s["matchWinner"] as Number;
+        var who = (winner == 0 ? s["home"] : s["away"]) as String;
+        // "JORIS & MAARTEN WIN": a smaller font before the names get shorter.
+        var titleY = h * 0.20;
+        var fonts = [Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY];
+        for (var f = 0; f < fonts.size(); f++) {
+            var font = fonts[f] as Graphics.FontType;
+            var room = Look.widthAt(dc, titleY, 16) - dc.getTextWidthInPixels(" WIN", font);
+            var title = Look.name(dc, who, font, room, true);
+            if (f == fonts.size() - 1 || title.find("…") == null) {
+                Look.text(dc, w / 2, titleY, font, title + " WIN", Look.WHITE);
+                break;
             }
         }
-        Look.text(dc, w / 2, y + ch * 0.84, Graphics.FONT_XTINY, matchWinner != null ? "START: done · BACK: undo" : "START: next game", Look.GREEN);
+
+        var games = allGames();
+        var tableW = Look.widthAt(dc, h * 0.47, 12);
+        var colW = (w * 0.14).toNumber();
+        var nameW = tableW - games.size() * colW - 8;
+        var x0 = (w - tableW) / 2;
+        var cx0 = x0 + nameW + 8 + colW / 2;
+        for (var i = 0; i < games.size(); i++) {
+            Look.text(dc, cx0 + i * colW, h * 0.31, Graphics.FONT_XTINY, (i + 1).toString(), Look.MUTED);
+        }
+        for (var team = 0; team < 2; team++) {
+            var ry = h * (team == 0 ? 0.41 : 0.55);
+            var side = (team == 0 ? s["home"] : s["away"]) as String;
+            Look.textLeft(dc, x0, ry, Graphics.FONT_XTINY, Look.cut(dc, Look.firstNames(side), Graphics.FONT_XTINY, nameW), team == winner ? Look.WHITE : Look.MUTED);
+            for (var i = 0; i < games.size(); i++) {
+                var g = games[i] as Array;
+                var mine = g[team] as Number;
+                var theirs = g[1 - team] as Number;
+                Look.text(dc, cx0 + i * colW, ry, Graphics.FONT_MEDIUM, mine.toString(), mine > theirs ? Look.WHITE : Look.FAINT);
+            }
+        }
+        dc.setColor(Look.LINE, Look.LINE);
+        dc.fillRectangle(x0, (h * 0.48).toNumber(), tableW, 1);
+        Look.text(dc, w / 2, h * 0.66, Graphics.FONT_XTINY, "Saved to the club", Look.MUTED);
+        // START: done (outlined); BACK: undo the last point.
+        var bw = (w * 0.44).toNumber();
+        var by = (h * 0.74).toNumber();
+        dc.setColor(Look.WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(2);
+        dc.drawRoundedRectangle((w - bw) / 2, by, bw, 32, 16);
+        dc.setPenWidth(1);
+        Look.text(dc, w / 2, by + 16, Graphics.FONT_TINY, "Done", Look.WHITE);
+        Look.text(dc, w / 2, h * 0.90, Graphics.FONT_XTINY, "BACK: undo", Look.MUTED);
+        Look.buttonMarks(dc, Look.WHITE, Look.MUTED);
     }
 }
 
