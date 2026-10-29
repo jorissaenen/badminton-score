@@ -93,7 +93,24 @@ const tiles = (text, on) => [...text].map((d) => html`<span class="tile${on ? ' 
 // see the design board), what it shows, and LIVE.
 const top = (title, right = '') => html`<header class="screen-top"><img class="screen-logo" src="../icons/skoor-logo.svg" alt="Skoor">
   <span class="display">${title}</span><span class="screen-right">${right}</span></header>`;
-const liveChip = () => (event && Club.eventPhase(event, Date.now(), matches) === 'live' ? html`<span class="chip live">${t('event.live')}</span>` : '');
+// LIVE while the event is on; while the screen has no connection, an orange note instead (Firestore
+// reconnects by itself).
+const liveChip = () => {
+  if (!navigator.onLine) return html`<span class="chip late"><span class="dot late"></span>${t('screen.reconnecting')}</span>`;
+  return event && Club.eventPhase(event, Date.now(), matches) === 'live' ? html`<span class="chip live">${t('event.live')}</span>` : '';
+};
+// A match being played: a green dot, softly blinking; orange and still when no point came in for
+// LATE_MS (the phone scoring it may have lost its connection).
+const LATE_MS = 3 * 60_000;
+const quietFor = (m) => Date.now() - (m.updatedAt?.toMillis?.() ?? Date.now());
+const isLate = (m) => quietFor(m) >= LATE_MS;
+function liveDot(m) {
+  const quiet = quietFor(m);
+  if (quiet < LATE_MS) return html`<span class="dot live" role="img" aria-label="${t('event.live')}"></span>`;
+  return html`<span class="ov-state late"><span class="dot late"></span>${t('screen.noUpdate', { n: Math.floor(quiet / 60_000) })}</span>`;
+}
+window.addEventListener('online', () => draw());
+window.addEventListener('offline', () => draw());
 
 function slides() {
   const s = SLIDES[slide % SLIDES.length];
@@ -131,7 +148,7 @@ function drawCourt() {
       <div class="tiles">${tiles(view.tiles[s], !over && srv === s)}</div>
       <span class="serves">${t('board.serves')}</span></section>`;
   const title = view.tiebreak ? t('board.tiebreak') : t(tennis ? 'board.setN' : 'board.gameN', { n: live.state.games.length });
-  root.innerHTML = html`${top(`${label} · ${title}`, liveChip())}
+  root.innerHTML = html`${top(`${label} · ${title}`, navigator.onLine && isLate(live) ? liveDot(live) : liveChip())}
     <div class="sides">${side(0)}<div class="net"></div>${side(1)}</div>
     ${link.announce && !soundOn ? html`<button type="button" class="sound-on" data-sound>${t('screen.tapForSound')}</button>` : ''}`.s;
   root.querySelector('[data-sound]')?.addEventListener('click', () => { Audio.unlock(); Audio.keepOutputAwake(true); soundOn = true; draw(); });
@@ -143,10 +160,10 @@ function lastResult(m) {
   const games = M.gameScores(m.state, m.rules);
   const row = (s) => html`<div class="lr-row${m.winner === s ? ' won' : ''}"><span class="lr-name">${names(m)[s]}</span>
     ${games.map((g) => html`<span class="lr-game display${g[s] > g[1 - s] ? ' won' : ''}">${g[s]}</span>`)}
-    <span class="lr-mark" ${m.winner === s ? raw(`role="img" aria-label="${t('screen.won')}"`) : ''}>${m.winner === s ? raw('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>') : ''}</span></div>`;
-  return html`<section class="last-result">
-    <div class="lr-head"><span class="lr-name">${t('screen.lastMatch')}</span>${games.map((_, i) => html`<span class="lr-game">${i + 1}</span>`)}<span class="lr-mark"></span></div>
-    <div class="lr-card">${row(0)}${row(1)}</div></section>`;
+    </div>`;
+  return html`<section class="last-result"><div class="lr-card">
+    <div class="lr-head"><span class="lr-name">${t('screen.lastMatchAt', { time: m.finishedAt?.toDate ? m.finishedAt.toDate().toTimeString().slice(0, 5) : '' })}</span>${games.map((_, i) => html`<span class="lr-game">${i + 1}</span>`)}</div>
+    ${row(0)}${row(1)}</div></section>`;
 }
 
 // The whole event: every court, the pinned message, statistics and the latest results.
@@ -159,14 +176,22 @@ function drawOverview() {
   const recent = done.slice().sort((a, b) => (b.finishedAt?.toMillis?.() ?? 0) - (a.finishedAt?.toMillis?.() ?? 0)).slice(0, 8);
   const word = (c) => (c ? t(sport.id === 'tabletennis' ? 'screen.tableN' : 'screen.courtN', { n: c }) : '');
   const at = (ts) => (ts?.toDate ? ts.toDate().toTimeString().slice(0, 5) : '');
+  // Every court the same size. Being played: a green dot (orange when no point came in for a few
+  // minutes). Free: the last match played there, in grey.
   const court = (c) => {
     const m = live.filter((x) => x.court === c).at(-1);
-    const label = t(sport.id === 'tabletennis' ? 'screen.tableN' : 'screen.courtN', { n: c });
-    if (!m) return html`<div class="ov-court free"><span class="ov-label">${label}</span><span class="muted">${t('screen.free')}</span></div>`;
+    const label = word(c);
+    if (!m) {
+      const last = done.filter((x) => x.court === c).sort((a, b) => (b.finishedAt?.toMillis?.() ?? 0) - (a.finishedAt?.toMillis?.() ?? 0))[0];
+      const games = last ? M.gameScores(last.state, last.rules) : [];
+      return html`<div class="ov-court free"><div class="ov-court-top"><span class="ov-label">${label}</span><span class="ov-state">${t('screen.free')}</span></div>
+        ${last ? html`<div class="ov-last"><span class="ov-last-label">${t('screen.lastMatchAt', { time: at(last.finishedAt) })}</span>
+          ${[0, 1].map((s) => html`<div class="ov-r-row${last.winner === s ? ' won' : ''}"><span class="ov-who">${names(last)[s]}</span>${games.map((g) => html`<span class="ov-g${g[s] > g[1 - s] ? ' won' : ''}">${g[s]}</span>`)}</div>`)}</div>` : ''}</div>`;
+    }
     const v = M.display(m.state, m.rules);
     const srv = M.server(M.currentGame(m.state), m.rules, m.state);
     const n = names(m);
-    return html`<div class="ov-court"><span class="ov-label">${label}</span>
+    return html`<div class="ov-court"><div class="ov-court-top"><span class="ov-label">${label}</span>${liveDot(m)}</div>
       ${[0, 1].map((s) => html`<div class="ov-side"><span class="ov-name${srv === s ? ' serving' : ''}">${n[s]}</span><span class="ov-tiles">${tiles(v.tiles[s], srv === s)}</span></div>`)}</div>`;
   };
   const noCourt = live.filter((m) => !m.court || m.court > courts);
@@ -283,7 +308,9 @@ async function start() {
   });
 }
 
-setInterval(() => { slide += 1; if (!link || (link.mode === 'court' && !matches.some((m) => m.court === link.court && m.status === 'live'))) draw(); }, 12_000);
+setInterval(() => { slide += 1; if (!link || link.mode === 'overview' || !matches.some((m) => m.court === link.court && m.status === 'live')) draw(); }, 12_000);
+// A live court: see each half minute whether its points still come in.
+setInterval(() => { if (link?.mode === 'court' && matches.some((m) => m.court === link.court && m.status === 'live')) draw(); }, 30_000);
 requestAnimationFrame(tickRing);
 // Keep the screen on.
 const wake = () => navigator.wakeLock?.request('screen').catch(() => {});

@@ -632,7 +632,7 @@ input::placeholder { color: #5a5a5a; }
 .screen.court .net { width: 1px; height: auto; background: var(--line); margin: 6vh 2vw; }
 .last-result { align-self: center; width: min(100%, 64vw); display: flex; flex-direction: column; gap: 1.2vh; }
 .lr-head, .lr-row { display: flex; align-items: center; gap: 1vw; }
-.lr-head { padding: 0 2vw; font-size: clamp(11px, 1.8vh, 24px); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.lr-head { padding: 1vh 0 0.4vh; font-size: clamp(11px, 1.8vh, 24px); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 .lr-card { background: var(--card); border: 1px solid var(--line); border-radius: 2.4vh; padding: 0.6vh 2vw; }
 .lr-row { padding: 1.6vh 0; }
 .lr-row + .lr-row { border-top: 1px solid var(--line); }
@@ -642,17 +642,26 @@ input::placeholder { color: #5a5a5a; }
 .lr-game { width: clamp(40px, 10vh, 130px); text-align: center; }
 .lr-row .lr-game { font-size: clamp(28px, 7.2vh, 96px); line-height: 1; color: #5a5a5a; }
 .lr-row .lr-game.won { color: var(--fg); }
-.lr-mark { width: clamp(20px, 3.6vh, 48px); display: grid; place-items: center; color: var(--fg); }
-.lr-mark svg { width: 100%; height: auto; }
 .sound-on { position: absolute; left: 50%; bottom: 4vh; transform: translateX(-50%); padding: 1.5vh 3vw; border-radius: 999px; border: 0; background: var(--green); color: #000; font-weight: 700; font-size: clamp(16px, 2.6vh, 32px); cursor: pointer; }
 
 /* The event overview */
 .ov-title { display: inline-flex; align-items: center; gap: 1vw; }
 .pinned { padding: 1.5vh 2vw; border-radius: 1.5vh; background: var(--fg); color: #000; font-weight: 600; font-size: clamp(16px, 3vh, 40px); }
 .ov-grid { flex: 1; display: grid; grid-template-columns: 1fr minmax(240px, 28vw); gap: 2vw; min-height: 0; }
-.ov-courts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 30vw), 1fr)); gap: 1.5vw; align-content: start; overflow: hidden; }
+.ov-courts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 30vw), 1fr)); grid-auto-rows: 1fr; gap: 1.5vw; align-self: start; max-height: 100%; overflow: hidden; }
 .ov-court { background: var(--card); border: 1px solid var(--line); border-radius: 2vh; padding: 1.5vh 1.5vw; display: flex; flex-direction: column; gap: 1vh; }
-.ov-court.free { justify-content: center; }
+.ov-court-top { display: flex; align-items: center; justify-content: space-between; gap: 1vw; }
+.ov-state { display: inline-flex; align-items: center; gap: 0.6vw; font-size: clamp(12px, 1.8vh, 24px); color: var(--muted); }
+.ov-state.late { color: #f59e0b; }
+.ov-last { display: flex; flex-direction: column; gap: 0.2vh; margin-top: auto; }
+.ov-last-label { font-size: clamp(11px, 1.6vh, 20px); color: var(--faint); }
+/* Live: a green dot, softly blinking; late (no points for a while) or no connection: orange, still */
+.dot { width: clamp(8px, 1.4vh, 18px); height: clamp(8px, 1.4vh, 18px); border-radius: 50%; flex: none; display: inline-block; }
+.dot.live { background: var(--green); animation: blink 2s ease-in-out infinite; }
+.dot.late { background: #f59e0b; }
+@keyframes blink { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .dot.live { animation: none; } }
+.chip.late { color: #f59e0b; border-color: #f59e0b; display: inline-flex; align-items: center; gap: 0.5em; }
 .ov-label { font-family: var(--display); font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); font-size: clamp(13px, 2vh, 26px); }
 .ov-side { display: flex; align-items: center; justify-content: space-between; gap: 1vw; }
 .ov-name { font-size: clamp(16px, 2.8vh, 38px); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
