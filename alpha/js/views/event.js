@@ -46,7 +46,10 @@ export function show(el, [clubId, eventId], { go }) {
     const notGoing = players.filter((p) => regs[p.id]?.status === 'not going').sort(byName);
     const noAnswer = players.filter((p) => !regs[p.id]).sort(byName);
     const at = e.remindAt?.toDate();
-    const person = (p) => html`<button type="button" class="row" data-player="${p.id}" ${admin && !cancelled ? '' : raw('disabled style="cursor:default"')}>
+    // While it's on (and after), who's here instead of who's coming; score keepers mark that too.
+    const during = phase === 'live' || phase === 'ended';
+    const canMark = !cancelled && (admin || (during && Club.isKeeper(v.myRole)));
+    const person = (p) => html`<button type="button" class="row" data-player="${p.id}" ${canMark ? '' : raw('disabled style="cursor:default"')}>
         ${face(v, p, p.id === myPlayer?.id ? 'me' : '')}<span class="grow"><strong>${p.name}${p.id === myPlayer?.id ? html` <span class="muted" style="font-weight:400">${t('common.you')}</span>` : ''}</strong>
         ${regs[p.id]?.note ? html`<small>${regs[p.id].note}</small>` : ''}</span></button>`;
     if (mine?.status !== 'not going') note = null;
@@ -79,10 +82,11 @@ export function show(el, [clubId, eventId], { go }) {
         ${mine?.status === 'not going' ? html`<label class="field" style="margin-top:12px">${t('event.reason')}
           <input type="text" data-note maxlength="140" value="${note ?? ''}" placeholder="${t('event.reasonExample')}"></label>` : ''}
       </section>`}
-      <section><h2 class="h3">${t(phase === 'upcoming' ? 'event.goingN' : 'event.hereN', { n: going.length })}</h2><div class="card">${going.length ? going.map(person) : html`<p class="empty">${t('event.nobodyYet')}</p>`}</div>${roleKey()}</section>
-      ${notGoing.length ? html`<section><h2 class="h3">${t('event.notGoingN', { n: notGoing.length })}</h2><div class="card">${notGoing.map(person)}</div></section>` : ''}
-      ${noAnswer.length ? html`<section><h2 class="h3">${t('event.noAnswerN', { n: noAnswer.length })}</h2><div class="card">${noAnswer.map(person)}</div>
-        <p class="note">${[at && !e.reminded ? t('event.theyGetReminder') : '', admin && !cancelled ? t('event.tapToAnswer') : ''].filter(Boolean).join(' ')}</p></section>` : ''}
+      <section><h2 class="h3">${t(phase === 'upcoming' ? 'event.goingN' : 'event.hereN', { n: going.length })}</h2><div class="card">${going.length ? going.map(person) : html`<p class="empty">${t('event.nobodyYet')}</p>`}</div>${roleKey()}
+        ${during && canMark ? html`<p class="note">${t('event.tapToMark')}</p>` : ''}</section>
+      ${notGoing.length ? html`<section><h2 class="h3">${t(during ? 'event.notHereN' : 'event.notGoingN', { n: notGoing.length })}</h2><div class="card">${notGoing.map(person)}</div></section>` : ''}
+      ${noAnswer.length ? html`<section><h2 class="h3">${t(during ? 'event.notMarkedN' : 'event.noAnswerN', { n: noAnswer.length })}</h2><div class="card">${noAnswer.map(person)}</div>
+        <p class="note">${during ? '' : [at && !e.reminded ? t('event.theyGetReminder') : '', canMark ? t('event.tapToAnswer') : ''].filter(Boolean).join(' ')}</p></section>` : ''}
       ${admin ? html`<section><h2 class="h3">${t('event.manage')}</h2><div class="card">
         <button type="button" class="row" data-toggle>${cancelled ? t('event.planAgain') : t('event.cancelDate')}</button>
         <button type="button" class="row danger" data-delete>${e.seriesId ? t('event.deleteOnlyDate') : t('event.deleteEvent')}</button>
@@ -175,11 +179,12 @@ export function show(el, [clubId, eventId], { go }) {
   }
 
   async function answerFor(p) {
-    if (!p || !view.admin) return;
-    const answer = await choose(p.name, t('event.answerFor'), [
-      { label: t('answer.going'), value: 'going', style: 'primary' },
-      { label: t('answer.notGoing'), value: 'not going' },
-      { label: t('answer.none'), value: 'none' },
+    const during = ['live', 'ended'].includes(Club.eventPhase(event, Date.now(), matches));
+    if (!p || !(view.admin || (during && Club.isKeeper(view.myRole)))) return;
+    const answer = await choose(p.name, t(during ? 'event.markFor' : 'event.answerFor'), [
+      { label: t(during ? 'answer.here' : 'answer.going'), value: 'going', style: 'primary' },
+      { label: t(during ? 'answer.notHere' : 'answer.notGoing'), value: 'not going' },
+      { label: t(during ? 'answer.notMarked' : 'answer.none'), value: 'none' },
     ]);
     if (!answer) return;
     attempt(Club.register(session.user, clubId, eventId, p.id, answer === 'none' ? null : answer), t('common.saveFailed'));

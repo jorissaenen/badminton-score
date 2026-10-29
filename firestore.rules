@@ -293,9 +293,11 @@ service cloud.firestore {
           }
 
           allow read: if isMember();
+          // Admins answer for anyone; score keepers mark who's here during an event (the app
+          // offers that only while it's on).
           allow create, update: if validRegistration(request.resource.data)
-            && (isAdmin() || (isMember() && isMyPlayer()));
-          allow delete: if isAdmin() || (isMember() && isMyPlayer());
+            && (isKeeper() || (isMember() && isMyPlayer()));
+          allow delete: if isKeeper() || (isMember() && isMyPlayer());
         }
       }
 

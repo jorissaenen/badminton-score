@@ -86,6 +86,12 @@ describe('registrations', () => {
     await assertSucceeds(setDoc(reg('admin', 'p_member'), { status: 'not going', by: 'admin' }));
   });
 
+  test('score keepers mark who is here, for anyone', async () => {
+    await assertSucceeds(setDoc(reg('keeper', 'guest'), { status: 'going', by: 'keeper' }));
+    await assertSucceeds(setDoc(reg('keeper', 'p_member'), { status: 'not going', by: 'keeper' }));
+    await assertSucceeds(deleteDoc(reg('keeper', 'p_member')));
+  });
+
   test('the answer is signed by whoever gave it, and stays short', async () => {
     await assertFails(setDoc(reg('member', 'p_member'), { status: 'going', by: 'admin' }));
     await assertFails(setDoc(reg('member', 'p_member'), { status: 'maybe', by: 'member' }));

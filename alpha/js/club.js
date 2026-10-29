@@ -7,6 +7,7 @@ export const ROLES = ['owner', 'admin', 'keeper', 'member'];
 const RANK = { owner: 4, admin: 3, keeper: 2, member: 1 };
 
 export const isAdmin = (role) => (RANK[role] ?? 0) >= RANK.admin;
+export const isKeeper = (role) => (RANK[role] ?? 0) >= RANK.keeper;
 
 // The roles `myRole` may give to someone who now has `theirRole` (empty: can't change them).
 // Mirrors the rules: nobody changes their own role; admins manage non-owners up to admin.
