@@ -228,7 +228,7 @@ function drawOverview() {
   const court = (c) => {
     const m = live.filter((x) => x.court === c).at(-1);
     const label = word(c);
-    if (!m) return html`<div class="ov-court free"><div class="ov-court-top"><span class="ov-label">${label}</span></div><span class="ov-free">${t('screen.free')}</span></div>`;
+    if (!m) return html`<div class="ov-court free"><div class="ov-court-top"><span class="ov-label">${label}</span><span class="ov-state">${t('screen.free')}</span></div></div>`;
     const v = M.display(m.state, m.rules);
     const srv = M.server(M.currentGame(m.state), m.rules, m.state);
     const n = names(m);

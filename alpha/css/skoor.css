@@ -661,7 +661,6 @@ input::placeholder { color: #5a5a5a; }
 .ov-court-top { display: flex; align-items: center; justify-content: space-between; gap: 1vw; }
 .ov-state { display: inline-flex; align-items: center; gap: 0.6vw; font-size: clamp(12px, 1.8vh, 24px); color: var(--muted); }
 .ov-state.late { color: #f59e0b; }
-.ov-free { flex: 1; display: grid; place-items: center; font-size: clamp(16px, 3vh, 40px); color: var(--muted); }
 .ov-which { color: var(--faint); }
 .ov-side .ov-name { flex: 1; min-width: 0; }
 .ov-side .ov-g { font-size: clamp(14px, 2.4vh, 32px); }
