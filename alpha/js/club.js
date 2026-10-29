@@ -32,10 +32,25 @@ export function parseJoin(search) {
   return m ? { clubId: m[1], token: m[2] } : null;
 }
 
+// The photo others see of you: the one you chose in the app, else the one from Google.
+let myPhoto = null;
+export const useMyPhoto = (photo) => { myPhoto = photo; };
+
 const profile = (user) => ({
   name: (user.displayName || user.email?.split('@')[0] || 'Player').slice(0, 60),
-  photoURL: user.photoURL || null,
+  photoURL: myPhoto || user.photoURL || null,
 });
+
+// Shows your (new) photo in every club you're in.
+export async function updateMyPhoto(user, photoURL) {
+  const clubs = await myClubs(user);
+  await Promise.all(clubs.map((c) => updateMyPhotoIn(c.id, user, photoURL).catch(() => {})));
+}
+
+export async function updateMyPhotoIn(clubId, user, photoURL) {
+  const { db, F } = await cloud();
+  await F.updateDoc(F.doc(db, 'clubs', clubId, 'members', user.uid), { photoURL: photoURL ?? null });
+}
 
 export async function myClubs(user) {
   const { db, F } = await cloud();
@@ -530,12 +545,40 @@ export async function watchEventMatches(clubId, eventId, on) {
 }
 
 // Before, during or after an event (in this device's time zone): 'upcoming', 'live', 'ended',
-// or 'cancelled'.
-export function eventPhase(e, now = Date.now()) {
+// or 'cancelled'. With its matches, an event runs past its end time while a match is still
+// being played, or one started or finished less than WIND_DOWN ago; a match nobody scored for
+// STALE doesn't keep it going.
+export const WIND_DOWN = 15 * 60_000;
+const STALE = 30 * 60_000;
+const ms = (ts) => ts?.toMillis?.() ?? (typeof ts === 'number' ? ts : 0);
+
+export function eventPhase(e, now = Date.now(), matches = null) {
   if (e.status === 'cancelled') return 'cancelled';
   if (now < startsAt(e.date, e.start).getTime()) return 'upcoming';
-  return now < startsAt(e.date, e.end).getTime() ? 'live' : 'ended';
+  if (now < startsAt(e.date, e.end).getTime()) return 'live';
+  return matches && now < lastActivity(matches, now) + WIND_DOWN ? 'live' : 'ended';
 }
+
+// When the last thing happened in these matches: a match still being scored counts as now.
+export function lastActivity(matches, now = Date.now()) {
+  let last = 0;
+  for (const m of matches) {
+    const updated = ms(m.updatedAt) || ms(m.startedAt) || now; // just started here: not on the server yet
+    if (m.status === 'live' && now - updated < STALE) return now;
+    last = Math.max(last, ms(m.finishedAt), ms(m.startedAt));
+  }
+  return last;
+}
+
+// The matches of one event, once (for the cards on Play and the club home).
+export async function eventMatches(clubId, eventId) {
+  const { db, F } = await cloud();
+  const snap = await F.getDocs(F.query(F.collection(db, 'clubs', clubId, 'matches'), F.where('eventId', '==', eventId)));
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+// Whether an event's end time has passed, so its matches decide if it's still going on.
+export const pastEnd = (e, now = Date.now()) => e.status !== 'cancelled' && now >= startsAt(e.date, e.end).getTime();
 
 // ---------- screens (displays) ----------
 // A screen on /link signs in anonymously and shows a key that changes every minute

@@ -52,6 +52,9 @@ export function clubScreen(el, clubId, draw, { back = ['#/clubs', t('tab.clubs')
     const known = (await Club.myClubs(u).catch(() => [])).find((c) => c.id === clubId);
     const sport = view?.club?.sport ?? 'badminton';
     if (view?.club && known && (known.name !== view.club.name || known.sport !== sport)) Club.rememberClub(u, clubId, view.club.name, sport).catch(() => {});
+    // And your photo, when it changed since you joined (a new one from Google, or one you chose).
+    const me = view?.members?.find((m) => m.id === u.uid);
+    if (me && session.photoKnown && (me.photoURL ?? null) !== session.photo) Club.updateMyPhotoIn(clubId, u, session.photo).catch(() => {});
   }
 
   start();

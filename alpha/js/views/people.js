@@ -3,6 +3,7 @@
 import * as Club from '../club.js';
 import { html, icon, avatar, choose, confirmSheet, attempt, toast, raw } from '../ui.js';
 import { clubScreen } from './clubview.js';
+import { roleKey } from './common.js';
 import { t } from '../i18n.js';
 
 const ORDER = { owner: 4, admin: 3, keeper: 2, member: 1 };
@@ -27,7 +28,7 @@ export function show(el, [clubId]) {
           const isSelf = m.id === me.uid;
           const canChange = Club.assignableRoles(myRole, m.role, isSelf).length > 0 || (!isSelf && (myRole === 'owner' || (admin && m.role !== 'owner')));
           return html`<button type="button" class="row" data-member="${m.id}" ${canChange ? '' : raw('disabled style="cursor:default"')}>
-            ${m.photoURL ? html`<img class="av" src="${m.photoURL}" alt="" referrerpolicy="no-referrer">` : avatar(m.name, isSelf ? 'me' : '')}
+            ${avatar(m.name, isSelf ? 'me' : '', { photo: m.photoURL, role: m.role })}
             <span class="grow"><strong>${m.name}${isSelf ? html` <span class="muted" style="font-weight:400">${t('common.you')}</span>` : ''}</strong></span>
             <span class="val">${t(`role.${m.role}`)}</span>${canChange ? icon('chevron', 18) : ''}</button>`;
         })}</div>
@@ -40,7 +41,7 @@ export function show(el, [clubId]) {
         ${admin ? html`<div class="row" style="gap:10px"><input type="text" data-guest maxlength="40" placeholder="${t('people.guestPlaceholder')}" value="${guest}" style="margin:0">
           <button type="button" class="btn small primary" data-add-guest>${t('common.add')}</button></div>` : ''}
       </div></section>
-      <section><h2 class="h3">${t('people.roles')}</h2><p class="note" style="margin-top:0">${t('people.rolesText')}</p></section>
+      <section><h2 class="h3">${t('people.roles')}</h2><p class="note" style="margin-top:0">${t('people.rolesText')}</p>${roleKey()}</section>
     </div>`.s;
 
     el.querySelector('[data-add-me]')?.addEventListener('click', () => {

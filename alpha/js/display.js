@@ -39,6 +39,7 @@ let event = null;
 let matches = [];
 let stops = [];
 let slide = 0;
+let loaded = { event: false, matches: false }; // what it follows has come in at least once
 let lastAnnounced = null; // { id, state } of the court's match, to know what changed
 let soundOn = false;
 
@@ -150,7 +151,7 @@ function drawOverview() {
   const noCourt = live.filter((m) => !m.court || m.court > courts);
   root.className = 'screen overview';
   root.innerHTML = html`<header class="screen-top"><span class="ov-title">${raw(sportIcon(sport.id, 28))}<span class="display">${club?.name ?? ''}</span></span>
-      <span>${event ? `${t(`eventType.${event.type}`)} · ${event.start}–${event.end}` : ''}</span>${Club.eventPhase(event ?? {}) === 'live' ? html`<span class="chip live">${t('event.live')}</span>` : ''}</header>
+      <span>${event ? `${t(`eventType.${event.type}`)} · ${event.start}–${event.end}` : ''}</span>${Club.eventPhase(event ?? {}, Date.now(), matches) === 'live' ? html`<span class="chip live">${t('event.live')}</span>` : ''}</header>
     ${event?.pinned ? html`<div class="pinned">${event.pinned}</div>` : ''}
     <div class="ov-grid">
       <section class="ov-courts">${Array.from({ length: courts }, (_, i) => court(i + 1))}
@@ -178,13 +179,25 @@ function follow() {
   event = null;
   club = null;
   lastAnnounced = null;
+  loaded = { event: false, matches: false };
   if (!link) { draw(); return; }
   cloud().then(({ db, F }) => {
     stops.push(F.onSnapshot(F.doc(db, 'clubs', link.clubId), (d) => { club = d.exists() ? d.data() : null; draw(); }, () => {}));
-    stops.push(F.onSnapshot(F.doc(db, 'clubs', link.clubId, 'events', link.eventId), (d) => { event = d.exists() ? d.data() : null; draw(); }, () => {}));
-    Club.watchEventMatches(link.clubId, link.eventId, (list) => { matches = list; announce(); draw(); }).then((s) => stops.push(s));
+    stops.push(F.onSnapshot(F.doc(db, 'clubs', link.clubId, 'events', link.eventId), (d) => { event = d.exists() ? d.data() : null; loaded.event = true; draw(); }, () => {}));
+    Club.watchEventMatches(link.clubId, link.eventId, (list) => { matches = list; loaded.matches = true; announce(); draw(); }).then((s) => stops.push(s));
   });
 }
+
+// Once the event is over (its end time has passed, the last match is finished and no new one
+// started for a while) or gone, the screen unlinks itself and shows a key again, ready for the
+// next club.
+async function unlinkWhenOver() {
+  if (!link || !loaded.event || (event && !loaded.matches)) return;
+  if (event && !['ended', 'cancelled'].includes(Club.eventPhase(event, Date.now(), matches))) return;
+  const { db, F } = await cloud();
+  await F.deleteDoc(F.doc(db, 'displays', uid)).catch(() => {});
+}
+setInterval(unlinkWhenOver, 60_000);
 
 // Announces the score of its court, when the club switched that on for this screen.
 function announce() {

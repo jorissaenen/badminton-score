@@ -2,11 +2,12 @@
 import { EDITION } from '../edition.js';
 import { isInstalled, installStatus } from '../install.js';
 import { disableReminders, enableReminders, remindersState } from '../cloud.js';
-import { session, onSession, start, signOut } from '../session.js';
+import { session, onSession, start, signOut, changePhoto } from '../session.js';
+import { squarePhoto } from '../photo.js';
 import { state } from '../state.js';
 import { mediaControlsSupported } from '../media.js';
 import { speechSupported, onVoicesChanged } from '../audio.js';
-import { $, html, icon, initials, toast, confirmSheet, raw } from '../ui.js';
+import { $, html, icon, avatar, toast, confirmSheet, raw, sheet } from '../ui.js';
 import { toggle, wireToggles, voiceSheet, remoteSheet, voiceName, seconds, soundCheck, languageSheet } from './settings.js';
 import { spinner } from './common.js';
 import { burst, tapsCounter } from '../burst.js';
@@ -30,7 +31,7 @@ export function show(el) {
     const how = u.providerData?.some((p) => p.providerId === 'google.com') ? t('you.withGoogle') : t('you.signedInAs', { email: u.email });
     const dot = session.conn.state === 'online' ? '' : session.conn.state;
     return html`<div class="card">
-      <div class="row"><span class="av big me">${initials(name)}</span>
+      <div class="row"><button type="button" class="photo-edit" data-photo aria-label="${t('photo.change')}">${avatar(name, 'big me', { photo: session.photo })}<span class="pen">${icon('pencil', 14)}</span></button>
         <span class="grow"><strong style="font-size:17px">${name}</strong>
         <small><span class="dot ${dot}"></span> ${session.conn.state === 'online' ? t('you.online', { how }) : session.conn.text}</small></span>
         <button type="button" class="btn small" data-signout>${t('you.signOut')}</button></div>
@@ -94,6 +95,7 @@ export function show(el) {
     el.querySelector('[data-soundcheck]').addEventListener('click', soundCheck);
     el.querySelector('[data-remote]').addEventListener('click', () => remoteSheet(draw));
     el.querySelector('[data-install]')?.addEventListener('click', () => { if (canInstall) $('installTrigger').click(); });
+    el.querySelector('[data-photo]')?.addEventListener('click', photoSheet);
     el.querySelector('[data-signout]')?.addEventListener('click', async () => {
       if (await confirmSheet(t('you.signOutQ'), t('you.signOutText'), t('you.signOut'))) signOut();
     });
@@ -110,6 +112,45 @@ export function show(el) {
         busy = false;
         draw();
       }
+    });
+  }
+
+  // Your photo: choose one (or take one) on the device, or go back to Google's.
+  function photoSheet() {
+    const u = session.user;
+    const name = u.displayName || u.email;
+    const back = session.ownPhoto ? (u.photoURL ? t('photo.useGoogle') : t('photo.remove')) : '';
+    sheet(html`<h2 class="sheet-title">${t('photo.title')}</h2>
+      <div style="display:grid;place-items:center;margin:4px 0 16px">${avatar(name, 'huge me', { photo: session.photo })}</div>
+      <p class="sheet-text">${t('photo.text')}</p>
+      <div class="sheet-buttons">
+        <label class="btn primary">${icon('camera', 20)}${t('photo.choose')}<input type="file" accept="image/*" data-file hidden></label>
+        ${back ? html`<button type="button" class="btn outline" data-back>${back}</button>` : ''}
+      </div>`.s, (sh, close) => {
+      const save = async (photo) => {
+        sh.querySelectorAll('.btn').forEach((b) => b.setAttribute('aria-disabled', 'true'));
+        try {
+          await changePhoto(photo);
+          close();
+          toast(t('photo.saved'));
+        } catch (e) {
+          sh.querySelectorAll('.btn').forEach((b) => b.removeAttribute('aria-disabled'));
+          toast(t('photo.failed', { error: e.code || e.message }));
+        }
+      };
+      sh.querySelector('[data-file]').addEventListener('change', async (ev) => {
+        const file = ev.target.files?.[0];
+        if (!file) return;
+        let photo;
+        try {
+          photo = await squarePhoto(file);
+        } catch (e) {
+          toast(t(e.code === 'photo/too-big' ? 'photo.tooBig' : 'photo.cantRead'));
+          return;
+        }
+        save(photo);
+      });
+      sh.querySelector('[data-back]')?.addEventListener('click', () => save(null));
     });
   }
 

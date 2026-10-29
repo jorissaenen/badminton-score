@@ -55,6 +55,11 @@ const ICONS = {
   remote: '<path d="M10 10a2 2 0 1 0 4 0 2 2 0 1 0-4 0"/><path d="M7 5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2zm5-2v2m-2 10v.01M10 18v.01m4-.01v.01M14 15v.01"/>',
   download: '<path d="M12 15V3m9 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/>',
   chart: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
+  camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/>',
+  // What someone may do in a club, as a badge on their picture.
+  owner: '<path d="M11.56 3.27a.5.5 0 0 1 .88 0l2.95 5.6a1 1 0 0 0 1.52.3l4.27-3.67a.5.5 0 0 1 .8.52l-2.83 10.25a1 1 0 0 1-.96.73H5.81a1 1 0 0 1-.96-.73L2.02 6.02a.5.5 0 0 1 .8-.52l4.27 3.67a1 1 0 0 0 1.52-.3z"/><path d="M5 21h14"/>',
+  admin: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  keeper: '<rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/>',
 };
 export const icon = (name, size = 22) => raw(`<svg class="i" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] ?? ''}</svg>`);
 
@@ -63,7 +68,16 @@ export function initials(name = '') {
   return ((words[0]?.[0] ?? '') + (words.length > 1 ? words.at(-1)[0] : '')).toUpperCase() || '?';
 }
 
-export const avatar = (name, cls = '') => html`<span class="av ${cls}" aria-hidden="true">${initials(name)}</span>`;
+// Someone's picture (their photo, else their initials), with a badge for what they may do in the
+// club: owner, admin or score keeper (members have none).
+export const ROLE_BADGES = ['owner', 'admin', 'keeper'];
+export function avatar(name, cls = '', { photo = null, role = null } = {}) {
+  const face = photo
+    ? html`<img class="av ${cls}" src="${photo}" alt="" referrerpolicy="no-referrer" loading="lazy">`
+    : html`<span class="av ${cls}" aria-hidden="true">${initials(name)}</span>`;
+  if (!ROLE_BADGES.includes(role)) return face;
+  return html`<span class="av-wrap">${face}<span class="role-badge ${role}" role="img" aria-label="${t(`role.${role}`)}" title="${t(`role.${role}`)}">${icon(role, 11)}</span></span>`;
+}
 
 // ---------- toast ----------
 

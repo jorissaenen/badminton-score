@@ -59,7 +59,7 @@ export function show(el, _params, { go }) {
         ${mono(invite.clubName, true, invite.clubSport ?? 'badminton')}
         <h1 class="title" style="margin:0">${t('join.joinClub', { club: invite.clubName })}</h1>
         <p class="sub" style="margin:0">${t('join.invitedAs', { role: t(`role.${invite.role}`) })}</p></div>
-      <div class="card"><div class="row">${avatar(name, 'me')}<span class="grow"><strong>${t('join.signedInAs', { name })}</strong><small>${u.email ?? ''}</small></span></div></div>
+      <div class="card"><div class="row">${avatar(name, 'me', { photo: session.photo })}<span class="grow"><strong>${t('join.signedInAs', { name })}</strong><small>${u.email ?? ''}</small></span></div></div>
       <button type="button" class="btn primary block" data-join ${busy ? 'disabled' : ''}>${busy ? t('join.joining') : t('join.join')}</button>
       <button type="button" class="link-btn" data-later>${t('common.notNow')}</button>`);
     el.querySelector('[data-join]').addEventListener('click', doJoin);

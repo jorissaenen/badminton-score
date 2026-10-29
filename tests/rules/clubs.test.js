@@ -241,3 +241,28 @@ describe('users', () => {
     await assertFails(setDoc(doc(as('alice'), 'other', 'x'), { a: 1 }));
   });
 });
+
+describe('photos', () => {
+  const jpeg = `data:image/jpeg;base64,${'A'.repeat(40_000)}`;
+
+  test('members set their own photo: from Google, chosen in the app, or none', async () => {
+    const me = doc(as('member'), 'clubs', C, 'members', 'member');
+    await assertSucceeds(updateDoc(me, { photoURL: 'https://lh3.googleusercontent.com/a/x' }));
+    await assertSucceeds(updateDoc(me, { photoURL: jpeg }));
+    await assertSucceeds(updateDoc(me, { photoURL: null }));
+    await assertFails(updateDoc(doc(as('member'), 'clubs', C, 'members', 'keeper'), { photoURL: jpeg }));
+  });
+
+  test('no other kinds of links, and no huge photos', async () => {
+    const me = doc(as('member'), 'clubs', C, 'members', 'member');
+    await assertFails(updateDoc(me, { photoURL: 'javascript:alert(1)' }));
+    await assertFails(updateDoc(me, { photoURL: 'http://example.com/a.jpg' }));
+    await assertFails(updateDoc(me, { photoURL: `data:image/jpeg;base64,${'A'.repeat(120_000)}` }));
+  });
+
+  test('your own photo in your profile; nobody else\'s', async () => {
+    await assertSucceeds(setDoc(doc(as('alice'), 'users', 'alice'), { photo: jpeg }, { merge: true }));
+    await assertFails(setDoc(doc(as('alice'), 'users', 'alice'), { photo: 'data:text/html;base64,AAAA' }, { merge: true }));
+    await assertFails(setDoc(doc(as('bob'), 'users', 'alice'), { photo: jpeg }, { merge: true }));
+  });
+});

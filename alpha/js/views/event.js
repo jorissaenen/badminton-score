@@ -2,7 +2,7 @@
 // editing, cancelling and deleting.
 import * as Club from '../club.js';
 import { session } from '../session.js';
-import { html, icon, avatar, choose, confirmSheet, attempt, toast, dayText, raw, sheet } from '../ui.js';
+import { html, icon, choose, confirmSheet, attempt, toast, dayText, raw, sheet } from '../ui.js';
 import { t, locale } from '../i18n.js';
 import * as M from '../match.js';
 import { sportOf } from '../sports.js';
@@ -11,7 +11,7 @@ import { state, isFinished } from '../state.js';
 import { sportName, rulesSummary } from './rules.js';
 import { canLinkScreens, screensSection, wireScreens } from './screens.js';
 import { clubScreen } from './clubview.js';
-import { answerButtons, wireAnswers, dayName, eventName, noPlayer } from './common.js';
+import { answerButtons, wireAnswers, dayName, eventName, noPlayer, face, roleKey } from './common.js';
 
 export function show(el, [clubId, eventId], { go }) {
   let event; // undefined: loading; null: gone
@@ -39,7 +39,7 @@ export function show(el, [clubId, eventId], { go }) {
     const e = event;
     const { admin, players, myPlayer } = v;
     const cancelled = e.status === 'cancelled';
-    const phase = Club.eventPhase(e); // upcoming, live, ended (or cancelled)
+    const phase = Club.eventPhase(e, Date.now(), matches); // upcoming, live (also while the last matches go on), ended
     const mine = myPlayer ? regs[myPlayer.id] : null;
     const byName = (a, b) => a.name.localeCompare(b.name);
     const going = players.filter((p) => regs[p.id]?.status === 'going').sort(byName);
@@ -47,7 +47,7 @@ export function show(el, [clubId, eventId], { go }) {
     const noAnswer = players.filter((p) => !regs[p.id]).sort(byName);
     const at = e.remindAt?.toDate();
     const person = (p) => html`<button type="button" class="row" data-player="${p.id}" ${admin && !cancelled ? '' : raw('disabled style="cursor:default"')}>
-        ${avatar(p.name, p.id === myPlayer?.id ? 'me' : '')}<span class="grow"><strong>${p.name}${p.id === myPlayer?.id ? html` <span class="muted" style="font-weight:400">${t('common.you')}</span>` : ''}</strong>
+        ${face(v, p, p.id === myPlayer?.id ? 'me' : '')}<span class="grow"><strong>${p.name}${p.id === myPlayer?.id ? html` <span class="muted" style="font-weight:400">${t('common.you')}</span>` : ''}</strong>
         ${regs[p.id]?.note ? html`<small>${regs[p.id].note}</small>` : ''}</span></button>`;
     if (mine?.status !== 'not going') note = null;
     else if (note === null) note = mine.note ?? '';
@@ -79,7 +79,7 @@ export function show(el, [clubId, eventId], { go }) {
         ${mine?.status === 'not going' ? html`<label class="field" style="margin-top:12px">${t('event.reason')}
           <input type="text" data-note maxlength="140" value="${note ?? ''}" placeholder="${t('event.reasonExample')}"></label>` : ''}
       </section>`}
-      <section><h2 class="h3">${t(phase === 'upcoming' ? 'event.goingN' : 'event.hereN', { n: going.length })}</h2><div class="card">${going.length ? going.map(person) : html`<p class="empty">${t('event.nobodyYet')}</p>`}</div></section>
+      <section><h2 class="h3">${t(phase === 'upcoming' ? 'event.goingN' : 'event.hereN', { n: going.length })}</h2><div class="card">${going.length ? going.map(person) : html`<p class="empty">${t('event.nobodyYet')}</p>`}</div>${roleKey()}</section>
       ${notGoing.length ? html`<section><h2 class="h3">${t('event.notGoingN', { n: notGoing.length })}</h2><div class="card">${notGoing.map(person)}</div></section>` : ''}
       ${noAnswer.length ? html`<section><h2 class="h3">${t('event.noAnswerN', { n: noAnswer.length })}</h2><div class="card">${noAnswer.map(person)}</div>
         <p class="note">${[at && !e.reminded ? t('event.theyGetReminder') : '', admin && !cancelled ? t('event.tapToAnswer') : ''].filter(Boolean).join(' ')}</p></section>` : ''}
@@ -116,7 +116,7 @@ export function show(el, [clubId, eventId], { go }) {
   // During and after the event: start a match (while it's on), the matches played and being
   // played, and the statistics so far (final once the event has ended).
   function playing(v) {
-    const live = Club.eventPhase(event) === 'live';
+    const live = Club.eventPhase(event, Date.now(), matches) === 'live';
     const mineHere = state.link?.eventId === eventId && !isFinished();
     const shown = matches.filter((m) => m.status !== 'stopped');
     const now = shown.filter((m) => m.status === 'live');
@@ -142,7 +142,7 @@ export function show(el, [clubId, eventId], { go }) {
       ${stats.length ? html`<section><h2 class="h3">${live ? t('event.statsSoFar') : t('event.stats')}</h2><div class="card">
         <div class="row muted" style="min-height:0;font-size:12px;font-weight:600;letter-spacing:.06em">
           <span class="grow"></span><span class="stat">${t('stats.played')}</span><span class="stat">${t('stats.won')}</span><span class="stat">${t('stats.diff')}</span></div>
-        ${stats.map((r, i) => html`<div class="row" style="min-height:48px"><span class="muted display" style="width:22px">${i + 1}</span>${avatar(r.name, r.id && r.id === v.myPlayer?.id ? 'me' : '')}
+        ${stats.map((r, i) => html`<div class="row" style="min-height:48px"><span class="muted display" style="width:22px">${i + 1}</span>${face(v, r, r.id && r.id === v.myPlayer?.id ? 'me' : '')}
           <span class="grow"><strong>${r.name}</strong></span>
           <span class="stat">${r.played}</span><span class="stat"><b>${r.won}</b></span><span class="stat">${r.for - r.against > 0 ? '+' : ''}${r.for - r.against}</span></div>`)}
       </div><p class="note">${t('event.statsNote')}</p></section>` : ''}`;

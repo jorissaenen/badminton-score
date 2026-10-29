@@ -2,7 +2,7 @@
 // (Going / Not going) and the card that asks to sign in.
 import * as Club from '../club.js';
 import { session } from '../session.js';
-import { html, raw, icon, initials, dayText, longDay, toast } from '../ui.js';
+import { html, raw, icon, avatar, initials, dayText, longDay, toast, ROLE_BADGES } from '../ui.js';
 import { sportIcon } from '../sports.js';
 import { t } from '../i18n.js';
 
@@ -43,6 +43,16 @@ export function wireAnswers(el, { clubId, eventId, playerId, current, note = () 
 }
 
 export const noPlayer = () => t('answer.noPlayer');
+
+// A player of the club as a picture: the photo and role of the member behind them, if any.
+export function face(view, p, cls = '') {
+  const uid = p.uid ?? view.players?.find((x) => x.id === p.id)?.uid;
+  const m = uid ? view.members?.find((x) => x.id === uid) : null;
+  return avatar(p.name, cls, { photo: m?.photoURL, role: m?.role });
+}
+
+// What the badges on the pictures mean.
+export const roleKey = () => html`<p class="role-key">${ROLE_BADGES.map((r) => html`<span><span class="role-badge ${r}" aria-hidden="true">${icon(r, 11)}</span>${t(`role.${r}`)}</span>`)}</p>`;
 
 // The next event of all your clubs, with your answer. Null when there is none.
 export async function nextOfAllClubs(user) {

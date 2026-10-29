@@ -3,7 +3,7 @@
 // Bump VERSION whenever any app file changes.
 // Alpha edition (served from /alpha/): its own cache names, so it never removes another edition's cache.
 // The prefix must match EDITION.cachePrefix in js/edition.js.
-const VERSION = 'v30-alpha.25';
+const VERSION = 'v30-alpha.26';
 const CACHE_PREFIX = 'badminton-score-alpha-';
 const CACHE = `${CACHE_PREFIX}${VERSION}`;
 // A tapped reminder's address, left for the app to pick up (see notificationclick). Kept across
@@ -24,6 +24,7 @@ const ASSETS = [
   'link/',
   'link/index.html',
   'js/burst.js',
+  'js/photo.js',
   'js/i18n.js',
   'js/lang/en.js',
   'js/lang/nl.js',

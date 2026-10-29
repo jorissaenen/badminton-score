@@ -3,7 +3,7 @@ import * as M from '../match.js';
 import * as Club from '../club.js';
 import { session, onSession } from '../session.js';
 import { state, hasStarted, isFinished, displayNames } from '../state.js';
-import { html, icon, initials, raw } from '../ui.js';
+import { html, icon, avatar, raw } from '../ui.js';
 import { t } from '../i18n.js';
 import { sportOf, sportIcon } from '../sports.js';
 import { EDITION } from '../edition.js';
@@ -40,7 +40,7 @@ export function show(el, _params, { go }) {
     el.innerHTML = html`<div class="page">
       <div class="home-top">
         <img class="logo" src="icons/skoor-logo.svg" alt="Skoor">
-        <a href="#/you" aria-label="${t('tab.you')}">${u ? html`<span class="av me">${initials(name)}</span>` : html`<span class="av">${icon('you', 18)}</span>`}</a>
+        <a href="#/you" aria-label="${t('tab.you')}">${u ? avatar(name, 'me', { photo: session.photo }) : html`<span class="av">${icon('you', 18)}</span>`}</a>
       </div>
       ${next ? eventCard() : loading ? html`<div class="event-card skeleton" aria-hidden="true"></div>` : ''}
       <section>
@@ -62,7 +62,7 @@ export function show(el, _params, { go }) {
     const c = counts(registrations);
     const mine = player ? registrations?.[player.id]?.status : null;
     // While it's on: LIVE, who's here, and a tap opens it to play; before: are you coming?
-    const phase = Club.eventPhase(e);
+    const phase = Club.eventPhase(e, Date.now(), next.matches ?? null);
     const on = phase === 'live' || phase === 'ended';
     const meta = [on ? t('event.until', { end: e.end }) : t('event.dayUntil', { day: dayName(e.date), end: e.end }), e.location,
       registrations ? t(on ? 'event.nHere' : 'event.nGoing', { n: c.going }) : null].filter(Boolean).join(' · ');
@@ -109,6 +109,8 @@ export function show(el, _params, { go }) {
       next = found;
       loading = false;
       cacheNext(u.uid, found);
+      if (found) await addMatches(found);
+      if (mine !== run) return;
       draw();
       if (!found) return;
       const stop = await Club.watchEvent(found.club.id, found.event.id, (s) => {
@@ -126,14 +128,26 @@ export function show(el, _params, { go }) {
     }
   }
 
+  // After its end time, an event goes on while its last matches are played: they decide.
+  async function addMatches(n) {
+    if (Club.pastEnd(n.event)) n.matches = await Club.eventMatches(n.club.id, n.event.id).catch(() => n.matches ?? null);
+  }
+
   loadNext(); // draws at once; Firebase only loads when someone signed in before (see session.boot)
   let lastUser = session.user?.uid;
+  let lastPhoto = session.photo;
   const off = onSession(() => {
+    if (session.photo !== lastPhoto) { lastPhoto = session.photo; draw(); }
     if (session.user?.uid === lastUser && !(loading && session.ready && !session.user)) return;
     lastUser = session.user?.uid;
     loadNext();
   });
   // The event starts and ends on its own: redraw each minute.
-  const tick = setInterval(() => { if (next) draw(); }, 60_000);
+  const tick = setInterval(async () => {
+    if (!next) return;
+    const n = next;
+    await addMatches(n);
+    if (n === next) draw();
+  }, 60_000);
   return () => { run += 1; off(); stopEvent?.(); clearInterval(tick); };
 }

@@ -1,10 +1,10 @@
 // Club home: the season, the next event (are you coming?), the events after it, and the way to
 // people, invites and settings.
 import * as Club from '../club.js';
-import { html, icon, avatar, raw } from '../ui.js';
+import { html, icon, raw } from '../ui.js';
 import { t, locale } from '../i18n.js';
 import { clubScreen } from './clubview.js';
-import { answerButtons, wireAnswers, counts, dayName, eventName, mono, noPlayer } from './common.js';
+import { answerButtons, wireAnswers, counts, dayName, eventName, mono, noPlayer, face } from './common.js';
 
 const monthDay = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString(locale(), { month: 'short' });
 
@@ -59,13 +59,14 @@ export function show(el, [clubId]) {
     const c = counts(r);
     const going = r ? view.players.filter((p) => r[p.id]?.status === 'going') : [];
     const noAnswer = r ? view.players.length - c.going - c.notGoing : null;
-    const phase = Club.eventPhase(e);
+    const phase = Club.eventPhase(e, Date.now(), nextMatches?.id === e.id ? nextMatches.list : null);
+    if (Club.pastEnd(e) && nextMatches?.id !== e.id) loadMatches(e);
     return html`<div class="event-card" role="link" tabindex="0" data-next>
       <div class="line1"><span>${phase === 'live' ? html`<span class="chip live">${t('event.live')}</span> ${eventName(e)}` : t('event.next', { event: eventName(e) })}</span><span>${dayName(e.date)}</span></div>
       <div class="time"><span class="cap">${e.start}</span></div>
       <div class="meta">${[t('event.until', { end: e.end }), e.location, t('event.nCourts', { n: e.courts })].filter(Boolean).join(' · ')}</div>
       ${r ? html`<div style="display:flex;align-items:center;gap:10px;margin-top:12px">
-        <span style="display:flex">${going.slice(0, 5).map((p, i) => html`<span style="margin-left:${i ? -8 : 0}px">${avatar(p.name, p.id === myPlayer?.id ? 'me' : '')}</span>`)}</span>
+        <span style="display:flex">${going.slice(0, 5).map((p, i) => html`<span style="margin-left:${i ? -8 : 0}px">${face(view, p, p.id === myPlayer?.id ? 'me' : '')}</span>`)}</span>
         <span class="muted" style="font-size:13px">${t('event.counts', { going: c.going, notGoing: c.notGoing, noAnswer })}</span></div>` : ''}
       ${phase === 'upcoming' ? answerButtons(myPlayer ? r?.[myPlayer.id]?.status : null, myPlayer ? '' : noPlayer())
         : html`<div class="go-on">${phase === 'live' ? t('event.tapToPlay') : t('event.seeResults')}${icon('chevron', 18)}</div>`}
@@ -85,6 +86,24 @@ export function show(el, [clubId]) {
         <span class="display" style="display:block;font-size:24px;line-height:1">${day.getDate()}</span></span>
       <span class="grow"><strong>${eventName(e)}</strong><small>${details}</small></span>${chip}</a>`;
   }
+
+  // After its end time, the next event goes on while its last matches are played: they decide.
+  let nextMatches = null; // { id, list }
+  let loadingFor = null;
+  function loadMatches(e) {
+    if (loadingFor === e.id) return;
+    loadingFor = e.id;
+    Club.eventMatches(clubId, e.id).catch(() => null).then((list) => {
+      loadingFor = null;
+      nextMatches = { id: e.id, list };
+      screen.redraw();
+    });
+  }
+  const tick = setInterval(() => {
+    const e = events?.find((x) => x.id === nextMatches?.id);
+    if (e) loadMatches(e);
+    else screen.redraw();
+  }, 60_000);
 
   // Starts once the club is open (signed in, and a member).
   let watching = false;
@@ -106,5 +125,5 @@ export function show(el, [clubId]) {
 
   let closed = false;
   const screen = clubScreen(el, clubId, draw);
-  return () => { closed = true; screen.cleanup(); stopEvents?.(); stopRegs?.(); };
+  return () => { closed = true; clearInterval(tick); screen.cleanup(); stopEvents?.(); stopRegs?.(); };
 }

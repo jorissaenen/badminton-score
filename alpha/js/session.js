@@ -4,11 +4,14 @@ import { EDITION } from './edition.js';
 import { t } from './i18n.js';
 import { isInstalled } from './install.js';
 import {
-  checkServer, completeEmailLink, isEmailLink, isEmailLinkLanding, onUser, saveProfile, sendEmailLink,
-  signInWithGoogle, signOut as cloudSignOut, storedEmail,
+  checkServer, completeEmailLink, isEmailLink, isEmailLinkLanding, onUser, ownPhoto, saveProfile, sendEmailLink,
+  setOwnPhoto, signInWithGoogle, signOut as cloudSignOut, storedEmail,
 } from './cloud.js';
+import { updateMyPhoto, useMyPhoto } from './club.js';
 
 const SIGNED_IN_KEY = `${EDITION.storageKey}-signed-in`;
+// Your own photo as last known, so it shows at once (uid and photo).
+const PHOTO_KEY = `${EDITION.storageKey}-photo`;
 // When the last sign-in link was sent, so "Resend" waits a minute, also after switching to the
 // mail app and back (which may reload the app).
 const SENT_KEY = `${EDITION.storageKey}-signin-sent`;
@@ -48,6 +51,9 @@ const s = {
   started: false,
   ready: false, // the first answer about who is signed in has come in
   user: null,
+  photo: null, // your photo: the one you chose, else Google's (null: your initials)
+  ownPhoto: false, // you chose one
+  photoKnown: false, // checked with the database since signing in
   conn: { state: 'trying', text: t('conn.connecting') }, // online | trying | offline
   landingLink: null, // a sign-in link opened here but asked for elsewhere (installed app)
   message: '',
@@ -113,6 +119,7 @@ document.addEventListener('visibilitychange', () => {
 
 function showUser(user) {
   const u = user?.isAnonymous ? null : user; // a screen on /link signs in anonymously: that's nobody
+  if (s.user?.uid !== u?.uid) s.photoKnown = false;
   s.user = u;
   s.ready = true;
   failures = 0;
@@ -121,10 +128,47 @@ function showUser(user) {
   if (u) s.landingLink = null;
   store(SIGNED_IN_KEY, u ? '1' : null);
   emit();
+  showPhoto(u);
   if (u) {
-    saveProfile(u).catch(() => { /* the connection check reports problems */ });
+    // Your photo first: while the profile below is being saved, the local copy doesn't show it.
+    ownPhoto(u).then((p) => { if (s.user === u) { remember(u, p); s.photoKnown = true; showPhoto(u); } })
+      .catch(() => { /* offline: the photo last known stays */ })
+      .finally(() => saveProfile(u).catch(() => { /* the connection check reports problems */ }));
     check();
   }
+}
+
+// ---------- your photo ----------
+
+let chosen = null; // { uid, photo }, also when the browser keeps nothing
+function remember(u, photo) {
+  chosen = { uid: u.uid, photo };
+  store(PHOTO_KEY, photo ? JSON.stringify(chosen) : null);
+}
+function chosenPhoto(u) {
+  if (chosen?.uid === u.uid) return chosen.photo;
+  try {
+    const c = JSON.parse(stored(PHOTO_KEY));
+    return c?.uid === u.uid ? c.photo : null;
+  } catch { return null; }
+}
+function showPhoto(u) {
+  const own = u ? chosenPhoto(u) : null;
+  s.photo = own || u?.photoURL || null;
+  s.ownPhoto = Boolean(own);
+  useMyPhoto(own);
+  emit();
+}
+
+// Sets your photo (a small JPEG as a data: URL), or with null goes back to Google's. Others see
+// it in your clubs.
+export async function changePhoto(photo) {
+  const u = s.user;
+  if (!u) return;
+  await setOwnPhoto(u, photo);
+  remember(u, photo);
+  showPhoto(u);
+  await updateMyPhoto(u, s.photo);
 }
 
 // Loads Firebase and follows the signed-in user. Safe to call more than once.

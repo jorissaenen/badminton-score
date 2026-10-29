@@ -118,6 +118,19 @@ export async function saveProfile(user) {
   }, { merge: true });
 }
 
+// Your own photo, chosen in the app: it replaces the one from Google (null: none chosen). Asks
+// the server: the local copy may not have it yet (just signed in on this device).
+export async function ownPhoto(user) {
+  const { db, F } = await cloud();
+  const d = await F.getDocFromServer(F.doc(db, 'users', user.uid));
+  return d.exists() ? d.data().photo ?? null : null;
+}
+
+export async function setOwnPhoto(user, photo) {
+  const { db, F } = await cloud();
+  await F.setDoc(F.doc(db, 'users', user.uid), { photo: photo ?? F.deleteField() }, { merge: true });
+}
+
 // Asks the server itself (not the local copy) for the user's profile: fails when offline, or with
 // 'permission-denied' when the security rules don't allow it.
 export async function checkServer(user) {

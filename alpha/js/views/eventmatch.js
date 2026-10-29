@@ -6,10 +6,11 @@ import * as Board from '../scoreboard.js';
 import { session } from '../session.js';
 import { rulesFor, sportIcon } from '../sports.js';
 import { lastPlayed, playerKey } from '../stats.js';
-import { html, raw, icon, avatar, sheet, toast } from '../ui.js';
+import { html, raw, icon, sheet, toast } from '../ui.js';
 import { t } from '../i18n.js';
 import { clubScreen } from './clubview.js';
 import { sportName, rulesSummary } from './rules.js';
+import { face } from './common.js';
 
 const zeros = (on) => html`<span class="mini-tiles">${[0, 0].map(() => html`<span class="tile${on ? ' on' : ''}"><span class="cap">0</span><span class="split"></span></span>`)}</span>`;
 const sideName = (players) => players.map((p) => p.name).join(' & ');
@@ -51,7 +52,7 @@ export function show(el, [clubId, eventId], { go }) {
         <button type="button" class="serve-side" data-side="${n}" aria-pressed="${server === n}">
           ${zeros(server === n)}
           <span class="serve-hint">${server === n ? t('newMatch.servesFirst') : t('newMatch.tapToServe')}</span></button>
-        ${sides[n].map((p, i) => html`<div class="row" style="padding:4px 0;min-height:0">${avatar(p.name)}<span class="grow"><strong>${p.name}</strong>${p.id ? '' : html`<small>${t('eventMatch.guest')}</small>`}</span>
+        ${sides[n].map((p, i) => html`<div class="row" style="padding:4px 0;min-height:0">${face(view, p)}<span class="grow"><strong>${p.name}</strong>${p.id ? '' : html`<small>${t('eventMatch.guest')}</small>`}</span>
           <button type="button" class="round" data-remove="${n}:${i}" aria-label="${t('people.removeName', { name: p.name })}" style="width:32px;height:32px">${icon('close', 14)}</button></div>`)}
         ${sides[n].length < 2 ? html`<button type="button" class="btn small" data-add="${n}">${icon('plus', 18)}${t('eventMatch.addPlayer')}</button>` : ''}
       </div>`;
@@ -109,7 +110,7 @@ export function show(el, [clubId, eventId], { go }) {
     const { here, playing, others, last } = groups();
     const since = (p) => (last[p.id] ? t('eventMatch.waitingSince', { time: new Date(last[p.id]).toTimeString().slice(0, 5) }) : t('eventMatch.notPlayedYet'));
     const list = (title, players, sub) => (players.length ? html`<div><div class="h3">${title}</div><div class="card">
-      ${players.map((p) => html`<button type="button" class="row" data-pick="${p.id}">${avatar(p.name)}<span class="grow"><strong>${p.name}</strong><small>${sub(p)}</small></span>${icon('plus', 18)}</button>`)}</div></div>` : '');
+      ${players.map((p) => html`<button type="button" class="row" data-pick="${p.id}">${face(view, p)}<span class="grow"><strong>${p.name}</strong><small>${sub(p)}</small></span>${icon('plus', 18)}</button>`)}</div></div>` : '');
     sheet(html`<h2 class="sheet-title">${t('eventMatch.addPlayer')}</h2>
       ${list(t('eventMatch.here'), here, since)}
       ${list(t('eventMatch.playing'), playing, () => t('eventMatch.playingNow'))}

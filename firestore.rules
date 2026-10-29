@@ -34,7 +34,10 @@ service cloud.firestore {
 
     // Own profile (name, photo; no e-mail address), and the list of clubs the user belongs to.
     match /users/{uid} {
-      allow read, write: if isMe(uid);
+      allow read, delete: if isMe(uid);
+      allow create, update: if isMe(uid) && (request.resource.data.get('photo', null) == null
+        || (request.resource.data.photo is string && request.resource.data.photo.size() <= 100000
+          && request.resource.data.photo.matches('^data:image/jpeg;base64,.*')));
 
       match /clubs/{clubId} {
         allow read, write: if isMe(uid);
@@ -147,9 +150,12 @@ service cloud.firestore {
       // ---------- members: one document per signed-in member, id = their uid ----------
 
       match /members/{uid} {
+        // The photo: from Google (https) or chosen in the app (a small JPEG as a data: URL).
         function validMember(d) {
           return d.keys().hasAll(['role', 'name']) && rank(d.role) >= 1
-            && d.name is string && d.name.size() <= 60;
+            && d.name is string && d.name.size() <= 60
+            && (d.get('photoURL', null) == null || (d.photoURL is string && d.photoURL.size() <= 100000
+              && d.photoURL.matches('^(https://|data:image/jpeg;base64,).*')));
         }
 
         function invitePath(token) {
