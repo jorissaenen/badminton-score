@@ -67,6 +67,13 @@ export async function renameClub(user, clubId, name) {
   await F.setDoc(F.doc(db, 'users', user.uid, 'clubs', clubId), { name }, { merge: true });
 }
 
+// Other club details admins change: the usual place (suggested for new events) and the defaults
+// for club matches.
+export async function updateClub(clubId, changes) {
+  const { db, F } = await cloud();
+  await F.updateDoc(F.doc(db, 'clubs', clubId), changes);
+}
+
 // Follows a club while its screen is open. `on` gets { club, members, seasons, players, invites } as
 // they change; `onError` gets the error when the user isn't (or no longer) a member.
 export async function watchClub(clubId, withInvites, on, onError) {
@@ -421,6 +428,12 @@ export async function nextEvent(clubId) {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }))
     .filter((e) => e.status !== 'cancelled' && e.startsAt.toMillis() > Date.now() - 3 * 3600_000)
     .sort((a, b) => a.startsAt.toMillis() - b.startsAt.toMillis())[0] ?? null;
+}
+
+export async function getEvent(clubId, eventId) {
+  const { db, F } = await cloud();
+  const d = await F.getDoc(F.doc(db, 'clubs', clubId, 'events', eventId));
+  return d.exists() ? { id: d.id, ...d.data() } : null;
 }
 
 export async function watchEvent(clubId, eventId, on) {

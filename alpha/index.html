@@ -4,124 +4,111 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <meta name="theme-color" content="#000000">
-  <meta name="description" content="Badminton scoreboard controlled by a Bluetooth camera remote.">
+  <meta name="description" content="Skoor: every point, every stat, every game night.">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <title>Badminton Score α</title>
+  <meta name="apple-mobile-web-app-title" content="Skoor α">
+  <title>Skoor α</title>
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icons/shuttlecock.svg" type="image/svg+xml">
-  <link rel="icon" href="icons/shuttle-192.png" type="image/png">
-  <link rel="apple-touch-icon" href="icons/shuttle-apple-180.png">
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="icons/skoor-favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/skoor-favicon-32.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/skoor-apple-180.png">
+  <link rel="preload" href="fonts/barlow-condensed-800-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/skoor.css">
   <!-- Pick the first layout before anything is drawn; js/layout.js keeps it up to date. -->
   <script>document.documentElement.classList.toggle('landscape', innerWidth > innerHeight); document.documentElement.classList.toggle('short', innerWidth > innerHeight && innerHeight <= 500);</script>
 </head>
 <body>
-  <!-- Icons: shuttlecock from Hugeicons (MIT), UI icons from Lucide (ISC). See README. -->
-  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-    <symbol id="i-shuttle" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.5"><path stroke-linecap="round" d="M3.927 4.38c1.086-.571 2.527-.851 3.968-.158c2.053-2.963 6.157-2.963 8.21 0c1.44-.693 2.882-.413 3.968.157c.502.264.753.396.881.773c.129.378-.024.697-.33 1.336l-4.407 9.206c-.209.435-.313.653-.361.855c-.049.202-.062.76-.089 1.877C15.722 20.353 14.48 22 12 22s-3.721-1.648-3.767-3.574c-.027-1.117-.04-1.675-.089-1.877s-.152-.42-.36-.855L3.375 6.488c-.306-.64-.459-.958-.33-1.336c.128-.377.379-.509.881-.773"/><path d="M8 17h8M8 4l3 13m5-13l-3 13m-7-5c1.2 1.333 2.8 1.333 4 0c1.2 1.333 2.8 1.333 4 0c1.2 1.333 2.8 1.333 4 0"/></g></symbol>
-    <symbol id="i-settings" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0a2.34 2.34 0 0 0 3.319 1.915a2.34 2.34 0 0 1 2.33 4.033a2.34 2.34 0 0 0 0 3.831a2.34 2.34 0 0 1-2.33 4.033a2.34 2.34 0 0 0-3.319 1.915a2.34 2.34 0 0 1-4.659 0a2.34 2.34 0 0 0-3.32-1.915a2.34 2.34 0 0 1-2.33-4.033a2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></g></symbol>
-    <symbol id="i-undo" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></g></symbol>
-    <symbol id="i-swap" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 3L4 7l4 4M4 7h16m-4 14l4-4l-4-4m4 4H4"/></symbol>
-    <symbol id="i-maximize" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3"/></symbol>
-    <symbol id="i-minimize" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3m8 0v-3a2 2 0 0 1 2-2h3"/></symbol>
-    <symbol id="i-share" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v13m4-9l-4-4l-4 4m-4 6v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></symbol>
-    <symbol id="i-menu" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></g></symbol>
-    <symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M12 15V3m9 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10l5 5l5-5"/></g></symbol>
-    <symbol id="i-dots" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></g></symbol>
-    <symbol id="i-add" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8m-4-4v8"/></g></symbol>
-    <symbol id="i-dice" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect width="12" height="12" x="2" y="10" rx="2" ry="2"/><path d="m17.92 14l3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6M6 18h.01M10 14h.01M15 6h.01M18 9h.01"/></g></symbol>
-    <symbol id="i-pencil" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497zM15 5l4 4"/></symbol>
-    <symbol id="i-remote" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M10 10a2 2 0 1 0 4 0a2 2 0 1 0-4 0"/><path d="M7 5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2zm5-2v2m-2 10v.01M10 18v.01m4-.01v.01M14 15v.01"/></g></symbol>
-    <symbol id="i-close" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 6L6 18M6 6l12 12"/></symbol>
-  </svg>
-  <main id="board" class="board">
-    <section class="team" data-team="0" aria-label="Home team">
-      <div class="team-head">
-        <svg class="serve" aria-label="Serving"><use href="#i-shuttle"/></svg>
-        <span class="team-name" id="name0">Home</span>
-      </div>
-      <div class="score" id="score0">0</div>
-      <div class="games" id="games0" aria-label="Games won"></div>
-    </section>
-    <section class="team" data-team="1" aria-label="Away team">
-      <div class="team-head">
-        <svg class="serve" aria-label="Serving"><use href="#i-shuttle"/></svg>
-        <span class="team-name" id="name1">Away</span>
-      </div>
-      <div class="score" id="score1">0</div>
-      <div class="games" id="games1" aria-label="Games won"></div>
-    </section>
+  <!-- The tab screens: Play, Clubs, You, and the screens opened from them. -->
+  <div id="app" class="app">
+    <div id="view" class="view"></div>
+    <nav id="tabs" class="tabs" aria-label="Main">
+      <a href="#/play" class="tab" data-tab="play"><svg class="i" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l5.5-3.5z" fill="currentColor"/></svg>Play</a>
+      <a href="#/clubs" class="tab" data-tab="clubs"><svg class="i" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6.5 6.5 0 0 1 3.5 5.8"/></svg>Clubs</a>
+      <a href="#/you" class="tab" data-tab="you"><svg class="i" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>You</a>
+    </nav>
+  </div>
 
-    <div id="interval" class="gameover" hidden>
-      <div class="gameover-card">
-        <div class="gameover-title" id="intervalTitle">Interval</div>
+  <!-- The match: flip tiles, full screen. -->
+  <main id="board" class="board" hidden>
+    <header class="board-top">
+      <button type="button" class="round" id="undoBtn" aria-label="Undo last point" tabindex="-1"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+      <div class="board-info">
+        <span class="board-title" id="boardTitle">GAME 1</span>
+        <span class="board-sub" id="boardSub"></span>
+      </div>
+      <span class="board-buttons">
+        <button type="button" class="round" id="swapBtn" aria-label="Swap sides" tabindex="-1"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M16 3l4 4-4 4M20 17H4M8 21l-4-4 4-4"/></svg></button>
+        <button type="button" class="round" id="menuBtn" aria-label="Match menu and settings" tabindex="-1"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg></button>
+      </span>
+    </header>
+    <div class="sides">
+      <section class="team" data-team="0">
+        <span class="team-name" id="name0">HOME</span>
+        <span class="games" id="games0" aria-hidden="true"></span>
+        <div class="tiles" id="tiles0" aria-hidden="true"></div>
+        <span class="serves">SERVES</span>
+      </section>
+      <div class="net" aria-hidden="true"></div>
+      <section class="team" data-team="1">
+        <span class="team-name" id="name1">AWAY</span>
+        <span class="games" id="games1" aria-hidden="true"></span>
+        <div class="tiles" id="tiles1" aria-hidden="true"></div>
+        <span class="serves">SERVES</span>
+      </section>
+    </div>
+
+    <div id="interval" class="overlay" hidden>
+      <div class="overlay-card">
+        <div class="overlay-title" id="intervalTitle">Interval</div>
         <div class="break-clock" id="intervalClock">1:00</div>
-        <div class="gameover-hint">Long press the remote (or score the next point) to end the interval</div>
+        <div class="overlay-hint">Long press the remote, or score the next point, to end the interval</div>
         <button type="button" class="btn primary" id="resumeBtn" tabindex="-1">Resume now</button>
       </div>
     </div>
 
-    <div id="gameover" class="gameover" hidden>
-      <div class="gameover-card">
-        <div class="gameover-title" id="gameoverTitle"></div>
-        <div class="gameover-sub" id="gameoverSub"></div>
-        <div class="break-timer" id="breakTimer" hidden><span class="break-label">Break</span><span class="break-clock" id="breakClock">2:00</span></div>
-        <div class="gameover-ends" id="gameoverEnds" hidden><svg aria-hidden="true"><use href="#i-swap"/></svg> Teams change ends</div>
-        <div class="gameover-hint">Long press the remote to <span id="gameoverAction">start the next game</span></div>
+    <div id="gameover" class="overlay" hidden>
+      <div class="overlay-card">
+        <div class="overlay-title" id="gameoverTitle"></div>
+        <div class="overlay-sub" id="gameoverSub"></div>
+        <div class="break-timer" id="breakTimer" hidden><span class="break-label">BREAK</span><span class="break-clock" id="breakClock">2:00</span></div>
+        <div class="overlay-ends" id="gameoverEnds" hidden>Teams change ends</div>
+        <div class="overlay-hint">Long press the remote to <span id="gameoverAction">start the next game</span></div>
         <button type="button" class="btn primary" id="nextBtn" tabindex="-1">Start next game</button>
       </div>
     </div>
 
-    <div id="changeEnds" class="change-ends" role="status" hidden><svg aria-hidden="true"><use href="#i-swap"/></svg><span>Change ends</span></div>
-
-    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <div id="changeEnds" class="change-ends" role="status" hidden>CHANGE ENDS</div>
   </main>
 
-  <footer class="bar">
-    <span class="game-label" id="gameLabel">Game 1</span>
-    <span class="beta-tag" title="Alpha version v30 (mock data)">α<span class="beta-version"> v30</span></span>
-    <span class="hint" id="hint">1 click: home · 2 clicks: away · hold: undo</span>
-    <span class="bar-buttons">
-      <button type="button" class="btn icon" id="undoBtn" title="Undo last point" tabindex="-1"><svg><use href="#i-undo"/></svg></button>
-      <button type="button" class="btn icon" id="swapBtn" title="Swap sides on screen" tabindex="-1"><svg><use href="#i-swap"/></svg></button>
-      <button type="button" class="btn icon" id="fsBtn" title="Fullscreen" tabindex="-1"><svg><use href="#i-maximize"/></svg></button>
-      <button type="button" class="btn icon" id="settingsBtn" title="Settings" tabindex="-1"><svg><use href="#i-settings"/></svg></button>
-    </span>
-  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <!-- Shown in a browser tab only: how to install the scoreboard as an app. -->
+  <!-- Shown in a browser tab only: how to install the app. -->
+  <button type="button" id="installTrigger" hidden></button>
   <div id="installSheet" class="install-overlay" hidden>
     <div class="install-card" id="installCard" role="dialog" aria-modal="true" aria-labelledby="installTitle">
-      <button type="button" class="btn icon install-close" id="installClose" title="Close" tabindex="-1"><svg><use href="#i-close"/></svg></button>
+      <button type="button" class="round install-close" id="installClose" aria-label="Close" tabindex="-1"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
       <header class="install-head">
-        <img src="icons/shuttle-192.png" alt="" class="install-icon">
+        <img src="icons/skoor-192.png" alt="" class="install-icon">
         <div>
-          <h2 id="installTitle">Install the app</h2>
-          <p>Opens fullscreen, works offline and keeps the remote working best.</p>
+          <h2 id="installTitle">Install Skoor</h2>
+          <p>Opens full screen, works offline and keeps the remote working best.</p>
         </div>
       </header>
-
-      <!-- Step 1: which browser? -->
       <section id="installPick" class="install-section">
         <h3>Which browser are you using?</h3>
         <p id="installHint" class="install-hint" hidden></p>
         <div id="installChoices" class="browser-list"></div>
       </section>
-
-      <!-- Step 2: steps for the chosen browser -->
       <section id="installGuide" class="install-section" hidden>
         <button type="button" class="link-btn" id="installBack" tabindex="-1">‹ Choose another browser</button>
         <h3 id="installGuideTitle"></h3>
         <ol id="installSteps" class="install-steps"></ol>
       </section>
-
-      <!-- One tap, where the browser allows it -->
       <section id="installOneTap" class="install-section" hidden>
         <h3>Add it to your home screen with one tap.</h3>
       </section>
-
       <footer class="install-buttons">
         <button type="button" class="btn outline" id="installLater" tabindex="-1">Not now</button>
         <button type="button" class="btn primary" id="installBtn" tabindex="-1" hidden>Install</button>
@@ -131,483 +118,6 @@
 
   <!-- Black cover for "screen sleep": OLED pixels are off when black, but the page keeps listening to the remote. -->
   <div id="sleep" class="sleep" hidden></div>
-
-  <dialog id="matchSetup" class="setup">
-    <div class="setup-form">
-      <header class="settings-head"><h2>New match</h2></header>
-      <div class="settings-body">
-        <p class="setup-hint">Tap a team to serve first. ⇄ swaps the sides, as they'll be on screen.</p>
-        <div class="setup-court" id="setupCourt">
-          <div class="setup-team" data-team="0">
-            <label class="setup-name-row">
-              <input class="setup-name" id="setupName0" maxlength="20" placeholder="Home" autocomplete="off" aria-label="Home team name">
-              <svg class="setup-pencil" aria-hidden="true"><use href="#i-pencil"/></svg>
-            </label>
-            <span class="setup-role"><svg aria-hidden="true"><use href="#i-remote"/></svg>1 click · Home</span>
-          </div>
-          <button type="button" class="btn icon setup-swap" id="setupSwap" title="Swap sides" tabindex="-1"><svg><use href="#i-swap"/></svg></button>
-          <div class="setup-team" data-team="1">
-            <label class="setup-name-row">
-              <input class="setup-name" id="setupName1" maxlength="20" placeholder="Away" autocomplete="off" aria-label="Away team name">
-              <svg class="setup-pencil" aria-hidden="true"><use href="#i-pencil"/></svg>
-            </label>
-            <span class="setup-role"><svg aria-hidden="true"><use href="#i-remote"/></svg>2 clicks · Away</span>
-          </div>
-          <svg class="setup-shuttle" id="setupShuttle" aria-hidden="true"><use href="#i-shuttle"/></svg>
-        </div>
-        <div class="setup-serve">
-          <span id="setupServeText" aria-live="polite"></span>
-          <button type="button" class="btn outline small-btn" id="setupRandom" tabindex="-1"><svg aria-hidden="true"><use href="#i-dice"/></svg> Random</button>
-        </div>
-        <p class="note">Random uses your phone's secure random generator: nobody can predict or steer it.</p>
-        <p class="note setup-remote-note"><svg aria-hidden="true"><use href="#i-remote"/></svg>1 click switches the server · 2 clicks random · hold to start</p>
-      </div>
-      <footer class="dialog-buttons">
-        <button type="button" class="btn outline" id="setupCancel" tabindex="-1">Cancel</button>
-        <button type="button" class="btn primary" id="setupStart" tabindex="-1" autofocus>Start match</button>
-      </footer>
-    </div>
-  </dialog>
-
-  <dialog id="settings">
-    <form method="dialog" class="settings-form" id="settingsForm">
-      <header class="settings-head"><h2>Settings</h2></header>
-
-      <div class="settings-body">
-        <section class="group" id="accountGroup">
-          <h3>Account</h3>
-          <div class="card">
-            <div class="account-out" id="accountOut">
-              <p class="note">Sign in to share sessions and keep statistics. Scoring works without signing in.</p>
-              <button type="button" class="btn primary" id="signInGoogle">Continue with Google</button>
-              <button type="button" class="link-btn" id="useEmailBtn">Sign in with e-mail instead</button>
-              <div class="account-step" id="emailStep" hidden>
-                <label class="note" for="signInEmail">We’ll e-mail you a sign-in link:</label>
-                <div class="row account-email">
-                  <input type="email" id="signInEmail" autocomplete="email" inputmode="email" placeholder="you@example.com" aria-label="E-mail address">
-                  <button type="button" class="btn outline" id="signInEmailBtn">Send link</button>
-                </div>
-                <p class="note account-sent" id="emailSent" aria-live="polite" hidden></p>
-                <div class="account-step" id="accountPaste" hidden>
-                  <label class="note" for="signInLink">The link opens in Safari or your browser, not in this app. In the e-mail, press and hold the link → <em>Copy</em>, and paste it here:</label>
-                  <div class="row account-email">
-                    <input type="url" id="signInLink" autocomplete="off" placeholder="Paste the link" aria-label="Sign-in link">
-                    <button type="button" class="btn outline" id="signInLinkBtn">Sign in</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="account-landing" id="accountLanding" hidden>
-              <p class="note">This sign-in link was asked for in another app or browser, probably the installed app. On iPhone, links always open here instead of in the app.</p>
-              <p class="note"><strong>To sign in the app:</strong> tap <em>Copy link</em>, open the app, ⚙ → Account, and paste it there.</p>
-              <button type="button" class="btn primary" id="copyLinkBtn">Copy link</button>
-              <button type="button" class="btn outline" id="signInHereBtn">Sign in in this browser instead</button>
-            </div>
-            <div class="account-in" id="accountIn" hidden>
-              <div class="account-user">
-                <span class="account-avatar" id="accountInitials" aria-hidden="true"></span>
-                <img class="account-avatar" id="accountPhoto" alt="" referrerpolicy="no-referrer" hidden>
-                <div>
-                  <strong id="accountName"></strong>
-                  <small class="account-conn" id="accountConn"><span class="dot"></span><span id="accountConnText"></span></small>
-                </div>
-              </div>
-              <button type="button" class="btn outline small-btn" id="signOutBtn">Sign out</button>
-            </div>
-            <p class="note" id="accountStatus" aria-live="polite"></p>
-          </div>
-        </section>
-
-        <section class="group" id="clubGroup" hidden>
-          <h3>Club</h3>
-          <div class="card">
-            <div class="club-join" id="joinCard" hidden>
-              <p id="joinText"></p>
-              <div class="row">
-                <button type="button" class="btn primary" id="joinBtn">Join</button>
-                <button type="button" class="btn outline" id="joinLaterBtn">Not now</button>
-              </div>
-            </div>
-            <div class="club-pick" id="clubPick" hidden>
-              <div class="row">
-                <label class="field">Your club
-                  <select id="clubSelect"></select>
-                </label>
-                <button type="button" class="btn outline" id="clubOpenBtn">Open</button>
-              </div>
-              <p class="note" id="clubRole"></p>
-              <button type="button" class="next-event" id="nextEvent" hidden></button>
-              <div class="reminders" id="reminders" hidden>
-                <span><strong>Reminders</strong><small id="remindersText"></small></span>
-                <button type="button" class="btn outline" id="remindersBtn">Turn on</button>
-              </div>
-            </div>
-            <p class="note" id="clubNone" hidden>You’re not in a club yet. Open the invite link from your organiser, or start a new club.</p>
-            <button type="button" class="link-btn" id="clubNewBtn">Start a new club</button>
-            <div class="club-new" id="clubNew" hidden>
-              <div class="row">
-                <label class="field">Club name
-                  <input type="text" id="clubName" maxlength="60" placeholder="BC Smash" autocomplete="off">
-                </label>
-                <button type="button" class="btn primary" id="clubCreateBtn">Create</button>
-              </div>
-              <p class="note">You become its owner. Next, add a season and invite people. Matches use the points and match length set below.</p>
-            </div>
-            <p class="note" id="clubStatus" aria-live="polite"></p>
-          </div>
-        </section>
-
-        <section class="group">
-          <h3>Match rules</h3>
-          <div class="card">
-            <div class="row">
-              <label class="field">Points per game
-                <select name="points">
-                  <option value="21">21 (cap 30)</option>
-                  <option value="15">15 (cap 20)</option>
-                  <option value="11">11 (cap 15)</option>
-                </select>
-              </label>
-              <label class="field">Match
-                <select name="bestOf">
-                  <option value="1">1 game</option>
-                  <option value="3">Best of 3</option>
-                  <option value="5">Best of 5</option>
-                </select>
-              </label>
-            </div>
-            <p class="note">Points and match length apply from the next new match.</p>
-            <label class="switch"><span>Change ends automatically<small>Swaps the scores on screen after each game and at 11 in the deciding game</small></span><input type="checkbox" name="autoEnds"></label>
-            <label class="switch"><span>Intervals &amp; breaks<small>60 s interval at 11 and 2 min between games, with countdown, “20 seconds” call and end beep</small></span><input type="checkbox" name="intervals"></label>
-          </div>
-        </section>
-
-        <section class="group">
-          <h3>Voice &amp; sound</h3>
-          <div class="card">
-            <label class="switch"><span>Announce score out loud<small>Umpire-style calls: “20, game point, 18”</small></span><input type="checkbox" name="voice"></label>
-            <div class="voice-options" id="voiceRow">
-              <div class="row">
-                <label class="field">Voice<select name="voiceURI"></select></label>
-                <label class="field narrow">Speed
-                  <select name="speechRate">
-                    <option value="0.9">Slow</option>
-                    <option value="1">Normal</option>
-                    <option value="1.1">Fast</option>
-                  </select>
-                </label>
-              </div>
-              <button type="button" class="btn outline small-btn" id="testVoice">Test voice</button>
-            </div>
-          </div>
-        </section>
-
-        <section class="group">
-          <h3>Remote control</h3>
-          <div class="card">
-            <ul class="gestures">
-              <li><span>1 click</span>Point for home</li>
-              <li><span>2 clicks</span>Point for away</li>
-              <li><span>Long press</span>Undo · next game · end interval</li>
-            </ul>
-            <label class="switch" id="headphonesRow"><span>Headphone controls<small>Earbud taps as the remote: play/pause = home point, next track = away point, previous track = undo. Plays inaudible audio so the phone sends them to the app</small></span><input type="checkbox" name="headphones"></label>
-            <label class="switch"><span>Use the screen as remote<small>Tap anywhere on the scores like the remote button: 1 tap home, 2 taps away, hold to undo. Works with a finger or a mouse</small></span><input type="checkbox" name="screenRemote"></label>
-            <label class="switch"><span>Beep on remote clicks<small>Confirms each press without looking</small></span><input type="checkbox" name="beep"></label>
-            <div class="row">
-              <label class="field">Long press (ms)<input name="longPressMs" type="number" min="300" max="3000" step="50"></label>
-              <label class="field">Double-click (ms)<input name="doubleClickMs" type="number" min="150" max="1000" step="25"></label>
-            </div>
-            <div class="field"><span>Tester <small>· press the remote or an earbud, or tap this box</small></span>
-              <output id="keyTester" class="tester">No key received yet</output>
-            </div>
-          </div>
-        </section>
-
-        <section class="group">
-          <h3>Screen &amp; app</h3>
-          <div class="card">
-            <label class="switch"><span>Screen sleep<small>Black screen after 30 s; lights up on a remote press or score change</small></span><input type="checkbox" name="sleep"></label>
-            <button type="button" class="btn outline small-btn" id="installFromSettings" hidden><svg aria-hidden="true"><use href="#i-download"/></svg> Install as app</button>
-          </div>
-        </section>
-
-        <p class="about" id="aboutLine"></p>
-      </div>
-
-      <footer class="dialog-buttons">
-        <button type="button" class="btn outline" id="resetBtn">New match</button>
-        <button type="submit" class="btn primary" value="save" autofocus>Done</button>
-      </footer>
-    </form>
-  </dialog>
-
-  <dialog id="clubDialog">
-    <form method="dialog" class="settings-form">
-      <header class="settings-head club-head">
-        <h2 id="clubTitle">Club</h2>
-        <span class="role-tag" id="clubMyRole"></span>
-      </header>
-
-      <div class="settings-body">
-        <section class="group" id="eventsGroup">
-          <h3>Upcoming</h3>
-          <div class="card">
-            <p class="note" id="noEvents" hidden>No events planned yet.</p>
-            <ul class="club-list event-list" id="eventList"></ul>
-            <button type="button" class="link-btn" id="eventAddBtn" hidden>Plan an event</button>
-          </div>
-        </section>
-
-        <section class="group" id="seasonsGroup">
-          <h3>Seasons</h3>
-          <div class="card">
-            <p class="note" id="noSeasons" hidden>No season yet. A season is a period (for example September to June) with its own ranking; results across seasons show your progress.</p>
-            <ul class="club-list" id="seasonList"></ul>
-            <button type="button" class="link-btn" id="seasonAddBtn" hidden>Add a season</button>
-            <div class="season-form" id="seasonForm" hidden>
-              <label class="field">Name
-                <input type="text" id="seasonName" maxlength="60" autocomplete="off">
-              </label>
-              <div class="row">
-                <label class="field">From
-                  <input type="date" id="seasonStart">
-                </label>
-                <label class="field">Until
-                  <input type="date" id="seasonEnd">
-                </label>
-              </div>
-              <div class="row">
-                <button type="button" class="btn primary" id="seasonSaveBtn">Add season</button>
-                <button type="button" class="btn outline" id="seasonCancelBtn">Cancel</button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="group" id="inviteGroup" hidden>
-          <h3>Invite people</h3>
-          <div class="card">
-            <div class="row">
-              <label class="field">As
-                <select id="inviteRole">
-                  <option value="member">Member</option>
-                  <option value="keeper">Score keeper</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </label>
-              <label class="field">Link works for
-                <select id="inviteDays">
-                  <option value="1">1 day</option>
-                  <option value="7" selected>7 days</option>
-                  <option value="30">30 days</option>
-                </select>
-              </label>
-            </div>
-            <button type="button" class="btn primary" id="inviteCreateBtn">Create invite link</button>
-            <div class="invite-out" id="inviteOut" hidden>
-              <img id="inviteQr" alt="QR code of the invite link" width="200" height="200">
-              <p class="note invite-what" id="inviteWhat"></p>
-              <div class="row invite-share">
-                <button type="button" class="btn primary" id="inviteShareBtn">Share…</button>
-                <a class="btn outline" id="inviteWhatsApp" target="_blank" rel="noopener">WhatsApp</a>
-                <button type="button" class="btn outline" id="inviteCopyBtn">Copy</button>
-              </div>
-            </div>
-            <ul class="club-list" id="inviteList"></ul>
-          </div>
-        </section>
-
-        <section class="group">
-          <h3>Members</h3>
-          <div class="card">
-            <ul class="club-list" id="memberList"></ul>
-            <p class="note">Members have an account. Score keepers also start matches and enter scores; admins also invite people and manage the club.</p>
-          </div>
-        </section>
-
-        <section class="group">
-          <h3>Players</h3>
-          <div class="card">
-            <p class="note" id="claimHint" hidden>Are you on this list? Tap <em>That’s me</em> next to your name, or add yourself.</p>
-            <button type="button" class="btn outline small-btn" id="addMeBtn" hidden>Add me as a player</button>
-            <ul class="club-list" id="playerList"></ul>
-            <div class="row" id="addGuestRow" hidden>
-              <label class="field">Add a player without an account
-                <input type="text" id="guestName" maxlength="40" placeholder="Name" autocomplete="off">
-              </label>
-              <button type="button" class="btn outline" id="addGuestBtn">Add</button>
-            </div>
-          </div>
-        </section>
-
-        <section class="group" id="clubManage">
-          <h3>This club</h3>
-          <div class="card">
-            <div class="row" id="renameRow" hidden>
-              <label class="field">Name
-                <input type="text" id="clubRename" maxlength="60" autocomplete="off">
-              </label>
-              <button type="button" class="btn outline" id="clubRenameBtn">Save</button>
-            </div>
-            <button type="button" class="btn outline danger" id="clubLeaveBtn" hidden>Leave this club</button>
-            <button type="button" class="btn outline danger" id="clubDeleteBtn" hidden>Delete this club</button>
-          </div>
-        </section>
-        <p class="note club-status" id="clubDialogStatus" aria-live="polite"></p>
-      </div>
-
-      <footer class="dialog-buttons">
-        <button type="submit" class="btn primary">Done</button>
-      </footer>
-    </form>
-  </dialog>
-
-  <dialog id="eventDialog">
-    <form method="dialog" class="settings-form">
-      <header class="settings-head">
-        <div class="event-title-row">
-          <h2 id="eventTitle">Event</h2>
-          <button type="button" class="btn icon edit-btn" id="eventEditBtn" title="Edit this event" aria-label="Edit this event" hidden>
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.17 6.81a1 1 0 0 0-3.99-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5z"/><path d="m15 5 4 4"/></svg>
-          </button>
-        </div>
-        <p class="event-when" id="eventWhen"></p>
-        <p class="event-when" id="eventReminderText"></p>
-      </header>
-
-      <div class="settings-body">
-        <p class="event-cancelled" id="eventCancelled" hidden>Cancelled</p>
-        <section class="group" id="myAnswerGroup">
-          <h3>Are you coming?</h3>
-          <div class="card">
-            <div class="answer-buttons" id="answerButtons">
-              <button type="button" class="btn outline" id="goingBtn">Going</button>
-              <button type="button" class="btn outline" id="notGoingBtn">Not going</button>
-            </div>
-            <label class="field" id="answerNoteField" hidden>Reason (optional, visible to the club)
-              <input type="text" id="answerNote" maxlength="140" placeholder="e.g. away this week" autocomplete="off">
-            </label>
-            <p class="note" id="answerHint"></p>
-          </div>
-        </section>
-
-        <section class="group">
-          <h3 id="goingTitle">Going</h3>
-          <div class="card"><ul class="club-list" id="goingList"></ul><p class="note" id="goingNone">Nobody yet.</p></div>
-        </section>
-        <section class="group" id="notGoingGroup">
-          <h3 id="notGoingTitle">Not going</h3>
-          <div class="card"><ul class="club-list" id="notGoingList"></ul></div>
-        </section>
-        <section class="group" id="noAnswerGroup">
-          <h3 id="noAnswerTitle">No answer yet</h3>
-          <div class="card"><ul class="club-list" id="noAnswerList"></ul></div>
-        </section>
-
-        <section class="group" id="eventAdmin" hidden>
-          <h3>Manage</h3>
-          <div class="card">
-            <button type="button" class="btn outline" id="eventToggleBtn">Cancel this date</button>
-            <button type="button" class="btn outline danger" id="eventDeleteBtn">Delete this event</button>
-            <button type="button" class="btn outline danger" id="seriesDeleteBtn" hidden>Delete this and all later dates</button>
-          </div>
-        </section>
-        <p class="note club-status" id="eventStatus" aria-live="polite"></p>
-      </div>
-
-      <footer class="dialog-buttons">
-        <button type="submit" class="btn primary">Done</button>
-      </footer>
-    </form>
-  </dialog>
-
-  <dialog id="eventEditDialog">
-    <form method="dialog" class="settings-form">
-      <header class="settings-head"><h2 id="eventEditTitle">Plan an event</h2></header>
-      <div class="settings-body">
-        <div class="card event-form">
-          <label class="field">What
-            <select id="eventType">
-              <option value="training" selected>Training</option>
-              <option value="random">Random tournament</option>
-              <option value="weighted">Weighted tournament</option>
-              <option value="knockout">Knockout tournament</option>
-            </select>
-          </label>
-          <div class="row">
-            <label class="field">Date
-              <input type="date" id="eventDate">
-            </label>
-            <label class="field" id="eventRepeatField">Repeat
-              <select id="eventRepeat">
-                <option value="">Once</option>
-                <option value="weekly">Every week</option>
-              </select>
-            </label>
-          </div>
-          <label class="field" id="eventUntilField" hidden>Every week until
-            <input type="date" id="eventUntil">
-          </label>
-          <div class="row">
-            <label class="field">From
-              <input type="time" id="eventStart" value="20:00" step="300">
-            </label>
-            <label class="field">Until
-              <input type="time" id="eventEnd" value="21:30" step="300">
-            </label>
-          </div>
-          <div class="row">
-            <label class="field">Where
-              <input type="text" id="eventLocation" maxlength="80" placeholder="Sports hall" autocomplete="off">
-            </label>
-            <label class="field courts-field">Courts
-              <input type="number" id="eventCourts" value="2" min="1" max="12" inputmode="numeric">
-            </label>
-          </div>
-          <label class="field">Reminder
-            <select id="eventReminder"></select>
-          </label>
-          <div class="row" id="reminderOther" hidden>
-            <label class="field">Day
-              <select id="reminderDays">
-                <option value="0">Same day</option>
-                <option value="1">1 day before</option>
-                <option value="2">2 days before</option>
-                <option value="3">3 days before</option>
-                <option value="4">4 days before</option>
-                <option value="5">5 days before</option>
-                <option value="6">6 days before</option>
-                <option value="7">A week before</option>
-              </select>
-            </label>
-            <label class="field">At
-              <input type="time" id="reminderTime" value="09:00" step="300">
-            </label>
-          </div>
-          <p class="note" id="reminderWhen"></p>
-          <p class="note" id="eventEditStatus" aria-live="polite"></p>
-        </div>
-      </div>
-      <footer class="dialog-buttons">
-        <button type="button" class="btn outline" id="eventEditCancel">Cancel</button>
-        <button type="button" class="btn primary" id="eventSaveBtn">Plan</button>
-      </footer>
-    </form>
-  </dialog>
-
-  <dialog id="scopeDialog" class="small-dialog">
-    <form method="dialog" class="settings-form">
-      <header class="settings-head"><h2>Change which dates?</h2></header>
-      <div class="settings-body">
-        <p class="note scope-text">This date is part of a weekly series.</p>
-        <div class="scope-buttons">
-          <button type="button" class="btn primary" id="scopeOne">Only this date</button>
-          <button type="button" class="btn outline" id="scopeAll">All upcoming dates</button>
-          <button type="button" class="btn outline" id="scopeCancel">Cancel</button>
-        </div>
-      </div>
-    </form>
-  </dialog>
 
   <script type="module" src="js/app.js"></script>
 </body>

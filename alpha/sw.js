@@ -3,7 +3,7 @@
 // Bump VERSION whenever any app file changes.
 // Alpha edition (served from /alpha/): its own cache names, so it never removes another edition's cache.
 // The prefix must match EDITION.cachePrefix in js/edition.js.
-const VERSION = 'v30-alpha.14';
+const VERSION = 'v30-alpha.15';
 const CACHE_PREFIX = 'badminton-score-alpha-';
 const CACHE = `${CACHE_PREFIX}${VERSION}`;
 // A tapped reminder's address, left for the app to pick up (see notificationclick). Kept across
@@ -13,8 +13,14 @@ const NETWORK_TIMEOUT_MS = 3000;
 const ASSETS = [
   './',
   'index.html',
-  'css/styles.css',
+  'css/skoor.css',
+  'fonts/barlow-condensed-800-latin.woff2',
   'js/app.js',
+  'js/ui.js',
+  'js/state.js',
+  'js/session.js',
+  'js/scoreboard.js',
+  'js/links.js',
   'js/match.js',
   'js/gesture.js',
   'js/audio.js',
@@ -23,21 +29,34 @@ const ASSETS = [
   'js/layout.js',
   'js/media.js',
   'js/random.js',
-  'js/setup.js',
   'js/edition.js',
   'js/cloud.js',
-  'js/account.js',
   'js/club.js',
-  'js/club-ui.js',
-  'js/events-ui.js',
   'js/reminder.js',
   'js/vendor/qrcode.js',
+  'js/views/common.js',
+  'js/views/settings.js',
+  'js/views/play.js',
+  'js/views/newmatch.js',
+  'js/views/you.js',
+  'js/views/signin.js',
+  'js/views/clubs.js',
+  'js/views/clubview.js',
+  'js/views/club.js',
+  'js/views/people.js',
+  'js/views/invite.js',
+  'js/views/clubsettings.js',
+  'js/views/event.js',
+  'js/views/eventedit.js',
+  'js/views/join.js',
   'manifest.webmanifest',
-  'icons/shuttle-192.png',
-  'icons/shuttle-512.png',
-  'icons/shuttle-maskable-512.png',
-  'icons/shuttle-apple-180.png',
-  'icons/shuttlecock.svg',
+  'icons/skoor-192.png',
+  'icons/skoor-512.png',
+  'icons/skoor-maskable-512.png',
+  'icons/skoor-apple-180.png',
+  'icons/skoor-favicon.svg',
+  'icons/skoor-favicon-32.png',
+  'icons/skoor-logo.svg',
 ];
 
 // Reminders: Firebase Cloud Messaging delivers them as web push with a data payload
@@ -48,11 +67,11 @@ self.addEventListener('push', (event) => {
     const json = event.data?.json() ?? {};
     msg = json.data ?? json;
   } catch { /* show a plain notification */ }
-  event.waitUntil(self.registration.showNotification(msg.title || 'Badminton Score', {
+  event.waitUntil(self.registration.showNotification(msg.title || 'Skoor', {
     body: msg.body || '',
     tag: msg.tag || undefined,
-    icon: 'icons/shuttle-192.png',
-    badge: 'icons/shuttle-192.png',
+    icon: 'icons/skoor-192.png',
+    badge: 'icons/skoor-192.png',
     data: { url: msg.url || self.registration.scope },
   }));
 });

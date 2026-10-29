@@ -175,8 +175,8 @@ export function createMediaRemote(onAction) {
       session.metadata = new MediaMetadata({
         title,
         artist,
-        album: 'Badminton Score α',
-        artwork: [{ src: 'icons/shuttle-512.png', sizes: '512x512', type: 'image/png' }],
+        album: 'Skoor α',
+        artwork: [{ src: 'icons/skoor-512.png', sizes: '512x512', type: 'image/png' }],
       });
     },
   };

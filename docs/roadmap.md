@@ -87,6 +87,35 @@ reminder.
       their own keep those changes
 - [x] GitHub Actions: tests, then deploys rules, indexes and functions to badminton-dev (working)
 
+## Skoor redesign in the alpha
+
+Result: the alpha looks and works like the redesign (name, logo and flip tiles decided in D1): three
+tabs (Play, Clubs, You) and full screens instead of the settings window.
+
+- [x] App frame with tabs and screens (plain JavaScript modules, no build step yet; the build step
+      with Vite and TypeScript, D14, comes later)
+- [x] Play: next event of all your clubs (answer right there), Continue match, Quick match
+- [x] New match: tap a side's 00 tiles to choose the first server, draw who serves, names (Home /
+      Away when unknown), points and match length; the remote works here too
+- [x] Match: flat flip tiles with two digits, players' names, games won, SERVES under the serving
+      side's green tiles; landscape without a bottom bar (undo, swap, menu as small round buttons)
+- [x] Match menu: score calls, beeps, screen sleep, intervals, changing ends, remote; end or keep
+- [x] You: account, reminders, sound and voice, remote with timing and tester, install, version
+- [x] Sign in: Google or e-mail link (also pasting the link in the installed iPhone app)
+- [x] Clubs, Start a club, Club home, Event (answers with a reason, answering for others), Plan /
+      Edit event (weekly, reminder, this date or all upcoming dates), People and roles, Invite
+      (QR, WhatsApp, share, open links), Club settings (name, usual place, club match rules,
+      seasons, leave, delete), Join with "Which player are you?"
+- [ ] Club match and Follow a court on Play (need Phase 3: matches saved with players)
+- [ ] Player picker for a match (Fill in for me; here and not playing first, by waiting time;
+      playing now with their court; didn't say they'd come; a guest by name) (Phase 3)
+- [ ] Head-to-head on New match and when accepting a challenge: the exact line-up for racket and
+      pair sports, team against team for team sports (Phase 5)
+- [ ] Profiles: tap a name; "You and X" with Singles / Doubles / Partners / Teams; visibility
+      Everyone / Members of my clubs / Members of my teams / Nobody (D23) (Phase 5)
+- [ ] Live now, match detail, event results, season ranking (Phases 3 and 5)
+- [ ] Teams within a club, viewers, challenges between clubs (after Phase 5)
+
 ## Phase 3 — Events on the day: courts and live scoring
 
 Result: two phones score two courts; any screen follows them live.
