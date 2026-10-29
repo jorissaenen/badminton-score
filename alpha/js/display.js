@@ -42,6 +42,7 @@ let slide = 0;
 let loaded = { event: false, matches: false }; // what it follows has come in at least once
 let lastAnnounced = null; // { id, state } of the court's match, to know what changed
 let soundOn = false;
+let lastNewest = null; // the newest result on the overview, to slide in the next one
 
 // ---------- the key ----------
 
@@ -148,7 +149,10 @@ function drawOverview() {
   const sport = sportOf(club?.sport);
   const live = matches.filter((m) => m.status === 'live');
   const done = matches.filter((m) => m.status === 'finished');
-  const stats = eventStats(matches).slice(0, 8);
+  const stats = eventStats(matches).slice(0, 10);
+  const recent = done.slice().sort((a, b) => (b.finishedAt?.toMillis?.() ?? 0) - (a.finishedAt?.toMillis?.() ?? 0)).slice(0, 8);
+  const word = (c) => (c ? t(sport.id === 'tabletennis' ? 'screen.tableN' : 'screen.courtN', { n: c }) : '');
+  const at = (ts) => (ts?.toDate ? ts.toDate().toTimeString().slice(0, 5) : '');
   const court = (c) => {
     const m = live.filter((x) => x.court === c).at(-1);
     const label = t(sport.id === 'tabletennis' ? 'screen.tableN' : 'screen.courtN', { n: c });
@@ -161,6 +165,7 @@ function drawOverview() {
   };
   const noCourt = live.filter((m) => !m.court || m.court > courts);
   root.className = 'screen overview';
+  const newest = recent[0]?.id ?? null;
   root.innerHTML = html`<header class="screen-top"><span class="ov-title">${raw(sportIcon(sport.id, 28))}<span class="display">${club?.name ?? ''}</span></span>
       <span>${event ? `${t(`eventType.${event.type}`)} · ${event.start}–${event.end}` : ''}</span>${Club.eventPhase(event ?? {}, Date.now(), matches) === 'live' ? html`<span class="chip live">${t('event.live')}</span>` : ''}</header>
     ${event?.pinned ? html`<div class="pinned">${event.pinned}</div>` : ''}
@@ -168,11 +173,40 @@ function drawOverview() {
       <section class="ov-courts">${Array.from({ length: courts }, (_, i) => court(i + 1))}
         ${noCourt.map((m) => html`<div class="ov-court"><span class="ov-label">${t('screen.noCourt')}</span>${names(m).map((x, s) => html`<div class="ov-side"><span class="ov-name">${x}</span><span class="ov-tiles">${tiles(M.display(m.state, m.rules).tiles[s], false)}</span></div>`)}</div>`)}</section>
       <aside class="ov-side-col">
-        <section><h2 class="h3">${t('event.stats')}</h2>${stats.length ? html`<ol class="ov-stats">${stats.map((r) => html`<li><span>${r.name}</span><span class="display">${r.won}/${r.played}</span></li>`)}</ol>` : html`<p class="muted">${t('event.noMatchesYet')}</p>`}</section>
-        <section><h2 class="h3">${t('screen.latest')}</h2>${done.length ? html`<ul class="ov-feed">${done.slice(-6).reverse().map((m) => html`<li><strong>${names(m)[m.winner ?? 0]}</strong> – ${names(m)[1 - (m.winner ?? 0)]}<span class="display">${M.gameScores(m.state, m.rules).map((s) => s.join('–')).join('  ')}</span></li>`)}</ul>` : html`<p class="muted">—</p>`}</section>
+        <section class="ov-card ov-stats-card"><div class="ov-stats-head"><span>${t('event.stats')}</span>${stats.length ? html`<span>${t('screen.wonCol')}</span><span>${t('screen.lostCol')}</span>` : ''}</div>
+          ${stats.length ? html`<ol class="ov-stats">${stats.map((r) => html`<li><span class="ov-rank"></span><span class="ov-who">${r.name}</span><span class="ov-n">${r.won}</span><span class="ov-n lost">${r.lost}</span></li>`)}</ol>` : html`<p class="muted">${t('event.noMatchesYet')}</p>`}</section>
+        <section class="ov-results"><h2 class="h3">${t('screen.latest')}</h2>
+          ${recent.length ? recent.map((m) => resultCard(m, word(m.court), at(m.finishedAt))) : html`<p class="muted">—</p>`}</section>
       </aside>
     </div>
     <footer class="ov-foot muted">skoor · ${esc(t('screen.overviewFoot'))}</footer>`.s;
+  // A new result slides in at the top and pushes the others down.
+  if (newest && lastNewest && newest !== lastNewest) root.querySelector('.ov-result')?.classList.add('arrive');
+  lastNewest = newest;
+  fitOverview();
+}
+
+// Shows only what fits: up to 10 players in the statistics (fewer when the screen is low, so the
+// results keep room), then as many of the latest results as fit below.
+function fitOverview() {
+  const col = root.querySelector('.ov-side-col');
+  if (!col) return;
+  const bottom = col.getBoundingClientRect().bottom;
+  const card = root.querySelector('.ov-stats-card');
+  const half = col.getBoundingClientRect().top + col.clientHeight * 0.62;
+  const rows = [...root.querySelectorAll('.ov-stats li')];
+  while (rows.length > 3 && card.getBoundingClientRect().bottom > half) rows.pop().remove();
+  root.querySelectorAll('.ov-result').forEach((r) => { if (r.getBoundingClientRect().bottom > bottom) r.remove(); });
+}
+
+// One finished match: where and when, then a row per side with its score in each game; who won
+// each game and the match stands out.
+function resultCard(m, where, when) {
+  const games = M.gameScores(m.state, m.rules);
+  const row = (s) => html`<div class="ov-r-row${m.winner === s ? ' won' : ''}"><span class="ov-who">${names(m)[s]}</span>
+    ${games.map((g) => html`<span class="ov-g${g[s] > g[1 - s] ? ' won' : ''}">${g[s]}</span>`)}</div>`;
+  return html`<div class="ov-card ov-result"><div class="ov-r-top"><span>${where}</span><span>${when}</span></div>
+    ${row(0)}<span class="ov-vs">${t('screen.vs')}</span>${row(1)}</div>`;
 }
 
 function draw() {

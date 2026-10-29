@@ -657,13 +657,31 @@ input::placeholder { color: #5a5a5a; }
 .ov-tiles { display: flex; gap: 0.4vh; --tile-h: clamp(30px, 6vh, 80px); }
 .ov-tiles .tile { --tile-h: inherit; }
 .ov-side-col { display: flex; flex-direction: column; gap: 2vh; min-height: 0; overflow: hidden; }
-.ov-side-col .h3 { font-size: clamp(12px, 1.8vh, 24px); }
-.ov-stats, .ov-feed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.8vh; font-size: clamp(14px, 2.4vh, 32px); }
-.ov-stats { counter-reset: rank; }
-.ov-stats li { display: flex; justify-content: space-between; gap: 1vw; counter-increment: rank; }
-.ov-stats li::before { content: counter(rank); color: var(--faint); width: 2em; }
-.ov-stats li span:first-child { flex: 1; }
-.ov-feed li { display: flex; flex-wrap: wrap; gap: 0.6vw; align-items: baseline; color: var(--muted); }
-.ov-feed li strong { color: var(--fg); }
-.ov-feed li .display { margin-left: auto; color: var(--fg); }
+.ov-side-col .h3 { font-size: clamp(12px, 1.7vh, 22px); margin: 0 0.4vw; }
+.ov-card { background: var(--card); border: 1px solid var(--line); border-radius: 2vh; padding: 1.4vh 1.2vw; }
+/* Statistics: rank, name, won, lost; plain text, no heavy numbers */
+.ov-stats-head, .ov-stats li { display: flex; align-items: center; gap: 0.8vw; }
+.ov-stats-head { font-size: clamp(11px, 1.7vh, 22px); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); padding-bottom: 0.4vh; }
+.ov-stats-head span:first-child { flex: 1; }
+.ov-stats-head span + span, .ov-n { width: 3.2em; text-align: center; }
+.ov-stats { list-style: none; margin: 0; padding: 0; counter-reset: rank; font-size: clamp(14px, 2.4vh, 32px); }
+.ov-stats li { padding: 0.6vh 0; counter-increment: rank; }
+.ov-stats li + li { border-top: 1px solid var(--line); }
+.ov-rank::before { content: counter(rank); }
+.ov-rank { width: 1.4em; color: var(--faint); font-size: 0.82em; }
+.ov-who { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-stats .ov-who { font-weight: 500; }
+.ov-n { font-weight: 600; font-variant-numeric: tabular-nums; }
+.ov-n.lost { font-weight: 400; color: var(--muted); }
+/* Latest results: a card per match, newest on top */
+.ov-results { display: flex; flex-direction: column; gap: 1vh; min-height: 0; }
+.ov-result { display: flex; flex-direction: column; gap: 0.2vh; padding: 1.1vh 1.1vw; }
+.ov-result.arrive { animation: arrive 0.6s ease-out; }
+@keyframes arrive { from { opacity: 0; transform: translateY(-1.5vh); } }
+.ov-r-top { display: flex; justify-content: space-between; font-size: clamp(11px, 1.6vh, 20px); color: var(--faint); margin-bottom: 0.2vh; }
+.ov-r-row { display: flex; align-items: center; gap: 0.3vw; font-size: clamp(14px, 2.2vh, 30px); color: var(--muted); }
+.ov-r-row.won .ov-who { color: var(--fg); font-weight: 600; }
+.ov-g { width: 1.9em; text-align: center; font-variant-numeric: tabular-nums; color: var(--faint); }
+.ov-g.won { color: var(--fg); font-weight: 600; }
+.ov-vs { font-size: clamp(10px, 1.4vh, 18px); font-weight: 600; letter-spacing: 0.12em; color: var(--faint); }
 .ov-foot { font-size: clamp(11px, 1.6vh, 20px); text-align: right; }
