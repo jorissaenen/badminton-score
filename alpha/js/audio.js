@@ -11,6 +11,8 @@
 // - keep the audio output awake with an inaudible signal, so phone speakers and Bluetooth
 //   speakers don't need to power up (and swallow the first syllable) at every call.
 
+import { language } from './i18n.js';
+
 const QUALITY_HINTS = [/natural/i, /neural/i, /premium/i, /enhanced/i, /siri/i, /wavenet/i];
 const PREFERRED_NAMES = [/samantha/i, /daniel/i, /karen/i, /serena/i, /google uk english/i, /google us english/i];
 
@@ -77,10 +79,14 @@ export function onVoicesChanged(fn) {
   if (speechSupported()) speechSynthesis.addEventListener?.('voiceschanged', fn);
 }
 
-function rank(v) {
+const speaks = (v, lang) => new RegExp(`^${lang}([-_]|$)`, 'i').test(v.lang);
+
+// Voices for the language of the calls rank first; for English, British and American voices.
+function rank(v, lang) {
   let score = 0;
-  if (/^en[-_]/i.test(v.lang) || v.lang === 'en') score += 100;
-  if (/^en[-_](GB|US|AU|IE)/i.test(v.lang)) score += 10;
+  if (speaks(v, lang)) score += 100;
+  if (lang === 'en' && /^en[-_](GB|US|AU|IE)/i.test(v.lang)) score += 10;
+  if (lang === 'nl' && /^nl[-_](BE|NL)/i.test(v.lang)) score += 10;
   if (QUALITY_HINTS.some((r) => r.test(v.name))) score += 40;
   if (PREFERRED_NAMES.some((r) => r.test(v.name))) score += 20;
   if (v.localService) score += 15; // works offline in the sports hall
@@ -88,18 +94,20 @@ function rank(v) {
   return score;
 }
 
-export function bestVoice(list = voices()) {
-  return [...list].sort((a, b) => rank(b) - rank(a))[0] ?? null;
+export function bestVoice(list = voices(), lang = language()) {
+  return [...list].sort((a, b) => rank(b, lang) - rank(a, lang))[0] ?? null;
 }
 
-// English voices first (best first), then the rest.
-export function sortedVoices(list = voices()) {
-  return [...list].sort((a, b) => rank(b) - rank(a) || a.name.localeCompare(b.name));
+// Voices for the app's language first (best first), then the rest.
+export function sortedVoices(list = voices(), lang = language()) {
+  return [...list].sort((a, b) => rank(b, lang) - rank(a, lang) || a.name.localeCompare(b.name));
 }
 
-function resolveVoice(voiceURI) {
-  const list = voices();
-  return (voiceURI && list.find((v) => v.voiceURI === voiceURI)) || bestVoice(list);
+// The voice for the calls: the one picked in You while it speaks the app's language, else the
+// best voice for that language.
+export function voiceFor(voiceURI, list = voices(), lang = language()) {
+  const picked = voiceURI && list.find((v) => v.voiceURI === voiceURI);
+  return (picked && speaks(picked, lang) ? picked : null) || bestVoice(list, lang);
 }
 
 // An inaudible, constant signal keeps the output device from going idle.
@@ -172,12 +180,12 @@ export function say(text, { voiceURI = '', rate = 1 } = {}) {
   const delay = Math.max(beepEndsAt - performance.now(), busy ? 120 : 0, 0);
   pending = setTimeout(() => {
     const u = new SpeechSynthesisUtterance(text);
-    const voice = resolveVoice(voiceURI);
+    const voice = voiceFor(voiceURI);
     if (voice) {
       u.voice = voice;
       u.lang = voice.lang;
     } else {
-      u.lang = 'en-GB';
+      u.lang = language();
     }
     u.rate = rate;
     u.pitch = 1;

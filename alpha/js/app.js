@@ -1,6 +1,8 @@
 // Starts the app: the screens (Play, Clubs, You and the ones opened from them), the match, and
 // what the app was opened for (an invite, a tapped reminder, a sign-in link).
 import { watchLayout } from './layout.js';
+import { setLanguage, onLanguage, translatePage } from './i18n.js';
+import { state } from './state.js';
 import { setupInstallPrompt } from './install.js';
 import * as Board from './scoreboard.js';
 import * as Session from './session.js';
@@ -21,6 +23,10 @@ import * as EventEdit from './views/eventedit.js';
 import * as Join from './views/join.js';
 
 watchLayout();
+
+// The language: picked in You, else the device's. Set before anything is drawn.
+setLanguage(state.settings.language);
+translatePage();
 
 // Each route: a pattern for the address after '#', the screen, and the tab it belongs to (tabs
 // show only on the main screen of each tab).
@@ -79,6 +85,13 @@ function route() {
 }
 
 window.addEventListener('hashchange', route);
+
+// Another language picked: redraw everything in it.
+onLanguage(() => {
+  translatePage();
+  Board.render();
+  route();
+});
 export const currentPath = () => current;
 
 // ---------- the match ----------

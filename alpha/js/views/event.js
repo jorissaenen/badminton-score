@@ -3,8 +3,9 @@
 import * as Club from '../club.js';
 import { session } from '../session.js';
 import { html, icon, avatar, choose, confirmSheet, attempt, toast, dayText } from '../ui.js';
+import { t, locale } from '../i18n.js';
 import { clubScreen } from './clubview.js';
-import { answerButtons, wireAnswers, dayName, eventName, plural, NO_PLAYER } from './common.js';
+import { answerButtons, wireAnswers, dayName, eventName, noPlayer } from './common.js';
 
 export function show(el, [clubId, eventId], { go }) {
   let event; // undefined: loading; null: gone
@@ -21,7 +22,7 @@ export function show(el, [clubId, eventId], { go }) {
     const back = [`#/club/${clubId}`, v.club.name];
     if (event === undefined) { el.innerHTML = html`<div class="page">${top(back)}</div>`.s; return; }
     if (event === null) {
-      el.innerHTML = html`<div class="page">${top(back)}<div class="card"><p class="empty">This event no longer exists.</p></div></div>`.s;
+      el.innerHTML = html`<div class="page">${top(back)}<div class="card"><p class="empty">${t('event.gone')}</p></div></div>`.s;
       return;
     }
     const e = event;
@@ -34,38 +35,38 @@ export function show(el, [clubId, eventId], { go }) {
     const noAnswer = players.filter((p) => !regs[p.id]).sort(byName);
     const at = e.remindAt?.toDate();
     const person = (p) => html`<button type="button" class="row" data-player="${p.id}" ${admin && !cancelled ? '' : 'disabled style="cursor:default"'}>
-        ${avatar(p.name, p.id === myPlayer?.id ? 'me' : '')}<span class="grow"><strong>${p.name}${p.id === myPlayer?.id ? html` <span class="muted" style="font-weight:400">you</span>` : ''}</strong>
+        ${avatar(p.name, p.id === myPlayer?.id ? 'me' : '')}<span class="grow"><strong>${p.name}${p.id === myPlayer?.id ? html` <span class="muted" style="font-weight:400">${t('common.you')}</span>` : ''}</strong>
         ${regs[p.id]?.note ? html`<small>${regs[p.id].note}</small>` : ''}</span></button>`;
     if (mine?.status !== 'not going') note = null;
     else if (note === null) note = mine.note ?? '';
 
     el.innerHTML = html`<div class="page">
-      ${top(back, admin && !cancelled ? html`<a class="round" href="#/club/${clubId}/event/${eventId}/edit" aria-label="Edit">${icon('pencil', 18)}</a>` : '')}
+      ${top(back, admin && !cancelled ? html`<a class="round" href="#/club/${clubId}/event/${eventId}/edit" aria-label="${t('common.edit')}">${icon('pencil', 18)}</a>` : '')}
       <div>
         <p class="sub" style="margin:0 4px 6px">${eventName(e)} · ${dayName(e.date, true)}</p>
         <div class="display" style="font-size:64px;line-height:1;margin:0 2px"><span class="cap">${e.start}</span></div>
-        <p class="sub">until ${e.end}</p>
-        ${cancelled ? html`<p class="chip notgoing" style="display:inline-block;margin:10px 4px 0">Cancelled</p>` : ''}
+        <p class="sub">${t('event.until', { end: e.end })}</p>
+        ${cancelled ? html`<p class="chip notgoing" style="display:inline-block;margin:10px 4px 0">${t('event.cancelled')}</p>` : ''}
       </div>
       <div class="card">
-        ${e.location ? html`<a class="row" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.location)}" target="_blank" rel="noopener">${icon('pin', 20)}<span class="grow">${e.location}</span><span class="val">Maps</span></a>` : ''}
-        <div class="row">${icon('courts', 20)}<span class="grow">${plural(e.courts, 'court')}</span></div>
-        ${cancelled ? '' : html`<div class="row">${icon('bell', 20)}<span class="grow">${at ? `Reminder ${at.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}, ${at.toTimeString().slice(0, 5)}` : 'No reminder'}</span></div>`}
-        ${e.seriesId ? html`<div class="row">${icon('calendar', 20)}<span class="grow">Every ${new Date(`${e.date}T12:00:00`).toLocaleDateString('en-GB', { weekday: 'long' })}</span></div>` : ''}
+        ${e.location ? html`<a class="row" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.location)}" target="_blank" rel="noopener">${icon('pin', 20)}<span class="grow">${e.location}</span><span class="val">${t('event.maps')}</span></a>` : ''}
+        <div class="row">${icon('courts', 20)}<span class="grow">${t('event.nCourts', { n: e.courts })}</span></div>
+        ${cancelled ? '' : html`<div class="row">${icon('bell', 20)}<span class="grow">${at ? t('event.reminderAt', { day: at.toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' }), time: at.toTimeString().slice(0, 5) }) : t('reminder.none')}</span></div>`}
+        ${e.seriesId ? html`<div class="row">${icon('calendar', 20)}<span class="grow">${t('event.everyWeekday', { day: dayText(e.date, { weekday: 'long' }) })}</span></div>` : ''}
       </div>
-      ${cancelled ? '' : html`<section><h2 class="h3">Are you coming?</h2>
-        ${answerButtons(mine?.status, myPlayer ? '' : NO_PLAYER)}
-        ${mine?.status === 'not going' ? html`<label class="field" style="margin-top:12px">Reason, visible to the club (optional)
-          <input type="text" data-note maxlength="140" value="${note ?? ''}" placeholder="e.g. Away this week"></label>` : ''}
+      ${cancelled ? '' : html`<section><h2 class="h3">${t('event.coming')}</h2>
+        ${answerButtons(mine?.status, myPlayer ? '' : noPlayer())}
+        ${mine?.status === 'not going' ? html`<label class="field" style="margin-top:12px">${t('event.reason')}
+          <input type="text" data-note maxlength="140" value="${note ?? ''}" placeholder="${t('event.reasonExample')}"></label>` : ''}
       </section>`}
-      <section><h2 class="h3">Going · ${going.length}</h2><div class="card">${going.length ? going.map(person) : html`<p class="empty">Nobody yet.</p>`}</div></section>
-      ${notGoing.length ? html`<section><h2 class="h3">Not going · ${notGoing.length}</h2><div class="card">${notGoing.map(person)}</div></section>` : ''}
-      ${noAnswer.length ? html`<section><h2 class="h3">No answer yet · ${noAnswer.length}</h2><div class="card">${noAnswer.map(person)}</div>
-        <p class="note">${at && !e.reminded ? 'They get the reminder.' : ''}${admin && !cancelled ? ' Tap someone to answer for them.' : ''}</p></section>` : ''}
-      ${admin ? html`<section><h2 class="h3">Manage</h2><div class="card">
-        <button type="button" class="row" data-toggle>${cancelled ? 'Plan this date again' : 'Cancel this date'}</button>
-        <button type="button" class="row danger" data-delete>${e.seriesId ? 'Delete only this date' : 'Delete this event'}</button>
-        ${e.seriesId ? html`<button type="button" class="row danger" data-delete-series>Delete this and all later dates</button>` : ''}
+      <section><h2 class="h3">${t('event.goingN', { n: going.length })}</h2><div class="card">${going.length ? going.map(person) : html`<p class="empty">${t('event.nobodyYet')}</p>`}</div></section>
+      ${notGoing.length ? html`<section><h2 class="h3">${t('event.notGoingN', { n: notGoing.length })}</h2><div class="card">${notGoing.map(person)}</div></section>` : ''}
+      ${noAnswer.length ? html`<section><h2 class="h3">${t('event.noAnswerN', { n: noAnswer.length })}</h2><div class="card">${noAnswer.map(person)}</div>
+        <p class="note">${[at && !e.reminded ? t('event.theyGetReminder') : '', admin && !cancelled ? t('event.tapToAnswer') : ''].filter(Boolean).join(' ')}</p></section>` : ''}
+      ${admin ? html`<section><h2 class="h3">${t('event.manage')}</h2><div class="card">
+        <button type="button" class="row" data-toggle>${cancelled ? t('event.planAgain') : t('event.cancelDate')}</button>
+        <button type="button" class="row danger" data-delete>${e.seriesId ? t('event.deleteOnlyDate') : t('event.deleteEvent')}</button>
+        ${e.seriesId ? html`<button type="button" class="row danger" data-delete-series>${t('event.deleteLater')}</button>` : ''}
       </div></section>` : ''}
     </div>`.s;
 
@@ -91,38 +92,38 @@ export function show(el, [clubId, eventId], { go }) {
     if (!p || regs[p.id]?.status !== 'not going') return;
     const text = (note ?? '').trim();
     if (text === (regs[p.id].note ?? '')) return;
-    attempt(Club.register(session.user, clubId, eventId, p.id, 'not going', text), 'Couldn’t save the reason');
+    attempt(Club.register(session.user, clubId, eventId, p.id, 'not going', text), t('event.reasonFailed'));
   }
 
   async function answerFor(p) {
     if (!p || !view.admin) return;
-    const answer = await choose(p.name, 'Answer for this player:', [
-      { label: 'Going', value: 'going', style: 'primary' },
-      { label: 'Not going', value: 'not going' },
-      { label: 'No answer', value: 'none' },
+    const answer = await choose(p.name, t('event.answerFor'), [
+      { label: t('answer.going'), value: 'going', style: 'primary' },
+      { label: t('answer.notGoing'), value: 'not going' },
+      { label: t('answer.none'), value: 'none' },
     ]);
     if (!answer) return;
-    attempt(Club.register(session.user, clubId, eventId, p.id, answer === 'none' ? null : answer), 'Couldn’t save');
+    attempt(Club.register(session.user, clubId, eventId, p.id, answer === 'none' ? null : answer), t('common.saveFailed'));
   }
 
   async function toggleCancelled() {
     const cancelled = event.status === 'cancelled';
-    if (!cancelled && !(await confirmSheet('Cancel this date?', 'Everyone sees it as cancelled. You can plan it again later.', 'Cancel this date', true))) return;
-    if (await attempt(Club.setEventStatus(clubId, eventId, cancelled ? 'planned' : 'cancelled'), 'Couldn’t change the event')) {
-      toast(cancelled ? 'Planned again' : 'Date cancelled');
+    if (!cancelled && !(await confirmSheet(t('event.cancelQ'), t('event.cancelText'), t('event.cancelDate'), true))) return;
+    if (await attempt(Club.setEventStatus(clubId, eventId, cancelled ? 'planned' : 'cancelled'), t('event.changeFailed'))) {
+      toast(cancelled ? t('event.plannedAgain') : t('event.dateCancelled'));
     }
   }
 
   async function deleteOne() {
-    if (!(await confirmSheet('Delete this date?', 'With everyone’s answers.', 'Delete', true))) return;
+    if (!(await confirmSheet(t('event.deleteQ'), t('event.deleteText'), t('common.delete'), true))) return;
     stopEvent?.();
-    if (await attempt(Club.deleteEvent(clubId, eventId), 'Couldn’t delete the event')) go(`#/club/${clubId}`, { replace: true });
+    if (await attempt(Club.deleteEvent(clubId, eventId), t('event.deleteFailed'))) go(`#/club/${clubId}`, { replace: true });
   }
 
   async function deleteSeries() {
-    if (!(await confirmSheet('Delete this and all later dates?', `Every ${dayText(event.date, { weekday: 'long' })} from ${dayText(event.date)} on. Earlier dates stay.`, 'Delete', true))) return;
+    if (!(await confirmSheet(t('event.deleteLaterQ'), t('event.deleteLaterText', { weekday: dayText(event.date, { weekday: 'long' }), day: dayText(event.date) }), t('common.delete'), true))) return;
     stopEvent?.();
-    if (await attempt(Club.deleteSeries(clubId, event.seriesId, event.date), 'Couldn’t delete the dates')) go(`#/club/${clubId}`, { replace: true });
+    if (await attempt(Club.deleteSeries(clubId, event.seriesId, event.date), t('event.deleteDatesFailed'))) go(`#/club/${clubId}`, { replace: true });
   }
 
   async function follow() {

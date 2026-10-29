@@ -6,6 +6,7 @@ import { pendingJoin, setPendingJoin, setLastClub } from '../links.js';
 import { html, icon, avatar, toast } from '../ui.js';
 import { backBar, mono, spinner } from './common.js';
 import { gate } from './clubs.js';
+import { t } from '../i18n.js';
 
 export function show(el, _params, { go }) {
   const join = pendingJoin();
@@ -13,16 +14,16 @@ export function show(el, _params, { go }) {
   let busy = false;
   let run = 0;
 
-  const page = (body) => { el.innerHTML = html`<div class="page">${backBar('#/clubs', 'Clubs')}${body}</div>`.s; };
+  const page = (body) => { el.innerHTML = html`<div class="page">${backBar('#/clubs', t('tab.clubs'))}${body}</div>`.s; };
 
   function clear() {
     setPendingJoin(null);
   }
 
   async function draw() {
-    if (!join) { page(html`<div class="card"><p class="empty">No invite to open. Open the invite link you got, or scan its QR code.</p></div>`); return; }
-    const blocked = gate('You’ve been invited to a club. Sign in first, then join.');
-    if (blocked) { page(html`<h1 class="title">Join a club</h1>${blocked}`); return; }
+    if (!join) { page(html`<div class="card"><p class="empty">${t('join.noInvite')}</p></div>`); return; }
+    const blocked = gate(t('join.signInFirst'));
+    if (blocked) { page(html`<h1 class="title">${t('join.title')}</h1>${blocked}`); return; }
     const mine = ++run;
     const u = session.user;
     if (invite === undefined) {
@@ -30,9 +31,9 @@ export function show(el, _params, { go }) {
       if (await Club.myRoleIn(u, join.clubId)) {
         // Already a member: make sure the club is in the list, and open it.
         const known = await Club.readInvite(join.clubId, join.token).catch(() => null);
-        await Club.rememberClub(u, join.clubId, known?.clubName ?? 'Club').catch(() => {});
+        await Club.rememberClub(u, join.clubId, known?.clubName ?? t('club.club')).catch(() => {});
         clear();
-        toast('You’re already in this club');
+        toast(t('join.already'));
         go(`#/club/${join.clubId}`, { replace: true });
         return;
       }
@@ -41,26 +42,26 @@ export function show(el, _params, { go }) {
         if (invite?.expired) invite = null;
       } catch {
         if (mine !== run) return;
-        page(html`<div class="card"><p class="empty">Can’t check the invite right now (offline?). Try again in a moment.</p></div>`);
+        page(html`<div class="card"><p class="empty">${t('join.cantCheck')}</p></div>`);
         invite = undefined;
         return;
       }
       if (mine !== run) return;
     }
     if (!invite) {
-      page(html`<h1 class="title">Join a club</h1><div class="card"><p class="empty">This invite link has expired or was withdrawn. Ask for a new one.</p></div>
-        <button type="button" class="btn block" data-ok>OK</button>`);
+      page(html`<h1 class="title">${t('join.title')}</h1><div class="card"><p class="empty">${t('join.expired')}</p></div>
+        <button type="button" class="btn block" data-ok>${t('common.ok')}</button>`);
       el.querySelector('[data-ok]').addEventListener('click', () => { clear(); go('#/clubs', { replace: true }); });
       return;
     }
     const name = u.displayName || u.email;
     page(html`<div style="display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;margin-top:12px">
         ${mono(invite.clubName, true)}
-        <h1 class="title" style="margin:0">Join ${invite.clubName}</h1>
-        <p class="sub" style="margin:0">You’re invited as ${Club.ROLE_NAMES[invite.role].toLowerCase()}.</p></div>
-      <div class="card"><div class="row">${avatar(name, 'me')}<span class="grow"><strong>Signed in as ${name}</strong><small>${u.email ?? ''}</small></span></div></div>
-      <button type="button" class="btn primary block" data-join ${busy ? 'disabled' : ''}>${busy ? 'Joining…' : 'Join'}</button>
-      <button type="button" class="link-btn" data-later>Not now</button>`);
+        <h1 class="title" style="margin:0">${t('join.joinClub', { club: invite.clubName })}</h1>
+        <p class="sub" style="margin:0">${t('join.invitedAs', { role: t(`role.${invite.role}`) })}</p></div>
+      <div class="card"><div class="row">${avatar(name, 'me')}<span class="grow"><strong>${t('join.signedInAs', { name })}</strong><small>${u.email ?? ''}</small></span></div></div>
+      <button type="button" class="btn primary block" data-join ${busy ? 'disabled' : ''}>${busy ? t('join.joining') : t('join.join')}</button>
+      <button type="button" class="link-btn" data-later>${t('common.notNow')}</button>`);
     el.querySelector('[data-join]').addEventListener('click', doJoin);
     el.querySelector('[data-later]').addEventListener('click', () => { clear(); go('#/clubs', { replace: true }); });
   }
@@ -73,12 +74,12 @@ export function show(el, _params, { go }) {
       await Club.join(session.user, join.clubId, join.token, invite);
       clear();
       setLastClub(join.clubId);
-      toast(`Welcome to ${invite.clubName}`);
+      toast(t('join.welcome', { club: invite.clubName }));
       await whichPlayer();
     } catch (e) {
       busy = false;
       draw();
-      toast(`Couldn’t join (${e.code || e.message})`);
+      toast(t('join.failed', { error: e.code || e.message }));
     }
   }
 
@@ -91,16 +92,16 @@ export function show(el, _params, { go }) {
       return;
     }
     el.innerHTML = html`<div class="page">
-      <h1 class="title">Which player are you?</h1>
-      <p class="sub">Pick your name if ${invite.clubName} already added you, so your earlier results stay yours.</p>
+      <h1 class="title">${t('join.whichPlayer')}</h1>
+      <p class="sub">${t('join.whichPlayerText', { club: invite.clubName })}</p>
       <div class="card">${players.map((p) => html`<button type="button" class="row" data-claim="${p.id}">${avatar(p.name, 'dashed')}<span class="grow"><strong>${p.name}</strong></span>${icon('chevron', 18)}</button>`)}
-        <button type="button" class="row" data-new>${icon('plus', 20)}<span class="grow"><strong>I’m not on the list</strong></span>${icon('chevron', 18)}</button></div>
+        <button type="button" class="row" data-new>${icon('plus', 20)}<span class="grow"><strong>${t('join.notOnList')}</strong></span>${icon('chevron', 18)}</button></div>
     </div>`.s;
     el.querySelectorAll('[data-claim]').forEach((b) => b.addEventListener('click', async () => {
       try {
         await Club.claimPlayer(session.user, join.clubId, b.dataset.claim);
       } catch (e) {
-        toast(`Couldn’t link this player to you (${e.code || e.message})`);
+        toast(t('join.claimFailed', { error: e.code || e.message }));
       }
       go(`#/club/${join.clubId}`, { replace: true });
     }));
@@ -112,8 +113,8 @@ export function show(el, _params, { go }) {
 
   async function addMe() {
     const u = session.user;
-    const name = (u.displayName || u.email?.split('@')[0] || 'Me').slice(0, 40);
-    await Club.addPlayer(join.clubId, name, u.uid).catch(() => toast('Couldn’t add you as a player; do it later in People'));
+    const name = (u.displayName || u.email?.split('@')[0] || t('common.me')).slice(0, 40);
+    await Club.addPlayer(join.clubId, name, u.uid).catch(() => toast(t('join.addMeFailed')));
   }
 
   start();

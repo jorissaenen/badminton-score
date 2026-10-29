@@ -106,6 +106,10 @@ tabs (Play, Clubs, You) and full screens instead of the settings window.
       Edit event (weekly, reminder, this date or all upcoming dates), People and roles, Invite
       (QR, WhatsApp, share, open links), Club settings (name, usual place, club match rules,
       seasons, leave, delete), Join with "Which player are you?"
+- [x] Languages: every text in one file per language (alpha/js/lang/), English and Dutch; the
+      device's language by default, or picked in You; score calls in that language with a
+      matching voice
+- [ ] Reminder notifications (sent by the server) in each person's language
 - [ ] Club match and Follow a court on Play (need Phase 3: matches saved with players)
 - [ ] Player picker for a match (Fill in for me; here and not playing first, by waiting time;
       playing now with their court; didn't say they'd come; a guest by name) (Phase 3)

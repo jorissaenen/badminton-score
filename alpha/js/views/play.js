@@ -4,7 +4,8 @@ import * as Club from '../club.js';
 import { session, onSession } from '../session.js';
 import { state, hasStarted, isFinished, displayNames } from '../state.js';
 import { html, icon, initials } from '../ui.js';
-import { answerButtons, wireAnswers, counts, dayName, eventName, nextOfAllClubs, NO_PLAYER } from './common.js';
+import { t } from '../i18n.js';
+import { answerButtons, wireAnswers, counts, dayName, eventName, nextOfAllClubs, noPlayer } from './common.js';
 
 export function show(el, _params, { go }) {
   let next = null; // { club, event, player, registrations }
@@ -17,11 +18,11 @@ export function show(el, _params, { go }) {
     el.innerHTML = html`<div class="page">
       <div class="home-top">
         <img class="logo" src="icons/skoor-logo.svg" alt="Skoor">
-        <a href="#/you" aria-label="You">${u ? html`<span class="av me">${initials(name)}</span>` : html`<span class="av">${icon('you', 18)}</span>`}</a>
+        <a href="#/you" aria-label="${t('tab.you')}">${u ? html`<span class="av me">${initials(name)}</span>` : html`<span class="av">${icon('you', 18)}</span>`}</a>
       </div>
       ${next ? eventCard() : ''}
       <section>
-        <h2 class="h3">Play</h2>
+        <h2 class="h3">${t('play.title')}</h2>
         <div class="opts">${options()}</div>
       </section>
     </div>`.s;
@@ -38,12 +39,12 @@ export function show(el, _params, { go }) {
     const { club, event: e, player, registrations } = next;
     const c = counts(registrations);
     const mine = player ? registrations?.[player.id]?.status : null;
-    const meta = [`${dayName(e.date)} · until ${e.end}`, e.location, registrations ? `${c.going} going` : null].filter(Boolean).join(' · ');
+    const meta = [t('event.dayUntil', { day: dayName(e.date), end: e.end }), e.location, registrations ? t('event.nGoing', { n: c.going }) : null].filter(Boolean).join(' · ');
     return html`<div class="event-card" role="link" tabindex="0" data-go="#/club/${club.id}/event/${e.id}">
-      <div class="line1"><span>Next · ${eventName(e)}</span><span>${club.name}</span></div>
+      <div class="line1"><span>${t('event.next', { event: eventName(e) })}</span><span>${club.name}</span></div>
       <div class="time"><span class="cap">${e.start}</span></div>
       <div class="meta">${meta}</div>
-      ${answerButtons(mine, player ? '' : NO_PLAYER)}
+      ${answerButtons(mine, player ? '' : noPlayer())}
     </div>`;
   }
 
@@ -52,16 +53,16 @@ export function show(el, _params, { go }) {
     const g = M.currentGame(state.match);
     const sc = M.gameScore(g);
     const names = displayNames();
-    const eventSoon = next ? `During an event · next: ${dayName(next.event.date)} ${next.event.start}` : 'During an event of your club';
-    const later = 'Comes with saved club matches, in a next version';
+    const eventSoon = next ? t('play.duringEventNext', { day: dayName(next.event.date), time: next.event.start }) : t('play.duringEvent');
+    const later = t('play.later');
     const opt = (cls, ic, title, sub, to, off = '') => html`<button type="button" class="opt ${cls}" ${to && !off ? html`data-go="${to}"` : ''} ${off ? 'aria-disabled="true"' : ''}>
         <span class="ic">${ic}</span><span><strong>${title}</strong><small>${off || sub}</small></span></button>`;
     return [
-      started ? opt('default', html`<span class="display" style="font-size:17px">${String(Math.max(...sc)).padStart(2, '0')}</span>`, 'Continue match',
-        `${names[0]} ${sc[0]} – ${sc[1]} ${names[1]}${state.rules.bestOf > 1 ? ` · game ${state.match.games.length}` : ''}`, '#/match') : '',
-      opt('', icon('court'), 'Club match', eventSoon, null, later),
-      opt('', icon('screen'), 'Follow a court', eventSoon, null, later),
-      opt(started ? '' : 'default', icon('quick'), 'Quick match', 'Just keep score; nothing is saved to a club', '#/match/new'),
+      started ? opt('default', html`<span class="display" style="font-size:17px">${String(Math.max(...sc)).padStart(2, '0')}</span>`, t('play.continue'),
+        `${names[0]} ${sc[0]} – ${sc[1]} ${names[1]}${state.rules.bestOf > 1 ? ` · ${t('play.gameN', { n: state.match.games.length })}` : ''}`, '#/match') : '',
+      opt('', icon('court'), t('play.clubMatch'), eventSoon, null, later),
+      opt('', icon('screen'), t('play.followCourt'), eventSoon, null, later),
+      opt(started ? '' : 'default', icon('quick'), t('play.quick'), t('play.quickSub'), '#/match/new'),
     ];
   }
 

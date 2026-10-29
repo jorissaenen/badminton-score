@@ -7,6 +7,7 @@ import { BreakTimer, INTERVAL_SECONDS, BETWEEN_GAMES_SECONDS, formatClock } from
 import { createMediaRemote, createRepeatFilter } from './media.js';
 import { state, save, rulesFrom, displayNames } from './state.js';
 import { $, toast } from './ui.js';
+import { t, people } from './i18n.js';
 
 const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab']);
 const SLEEP_AFTER_MS = 30000;
@@ -60,8 +61,8 @@ function scoreCall() {
   const a = sc[srv];
   const b = sc[1 - srv];
   const call = M.pointCall(state.match, state.rules);
-  const middle = call ? `, ${call} point, ` : ' ';
-  return `${a}${middle}${a === b ? 'all' : b}`;
+  if (call) return t(a === b ? 'call.pointAll' : 'call.point', { a, b, point: t(`call.${call}Point`) });
+  return t(a === b ? 'call.all' : 'call.score', { a, b });
 }
 
 // ---------- actions ----------
@@ -69,7 +70,7 @@ function scoreCall() {
 export function point(team) {
   const { match, rules } = state;
   if (M.isGameOver(match, rules)) {
-    toast('Game over: long press to continue');
+    toast(t('board.gameOverToast'));
     beep(220);
     return;
   }
@@ -84,9 +85,9 @@ export function point(team) {
     const sc = M.gameScore(M.currentGame(state.match));
     const result = `${Math.max(...sc)} ${Math.min(...sc)}`;
     if (M.matchWinner(state.match, rules) !== null) {
-      say(`Game and match, ${names()[team]}. ${result}`);
+      say(t('call.gameAndMatch', { name: names()[team], result }));
     } else {
-      say(`Game, ${names()[team]}. ${result}`);
+      say(t('call.game', { name: names()[team], result }));
       if (settings().intervals) startBreak('game', BETWEEN_GAMES_SECONDS);
     }
     return;
@@ -96,24 +97,24 @@ export function point(team) {
   const mid = Math.ceil(rules.points / 2);
   if (settings().intervals && before < mid && after === mid && rules.points >= 15) {
     const changeEnds = M.isDecidingGame(state.match, rules);
-    $('intervalTitle').textContent = changeEnds ? 'Interval · change ends' : 'Interval';
-    say(`${scoreCall()}. Interval${changeEnds ? '. Change ends' : ''}`);
+    $('intervalTitle').textContent = changeEnds ? t('board.intervalChangeEnds') : t('board.interval');
+    say(t(changeEnds ? 'call.intervalChangeEnds' : 'call.interval', { score: scoreCall() }));
     startBreak('interval', INTERVAL_SECONDS);
     return;
   }
   if (settings().autoEnds && before < mid && after === mid && M.isDecidingGame(state.match, rules)) {
-    say(`${scoreCall()}. Change ends`);
+    say(t('call.changeEnds', { score: scoreCall() }));
     return;
   }
   const call = M.pointCall(state.match, rules);
-  if (call) toast(call === 'match' ? 'Match point' : 'Game point');
+  if (call) toast(t(`board.${call}Point`));
   say(scoreCall());
 }
 
 export function undoPoint() {
   const g = M.currentGame(state.match);
   if (g.rallies.length === 0 && state.match.games.length === 1) {
-    toast('Nothing to undo');
+    toast(t('board.nothingToUndo'));
     beep(220);
     return;
   }
@@ -121,8 +122,8 @@ export function undoPoint() {
   state.match = M.undo(state.match);
   save();
   render();
-  toast('Last point removed');
-  say(`Undo. ${scoreCall()}`);
+  toast(t('board.undone'));
+  say(t('call.undo', { score: scoreCall() }));
 }
 
 function continueAfterGame() {
@@ -136,9 +137,10 @@ function continueAfterGame() {
   state.match = M.nextGame(match, rules);
   save();
   render();
-  toast(`Game ${state.match.games.length}`);
-  const ends = settings().autoEnds ? 'Change ends. ' : '';
-  say(`Game ${state.match.games.length}. ${ends}${names()[M.server(M.currentGame(state.match))]} to serve`);
+  const n = state.match.games.length;
+  toast(t('board.gameN', { n }));
+  const server = names()[M.server(M.currentGame(state.match))];
+  say(t(settings().autoEnds ? 'call.nextGameEnds' : 'call.nextGame', { n, name: server, count: people(server) }));
 }
 
 // Starts a new match with the names, sides and first server chosen on the New match screen.
@@ -151,7 +153,7 @@ export function startMatch({ names: n, namesKnown, firstServer, swapped, points,
   lastEnds = null; // a new match is no change of ends
   $('changeEnds').hidden = true;
   render();
-  say(`New match. ${displayNames()[firstServer]} to serve`);
+  say(t('call.newMatch', { name: displayNames()[firstServer], count: people(displayNames()[firstServer]) }));
 }
 
 // ---------- intervals and breaks ----------
@@ -163,17 +165,17 @@ const breaks = new BreakTimer({
   onWarning() {
     wakeScreen();
     Audio.beep(660);
-    say('20 seconds. … 20 seconds');
+    say(t('call.twentySeconds'));
   },
   onEnd(kind) {
     wakeScreen();
     Audio.beep(880, 3);
     if (kind === 'interval') {
       $('interval').hidden = true;
-      say(`${scoreCall()}. Play`);
+      say(t('call.play', { score: scoreCall() }));
     } else {
-      $('breakClock').textContent = 'Time';
-      say(`Time. Start game ${state.match.games.length + 1}`);
+      $('breakClock').textContent = t('board.time');
+      say(t('call.time', { n: state.match.games.length + 1 }));
     }
   },
 });
@@ -186,7 +188,7 @@ function startBreak(kind, seconds) {
 
 function endInterval() {
   stopBreak();
-  say(`${scoreCall()}. Play`);
+  say(t('call.play', { score: scoreCall() }));
 }
 
 function stopBreak() {
@@ -333,32 +335,34 @@ export function render() {
   const over = M.isGameOver(match, rules);
   const need = Math.ceil(rules.bestOf / 2);
 
-  for (const t of [0, 1]) {
-    $(`name${t}`).textContent = names()[t];
-    const serving = !over && srv === t;
-    $(`tiles${t}`).innerHTML = [...pad2(score[t])].map((d) => tile(d, serving)).join('');
-    $(`games${t}`).innerHTML = rules.bestOf > 1 ? Array.from({ length: need }, (_, i) => `<i${i < won[t] ? ' class="won"' : ''}></i>`).join('') : '';
-    const section = document.querySelector(`.team[data-team="${t}"]`);
+  for (const side of [0, 1]) {
+    $(`name${side}`).textContent = names()[side];
+    const serving = !over && srv === side;
+    $(`tiles${side}`).innerHTML = [...pad2(score[side])].map((d) => tile(d, serving)).join('');
+    $(`games${side}`).innerHTML = rules.bestOf > 1 ? Array.from({ length: need }, (_, i) => `<i${i < won[side] ? ' class="won"' : ''}></i>`).join('') : '';
+    const section = document.querySelector(`.team[data-team="${side}"]`);
     section.classList.toggle('serving', serving);
-    section.setAttribute('aria-label', `${names()[t]}: ${score[t]}${serving ? ', serving' : ''}, ${won[t]} game${won[t] === 1 ? '' : 's'} won`);
+    section.setAttribute('aria-label', t(serving ? 'board.sideServing' : 'board.side', { name: names()[side], score: score[side], n: won[side] }));
   }
 
   showSides(settings().swapped !== (settings().autoEnds && ends), endsChangedNow);
   const gameNo = match.games.length;
-  $('boardTitle').textContent = rules.bestOf > 1 ? `GAME ${gameNo}` : 'GAME';
-  $('boardSub').textContent = match.games.slice(0, -1).map((x, i) => `Game ${i + 1}: ${M.gameScore(x).join('–')}`).join(' · ');
+  $('boardTitle').textContent = (rules.bestOf > 1 ? t('board.gameN', { n: gameNo }) : t('board.game')).toUpperCase();
+  $('boardSub').textContent = match.games.slice(0, -1).map((x, i) => t('board.gameScore', { n: i + 1, score: M.gameScore(x).join('–') })).join(' · ');
   $('gameoverEnds').hidden = !over || !settings().autoEnds || M.matchWinner(match, rules) !== null;
-  mediaRemote.show(`${names()[0]} ${score[0]} – ${score[1]} ${names()[1]}`, rules.bestOf > 1 ? `Game ${gameNo}` : 'Skoor');
+  mediaRemote.show(`${names()[0]} ${score[0]} – ${score[1]} ${names()[1]}`, rules.bestOf > 1 ? t('board.gameN', { n: gameNo }) : 'Skoor');
 
   $('gameover').hidden = !over;
   if (over) {
     const winner = M.gameWinner(g, rules);
     const matchWinner = M.matchWinner(match, rules);
-    $('gameoverTitle').textContent = matchWinner !== null ? `${names()[winner]} wins the match` : `${names()[winner]} wins game ${gameNo}`;
+    const name = names()[winner];
+    // "Joris wins", "Joris & Ann win": the verb follows the name.
+    $('gameoverTitle').textContent = matchWinner !== null ? t('board.winsMatch', { name, count: people(name) })
+      : t('board.winsGame', { name, n: gameNo, count: people(name) });
     $('gameoverSub').textContent = match.games.map((x) => M.gameScore(x).join('–')).join('   ');
-    const action = matchWinner !== null ? 'finish the match' : `start game ${gameNo + 1}`;
-    $('gameoverAction').textContent = action;
-    $('nextBtn').textContent = action[0].toUpperCase() + action.slice(1);
+    $('gameoverHint').textContent = matchWinner !== null ? t('board.longPressFinish') : t('board.longPressNext', { n: gameNo + 1 });
+    $('nextBtn').textContent = matchWinner !== null ? t('board.finishMatch') : t('board.startGame', { n: gameNo + 1 });
   }
   fitTiles();
 }

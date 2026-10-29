@@ -7,6 +7,7 @@
 // iPhone, hide their name from websites, so the sheet also lets the visitor pick their browser.
 
 import { EDITION } from './edition.js';
+import { t } from './i18n.js';
 
 const DISMISS_KEY = EDITION.installDismissKey;
 
@@ -52,106 +53,106 @@ export function detectPlatform({ userAgent = '', platform = '', maxTouchPoints =
 // Each step is { icon, text, note? }. **bold** marks the exact label to tap.
 // icon is a sprite id from index.html, or 'vivaldi' for a "V" badge.
 
-const keepWebApp = { icon: null, text: 'Keep **Open as Web App** switched on, then tap **Add**' };
+const keepWebApp = () => ({ icon: null, text: t('install.step.keepWebApp') });
 
 const IOS = {
   safari: (os) => [
     {
       icon: 'i-share',
-      text: os === 'ipados' ? 'Tap the **Share** button at the top right' : 'Tap the **Share** button at the bottom',
-      note: 'Don’t see it? Tap **⋯** next to the address bar, then **Share**',
+      text: os === 'ipados' ? t('install.step.shareTopRight') : t('install.step.shareBottom'),
+      note: t('install.step.noShareSafari'),
     },
-    { icon: 'i-add', text: 'Scroll down and tap **Add to Home Screen**' },
-    keepWebApp,
+    { icon: 'i-add', text: t('install.step.scrollAddHome') },
+    keepWebApp(),
   ],
   chrome: () => [
-    { icon: 'i-share', text: 'Tap the **Share** icon in the address bar', note: 'Don’t see it? Tap **⋯**, then **Share**' },
-    { icon: 'i-add', text: 'Scroll down and tap **Add to Home Screen**' },
-    keepWebApp,
+    { icon: 'i-share', text: t('install.step.shareInAddressBar'), note: t('install.step.noShareDots') },
+    { icon: 'i-add', text: t('install.step.scrollAddHome') },
+    keepWebApp(),
   ],
   vivaldi: () => [
-    { icon: 'vivaldi', text: 'Tap the **Vivaldi** button (the V logo)' },
-    { icon: 'i-share', text: 'Tap **Share Page**' },
-    { icon: 'i-add', text: 'Scroll down and tap **Add to Home Screen**' },
-    keepWebApp,
+    { icon: 'vivaldi', text: t('install.step.vivaldiButton') },
+    { icon: 'i-share', text: t('install.step.sharePage') },
+    { icon: 'i-add', text: t('install.step.scrollAddHome') },
+    keepWebApp(),
   ],
   edge: () => [
-    { icon: 'i-dots', text: 'Tap **⋯** at the bottom of the screen' },
-    { icon: 'i-share', text: 'Tap **Share**' },
-    { icon: 'i-add', text: 'Scroll down and tap **Add to Home Screen**' },
-    keepWebApp,
+    { icon: 'i-dots', text: t('install.step.dotsBottom') },
+    { icon: 'i-share', text: t('install.step.share') },
+    { icon: 'i-add', text: t('install.step.scrollAddHome') },
+    keepWebApp(),
   ],
   firefox: () => [
-    { icon: 'i-share', text: 'Tap the **Share** icon in the address bar', note: 'Don’t see it? Tap the **☰** menu, then **Share**' },
-    { icon: 'i-add', text: 'Tap **Add to Home Screen**' },
-    { icon: null, text: 'Tap **Add**' },
+    { icon: 'i-share', text: t('install.step.shareInAddressBar'), note: t('install.step.noShareMenu') },
+    { icon: 'i-add', text: t('install.step.addHomeScreen') },
+    { icon: null, text: t('install.step.add') },
   ],
   other: () => [
-    { icon: 'i-share', text: 'Open the browser’s menu and tap **Share**' },
-    { icon: 'i-add', text: 'Tap **Add to Home Screen**, then **Add**' },
-    { icon: null, text: 'Not there? Open this page in **Safari** and follow the Safari steps' },
+    { icon: 'i-share', text: t('install.step.menuShare') },
+    { icon: 'i-add', text: t('install.step.addHomeThenAdd') },
+    { icon: null, text: t('install.step.useSafari') },
   ],
 };
 
 const ANDROID = {
   chrome: () => [
-    { icon: 'i-menu', text: 'Tap **⋮** at the top right' },
-    { icon: 'i-add', text: 'Tap **Add to Home screen**' },
-    { icon: null, text: 'Tap **Install**' },
+    { icon: 'i-menu', text: t('install.step.dotsTopRight') },
+    { icon: 'i-add', text: t('install.step.addHomeAndroid') },
+    { icon: null, text: t('install.step.install') },
   ],
   samsung: () => [
-    { icon: null, text: 'Tap **≡** at the bottom right' },
-    { icon: 'i-add', text: 'Tap **Add page to**, then **Home screen**' },
-    { icon: null, text: 'Tap **Add**' },
+    { icon: null, text: t('install.step.samsungMenu') },
+    { icon: 'i-add', text: t('install.step.samsungAddPage') },
+    { icon: null, text: t('install.step.add') },
   ],
   vivaldi: () => [
-    { icon: 'vivaldi', text: 'Tap the **Vivaldi** button (the V logo)' },
-    { icon: 'i-add', text: 'Tap **Add to Home screen**' },
-    { icon: null, text: 'Tap **Install**' },
+    { icon: 'vivaldi', text: t('install.step.vivaldiButton') },
+    { icon: 'i-add', text: t('install.step.addHomeAndroid') },
+    { icon: null, text: t('install.step.install') },
   ],
   edge: () => [
-    { icon: 'i-dots', text: 'Tap **⋯** at the bottom of the screen' },
-    { icon: 'i-add', text: 'Tap **Add to phone**' },
-    { icon: null, text: 'Tap **Install**' },
+    { icon: 'i-dots', text: t('install.step.dotsBottom') },
+    { icon: 'i-add', text: t('install.step.addToPhone') },
+    { icon: null, text: t('install.step.install') },
   ],
   firefox: () => [
-    { icon: 'i-menu', text: 'Tap **⋮**' },
-    { icon: 'i-add', text: 'Tap **Add app to Home screen**', note: 'Older versions: **Install**' },
+    { icon: 'i-menu', text: t('install.step.dotsVertical') },
+    { icon: 'i-add', text: t('install.step.addAppHome'), note: t('install.step.olderInstall') },
   ],
   other: () => [
-    { icon: 'i-menu', text: 'Open the browser menu' },
-    { icon: 'i-add', text: 'Tap **Install app** or **Add to Home screen**' },
+    { icon: 'i-menu', text: t('install.step.openMenu') },
+    { icon: 'i-add', text: t('install.step.installOrAdd') },
   ],
 };
 
 const DESKTOP = {
   chrome: () => [
-    { icon: 'i-download', text: 'Click the **Install** icon at the right of the address bar' },
-    { icon: null, text: 'Or: **⋮** → **Cast, save and share** → **Install page as app**' },
+    { icon: 'i-download', text: t('install.step.installIcon') },
+    { icon: null, text: t('install.step.chromeMenu') },
   ],
   edge: () => [
-    { icon: 'i-download', text: 'Click the **Install** icon at the right of the address bar' },
-    { icon: null, text: 'Or: **⋯** → **Apps** → **Install this site as an app**' },
+    { icon: 'i-download', text: t('install.step.installIcon') },
+    { icon: null, text: t('install.step.edgeMenu') },
   ],
   vivaldi: () => [
-    { icon: null, text: 'Right-click the tab and choose **Install** (or use the install icon in the address bar)' },
+    { icon: null, text: t('install.step.vivaldiDesktop') },
   ],
   safari: () => [
-    { icon: null, text: 'In the menu bar, choose **File** → **Add to Dock**' },
-    { icon: null, text: 'Click **Add**' },
+    { icon: null, text: t('install.step.addToDock') },
+    { icon: null, text: t('install.step.clickAdd') },
   ],
   // Firefox on a computer can't install web apps: point to a browser that can.
   firefox: (os) => [
-    { icon: null, text: 'Firefox can’t install apps on a computer' },
-    { icon: null, text: os === 'macos' ? 'Open this page in **Safari**, **Chrome** or **Edge**' : 'Open this page in **Chrome** or **Edge**' },
-    { icon: null, text: 'Then follow the steps shown there' },
+    { icon: null, text: t('install.step.firefoxDesktop') },
+    { icon: null, text: os === 'macos' ? t('install.step.openInSafariChromeEdge') : t('install.step.openInChromeEdge') },
+    { icon: null, text: t('install.step.followThere') },
   ],
 };
 
-export const BROWSER_NAMES = {
-  safari: 'Safari', chrome: 'Chrome', vivaldi: 'Vivaldi', edge: 'Edge', firefox: 'Firefox',
-  samsung: 'Samsung Internet', other: 'Another browser',
+const BROWSERS = {
+  safari: 'Safari', chrome: 'Chrome', vivaldi: 'Vivaldi', edge: 'Edge', firefox: 'Firefox', samsung: 'Samsung Internet',
 };
+export const browserName = (b) => BROWSERS[b] ?? t('install.anotherBrowser');
 
 // Which browsers this could be. Vivaldi (and others) on iPhone and Android present themselves
 // to websites exactly like Chrome, so "Chrome" really means "Chrome or Vivaldi" there.
@@ -234,7 +235,7 @@ export function setupInstallPrompt(root, settingsBtn) {
     el('installGuide').hidden = view !== 'guide';
     el('installOneTap').hidden = view !== 'onetap';
     el('installBtn').hidden = view !== 'onetap';
-    el('installLater').textContent = view === 'guide' ? 'Close' : 'Not now';
+    el('installLater').textContent = view === 'guide' ? t('common.close') : t('common.notNow');
     el('installCard').scrollTop = 0;
   }
 
@@ -242,17 +243,17 @@ export function setupInstallPrompt(root, settingsBtn) {
     const likely = likelyBrowsers(platform).filter((b) => browserChoices(platform.os).includes(b));
     // One match: tag it. Several (Chrome or Vivaldi): say so, since websites can't tell them apart.
     el('installHint').hidden = likely.length < 2;
-    el('installHint').textContent = `Looks like ${likely.map((b) => BROWSER_NAMES[b]).join(' or ')}: websites can\u2019t tell these apart.`;
+    el('installHint').textContent = t('install.looksLike', { browsers: likely.map(browserName).join(t('install.or')) });
     el('installChoices').replaceChildren(...browserChoices(platform.os, likely).map((b) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.tabIndex = -1;
       btn.className = 'browser-choice';
-      btn.append(BROWSER_NAMES[b]);
+      btn.append(browserName(b));
       if (likely.length === 1 && b === likely[0]) {
         const tag = document.createElement('span');
         tag.className = 'tag';
-        tag.textContent = 'Detected';
+        tag.textContent = t('install.detected');
         btn.append(tag);
       }
       const chevron = document.createElement('span');
@@ -267,8 +268,8 @@ export function setupInstallPrompt(root, settingsBtn) {
 
   function showGuide(browser) {
     const steps = manualSteps({ os: platform.os, browser }) ?? [];
-    el('installGuideTitle').textContent = browser === 'other' ? 'Install from your browser' : `Install with ${BROWSER_NAMES[browser]}`;
-    if (browser === 'firefox' && !['ios', 'ipados', 'android'].includes(platform.os)) el('installGuideTitle').textContent = 'Use another browser';
+    el('installGuideTitle').textContent = browser === 'other' ? t('install.fromBrowser') : t('install.withBrowser', { browser: browserName(browser) });
+    if (browser === 'firefox' && !['ios', 'ipados', 'android'].includes(platform.os)) el('installGuideTitle').textContent = t('install.useAnother');
     el('installSteps').replaceChildren(...steps.map((step) => {
       const li = document.createElement('li');
       const text = document.createElement('span');

@@ -4,6 +4,8 @@ import * as Board from '../scoreboard.js';
 import { secureCoinFlip } from '../random.js';
 import { state } from '../state.js';
 import { html, icon, sheet, toast } from '../ui.js';
+import { t, people } from '../i18n.js';
+import { defaultNames } from '../state.js';
 import { backBar } from './common.js';
 
 const zeros = (on) => html`<span class="mini-tiles">${[0, 0].map(() => html`<span class="tile${on ? ' on' : ''}"><span class="cap">0</span><span class="split"></span></span>`)}</span>`;
@@ -19,29 +21,29 @@ export function show(el, _params, { go }) {
   };
   let drawing = false;
 
-  const shown = (t) => (setup.namesKnown ? setup.names[t] : ['Home', 'Away'][t]);
+  const shown = (side) => (setup.namesKnown ? setup.names[side] : defaultNames()[side]);
 
   function draw() {
-    const side = (t) => html`<button type="button" class="serve-side" data-side="${t}" aria-pressed="${setup.server === t}">
-        ${zeros(setup.server === t)}
-        <span class="serve-name">${shown(t)}</span>
-        <span class="serve-hint">${setup.server === t ? 'SERVES FIRST' : 'TAP TO SERVE'}</span></button>`;
+    const side = (n) => html`<button type="button" class="serve-side" data-side="${n}" aria-pressed="${setup.server === n}">
+        ${zeros(setup.server === n)}
+        <span class="serve-name">${shown(n)}</span>
+        <span class="serve-hint">${setup.server === n ? t('newMatch.servesFirst') : t('newMatch.tapToServe')}</span></button>`;
     const chip = (key, value, label) => html`<button type="button" class="pick" data-${key}="${value}" aria-pressed="${setup[key] === value}">${label}</button>`;
     el.innerHTML = html`<div class="page">
-      ${backBar('#/play', 'Play')}
-      <h1 class="title">New match</h1>
+      ${backBar('#/play', t('play.title'))}
+      <h1 class="title">${t('newMatch.title')}</h1>
       <div class="serve-pick">${side(0)}${side(1)}</div>
-      <button type="button" class="btn" data-draw ${drawing ? 'disabled' : ''}>${icon('dice', 20)}Draw who serves</button>
+      <button type="button" class="btn" data-draw ${drawing ? 'disabled' : ''}>${icon('dice', 20)}${t('newMatch.draw')}</button>
       <div class="card">
-        <button type="button" class="row" data-names>${icon('pencil', 20)}<span class="grow"><strong>${setup.namesKnown ? `${setup.names[0]} vs ${setup.names[1]}` : 'Names'}</strong>
-          <small>${setup.namesKnown ? 'Shown on the scoreboard and in the score calls' : 'Add the players’ names, or keep Home and Away'}</small></span><span class="val">Change</span></button>
+        <button type="button" class="row" data-names>${icon('pencil', 20)}<span class="grow"><strong>${setup.namesKnown ? t('newMatch.versus', { a: setup.names[0], b: setup.names[1] }) : t('newMatch.names')}</strong>
+          <small>${setup.namesKnown ? t('newMatch.namesShown') : t('newMatch.namesAdd')}</small></span><span class="val">${t('common.change')}</span></button>
       </div>
-      <section><h2 class="h3" style="justify-content:center">Points per game</h2>
+      <section><h2 class="h3" style="justify-content:center">${t('rules.pointsPerGame')}</h2>
         <div class="chips center">${chip('points', 21, '21')}${chip('points', 15, '15')}${chip('points', 11, '11')}</div></section>
-      <section><h2 class="h3" style="justify-content:center">Match</h2>
-        <div class="chips center">${chip('bestOf', 1, '1 game')}${chip('bestOf', 3, 'Best of 3')}${chip('bestOf', 5, 'Best of 5')}</div></section>
-      <p class="note" style="text-align:center">Remote: 1 click switches who serves, 2 clicks draws, a long press starts the match.</p>
-      <button type="button" class="btn primary block" data-start>Start match</button>
+      <section><h2 class="h3" style="justify-content:center">${t('rules.match')}</h2>
+        <div class="chips center">${chip('bestOf', 1, t('rules.oneGame'))}${chip('bestOf', 3, t('rules.bestOf', { n: 3 }))}${chip('bestOf', 5, t('rules.bestOf', { n: 5 }))}</div></section>
+      <p class="note" style="text-align:center">${t('newMatch.remoteHint')}</p>
+      <button type="button" class="btn primary block" data-start>${t('newMatch.start')}</button>
     </div>`.s;
     el.querySelectorAll('[data-side]').forEach((b) => b.addEventListener('click', () => { if (!drawing) { setup.server = Number(b.dataset.side); draw(); } }));
     el.querySelectorAll('[data-points]').forEach((b) => b.addEventListener('click', () => { setup.points = Number(b.dataset.points); draw(); }));
@@ -58,7 +60,7 @@ export function show(el, _params, { go }) {
     try {
       winner = secureCoinFlip();
     } catch {
-      toast('This browser can’t draw fairly; pick who serves');
+      toast(t('newMatch.noDraw'));
       return;
     }
     drawing = true;
@@ -73,20 +75,20 @@ export function show(el, _params, { go }) {
         drawing = false;
         setup.server = winner;
         draw();
-        Board.say(`${shown(winner)} to serve`);
+        Board.say(t('call.toServe', { name: shown(winner), count: people(shown(winner)) }));
       }
     };
     tick();
   }
 
   function editNames() {
-    const field = (t, label) => html`<label class="field">${label}<input type="text" data-name="${t}" maxlength="40" autocomplete="off"
-      value="${setup.namesKnown ? setup.names[t] : ''}" placeholder="${t ? 'e.g. Tom & Lies' : 'e.g. Joris & Ann'}"></label>`;
+    const field = (n, label) => html`<label class="field">${label}<input type="text" data-name="${n}" maxlength="40" autocomplete="off"
+      value="${setup.namesKnown ? setup.names[n] : ''}" placeholder="${n ? t('newMatch.examplePair2') : t('newMatch.examplePair1')}"></label>`;
     let inputs = [];
-    sheet(html`<h2 class="sheet-title">Names</h2>
-      <p class="sheet-text">Leave them empty to show Home and Away.</p>
-      <div class="names-edit">${field(0, 'Left')}${field(1, 'Right')}</div>
-      <button type="button" class="btn primary block" data-done>Done</button>`.s, (sh, close) => {
+    sheet(html`<h2 class="sheet-title">${t('newMatch.names')}</h2>
+      <p class="sheet-text">${t('newMatch.namesEmpty')}</p>
+      <div class="names-edit">${field(0, t('newMatch.left'))}${field(1, t('newMatch.right'))}</div>
+      <button type="button" class="btn primary block" data-done>${t('common.done')}</button>`.s, (sh, close) => {
       inputs = [...sh.querySelectorAll('[data-name]')];
       inputs.forEach((i) => i.addEventListener('keydown', (e) => {
         if (e.key !== 'Enter') return;
@@ -100,7 +102,7 @@ export function show(el, _params, { go }) {
       onClose: () => {
         const typed = inputs.map((i) => i.value.trim());
         setup.namesKnown = typed.some(Boolean);
-        setup.names = typed.map((n, t) => n || ['Home', 'Away'][t]);
+        setup.names = typed.map((n, side) => n || defaultNames()[side]);
         draw();
       },
     });

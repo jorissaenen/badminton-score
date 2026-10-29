@@ -1,5 +1,6 @@
 // Small helpers shared by the screens: safe HTML templates, icons, toasts, bottom sheets and
 // confirmations. Screens are plain template strings; everything put into them goes through esc().
+import { t, locale } from './i18n.js';
 
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 export const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ESC[c]);
@@ -116,7 +117,7 @@ export function choose(title, text, options) {
 }
 
 export const confirmSheet = (title, text, label, danger = false) =>
-  choose(title, text, [{ label, value: true, style: danger ? 'danger' : 'primary' }, { label: 'Cancel', value: false }]).then(Boolean);
+  choose(title, text, [{ label, value: true, style: danger ? 'danger' : 'primary' }, { label: t('common.cancel'), value: false }]).then(Boolean);
 
 // Runs an action and reports a failure in a toast. Returns true when it worked.
 export async function attempt(promise, failure) {
@@ -132,5 +133,5 @@ export async function attempt(promise, failure) {
 // ---------- dates ----------
 
 export const dayText = (iso, opts = { weekday: 'short', day: 'numeric', month: 'short' }) =>
-  new Date(`${iso}T12:00:00`).toLocaleDateString('en-GB', opts);
+  new Date(`${iso}T12:00:00`).toLocaleDateString(locale(), opts);
 export const longDay = (iso) => dayText(iso, { weekday: 'long', day: 'numeric', month: 'long' });

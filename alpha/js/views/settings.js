@@ -1,5 +1,5 @@
-// The match menu (the ⋯ button on the match) and the settings sheets it shares with You: sound,
-// remote and timing, with a tester.
+// The match menu (the ⋯ button on the match) and the settings sheets it shares with You: language,
+// sound, remote and timing, with a tester.
 import * as M from '../match.js';
 import * as Audio from '../audio.js';
 import * as Board from '../scoreboard.js';
@@ -7,6 +7,7 @@ import { mediaControlsSupported } from '../media.js';
 import { DEFAULT_TIMING } from '../gesture.js';
 import { state, save, hasStarted } from '../state.js';
 import { html, icon, sheet, choose } from '../ui.js';
+import { t, LANGUAGES, language, setLanguage } from '../i18n.js';
 
 const s = () => state.settings;
 
@@ -43,25 +44,25 @@ export function openMatchMenu({ go }) {
   const score = M.gameScore(g);
   const srv = M.server(g);
   const over = M.isGameOver(match, rules);
-  const points = `${rules.points} points · ${rules.bestOf === 1 ? '1 game' : `best of ${rules.bestOf}`}`;
+  const points = `${t('rules.nPoints', { n: rules.points })} · ${rules.bestOf === 1 ? t('rules.oneGame') : t('rules.bestOf', { n: rules.bestOf })}`;
   sheet(html`
     <div style="display:flex;align-items:center;gap:14px;padding:0 4px">
       <span style="display:flex;gap:10px">${miniTiles(score[0], !over && srv === 0)}${miniTiles(score[1], !over && srv === 1)}</span>
-      <span><strong style="display:block;font-size:17px">${rules.bestOf > 1 ? `Game ${match.games.length}` : 'Game'}</strong><small class="muted">${points}</small></span>
+      <span><strong style="display:block;font-size:17px">${rules.bestOf > 1 ? t('board.gameN', { n: match.games.length }) : t('board.game')}</strong><small class="muted">${points}</small></span>
     </div>
     <div class="quick">
-      <button type="button" data-quick="voice" aria-pressed="${s().voice}">${icon('sound')}Score calls</button>
-      <button type="button" data-quick="beep" aria-pressed="${s().beep}">${icon('music')}Beeps</button>
-      <button type="button" data-quick="sleep" aria-pressed="${s().sleep}">${icon('moon')}Screen sleep</button>
+      <button type="button" data-quick="voice" aria-pressed="${s().voice}">${icon('sound')}${t('settings.voice')}</button>
+      <button type="button" data-quick="beep" aria-pressed="${s().beep}">${icon('music')}${t('settings.beeps')}</button>
+      <button type="button" data-quick="sleep" aria-pressed="${s().sleep}">${icon('moon')}${t('settings.sleep')}</button>
     </div>
     <div class="card">
-      ${toggle('intervals', 'Intervals and breaks', '60 s at 11, 2 min between games')}
-      ${toggle('autoEnds', 'Change ends automatically', 'After each game, and at 11 in the decider')}
-      <button type="button" class="row" data-remote>${icon('remote')}<span class="grow"><strong>Remote and earbuds</strong><small>Test a button, timing</small></span>${icon('chevron', 18)}</button>
+      ${toggle('intervals', t('settings.intervals'), t('settings.intervalsSub'))}
+      ${toggle('autoEnds', t('settings.autoEnds'), t('settings.autoEndsSub'))}
+      <button type="button" class="row" data-remote>${icon('remote')}<span class="grow"><strong>${t('menu.remote')}</strong><small>${t('menu.remoteSub')}</small></span>${icon('chevron', 18)}</button>
     </div>
     <div class="btns">
-      <button type="button" class="btn danger" data-end>End match</button>
-      <button type="button" class="btn primary" data-resume>Resume</button>
+      <button type="button" class="btn danger" data-end>${t('menu.end')}</button>
+      <button type="button" class="btn primary" data-resume>${t('menu.resume')}</button>
     </div>`.s, (el, close) => {
     wireToggles(el);
     el.querySelectorAll('[data-quick]').forEach((b) => b.addEventListener('click', () => {
@@ -73,9 +74,9 @@ export function openMatchMenu({ go }) {
     el.querySelector('[data-resume]').addEventListener('click', close);
     el.querySelector('[data-end]').addEventListener('click', async () => {
       close();
-      const answer = await choose('End match?', hasStarted() ? 'Quick matches aren’t saved. Keep it to continue later from Play, or clear the score.' : '', [
-        { label: 'Keep it for later', value: 'keep', style: 'primary' },
-        { label: 'Clear the score', value: 'clear', style: 'danger' },
+      const answer = await choose(t('menu.endQ'), hasStarted() ? t('menu.endText') : '', [
+        { label: t('menu.keep'), value: 'keep', style: 'primary' },
+        { label: t('menu.clear'), value: 'clear', style: 'danger' },
       ]);
       if (!answer) return;
       if (answer === 'clear') {
@@ -92,13 +93,13 @@ export function openMatchMenu({ go }) {
 export function voiceSheet(onDone = () => {}) {
   const list = Audio.sortedVoices();
   const best = Audio.bestVoice(list);
-  const options = [html`<option value="">${best ? `Automatic (${best.name})` : 'Automatic'}</option>`,
-    ...list.map((v) => html`<option value="${v.voiceURI}" ${v.voiceURI === s().voiceURI ? 'selected' : ''}>${v.name} – ${v.lang}${v.localService ? '' : ' (online)'}</option>`)];
-  sheet(html`<h2 class="sheet-title">Voice</h2>
-    <label class="field">Voice<select data-voice>${options}</select></label>
-    <label class="field">Speed
-      <select data-rate>${[0.8, 0.9, 1, 1.1, 1.2, 1.3].map((r) => html`<option value="${r}" ${r === s().speechRate ? 'selected' : ''}>${r === 1 ? 'Normal' : `${r}×`}</option>`)}</select></label>
-    <div class="btns"><button type="button" class="btn" data-test>${icon('sound', 20)}Listen</button><button type="button" class="btn primary" data-done>Done</button></div>`.s,
+  const options = [html`<option value="">${best ? t('voice.automaticName', { name: best.name }) : t('voice.automatic')}</option>`,
+    ...list.map((v) => html`<option value="${v.voiceURI}" ${v.voiceURI === s().voiceURI ? 'selected' : ''}>${v.name} – ${v.lang}${v.localService ? '' : ` ${t('voice.online')}`}</option>`)];
+  sheet(html`<h2 class="sheet-title">${t('settings.voiceName')}</h2>
+    <label class="field">${t('settings.voiceName')}<select data-voice>${options}</select></label>
+    <label class="field">${t('voice.speed')}
+      <select data-rate>${[0.8, 0.9, 1, 1.1, 1.2, 1.3].map((r) => html`<option value="${r}" ${r === s().speechRate ? 'selected' : ''}>${r === 1 ? t('voice.normal') : `${r}×`}</option>`)}</select></label>
+    <div class="btns"><button type="button" class="btn" data-test>${icon('sound', 20)}${t('voice.listen')}</button><button type="button" class="btn primary" data-done>${t('common.done')}</button></div>`.s,
   (el, close) => {
     const voice = el.querySelector('[data-voice]');
     const rate = el.querySelector('[data-rate]');
@@ -106,37 +107,36 @@ export function voiceSheet(onDone = () => {}) {
     rate.addEventListener('change', () => setSetting('speechRate', Number(rate.value) || 1));
     el.querySelector('[data-test]').addEventListener('click', () => {
       Audio.keepOutputAwake(true);
-      Audio.say('11 9. Interval', { voiceURI: voice.value, rate: Number(rate.value) || 1 });
+      Audio.say(t('voice.sample'), { voiceURI: voice.value, rate: Number(rate.value) || 1 });
     });
     el.querySelector('[data-done]').addEventListener('click', close);
   }, { onClose: onDone });
 }
 
 export const voiceName = () => {
-  if (!Audio.speechSupported()) return 'Not available';
-  const v = Audio.voices().find((x) => x.voiceURI === s().voiceURI) ?? Audio.bestVoice();
-  return v?.name ?? 'Automatic';
+  if (!Audio.speechSupported()) return t('voice.notAvailable');
+  return Audio.voiceFor(s().voiceURI)?.name ?? t('voice.automatic');
 };
 
 // ---------- remote: timing and tester ----------
 
 export function remoteSheet(onDone = () => {}) {
   const ms = (key, label, lo, hi, step) => html`<label class="field">${label}
-    <select data-ms="${key}">${range(lo, hi, step, key).map((v) => html`<option value="${v}" ${v === s()[key] ? 'selected' : ''}>${seconds(v)}${v === DEFAULT_TIMING[key] ? ' (default)' : ''}</option>`)}</select></label>`;
+    <select data-ms="${key}">${range(lo, hi, step, key).map((v) => html`<option value="${v}" ${v === s()[key] ? 'selected' : ''}>${seconds(v)}${v === DEFAULT_TIMING[key] ? ` ${t('remote.default')}` : ''}</option>`)}</select></label>`;
   let stopTest = () => {};
-  sheet(html`<h2 class="sheet-title">Remote</h2>
-    <p class="sheet-text">One click scores for the left team, two clicks for the right team, a long press undoes. A camera remote, a keyboard, a mouse’s wheel or thumb button, or earbuds all work.</p>
+  sheet(html`<h2 class="sheet-title">${t('remote.title')}</h2>
+    <p class="sheet-text">${t('remote.text')}</p>
     <div class="card">
-      ${mediaControlsSupported() ? toggle('headphones', 'Headphone controls', 'Earbuds or a watch as the remote') : ''}
-      ${toggle('screenRemote', 'Use the screen as remote', 'A tap anywhere on the score is a click')}
+      ${mediaControlsSupported() ? toggle('headphones', t('settings.headphones'), t('settings.headphonesSub')) : ''}
+      ${toggle('screenRemote', t('settings.screenRemote'), t('settings.screenRemoteSub'))}
     </div>
-    <div class="form-row">${ms('longPressMs', 'Long press', 300, 2000, 100)}${ms('doubleClickMs', 'Double click within', 150, 800, 50)}</div>
+    <div class="form-row">${ms('longPressMs', t('remote.longPress'), 300, 2000, 100)}${ms('doubleClickMs', t('remote.doubleClick'), 150, 800, 50)}</div>
     <div>
-      <div class="h3">Tester</div>
-      <div class="card pad"><p class="note" style="margin:0 0 4px">Press a button: what arrives shows here, and nothing is scored while this is open.</p>
-      <output class="tester" data-log>${Board.lastPresses().join('\n') || 'Nothing received yet'}</output></div>
+      <div class="h3">${t('remote.tester')}</div>
+      <div class="card pad"><p class="note" style="margin:0 0 4px">${t('remote.testerText')}</p>
+      <output class="tester" data-log>${Board.lastPresses().join('\n') || t('remote.nothing')}</output></div>
     </div>
-    <button type="button" class="btn primary block" data-done>Done</button>`.s, (el, close) => {
+    <button type="button" class="btn primary block" data-done>${t('common.done')}</button>`.s, (el, close) => {
     wireToggles(el);
     el.querySelectorAll('[data-ms]').forEach((sel) => sel.addEventListener('change', () => setSetting(sel.dataset.ms, Number(sel.value))));
     const log = el.querySelector('[data-log]');
@@ -161,26 +161,47 @@ export function soundCheck() {
   let timer = null;
   const info = () => {
     const list = Audio.voices();
-    const voice = list.find((v) => v.voiceURI === s().voiceURI) ?? Audio.bestVoice(list);
+    const voice = Audio.voiceFor(s().voiceURI);
+    const onOff = (on) => (on ? t('soundCheck.on') : t('soundCheck.off'));
     return [
-      `Score calls: ${s().voice ? 'on' : 'off'} · Beeps: ${s().beep ? 'on' : 'off'}`,
-      `Audio: ${Audio.audioState()}`,
-      `Speech: ${Audio.speechSupported() ? `${list.length} voices · ${voice ? `${voice.name} (${voice.lang})` : 'no voice'}` : 'not available'}`,
+      t('soundCheck.settings', { voice: onOff(s().voice), beep: onOff(s().beep) }),
+      t('soundCheck.audio', { state: Audio.audioState() }),
+      Audio.speechSupported() ? t('soundCheck.speech', { n: list.length, voice: voice ? `${voice.name} (${voice.lang})` : t('soundCheck.noVoice') }) : t('soundCheck.noSpeech'),
       '',
-      ...(Audio.soundLog().length ? Audio.soundLog() : ['Nothing played yet']),
+      ...(Audio.soundLog().length ? Audio.soundLog() : [t('soundCheck.nothing')]),
     ].join('\n');
   };
-  sheet(html`<h2 class="sheet-title">Sound check</h2>
-    <p class="sheet-text">Try both buttons. If you hear nothing, make a screenshot of this and send it.</p>
-    <div class="btns"><button type="button" class="btn" data-beep>${icon('music', 20)}Beep</button>
-      <button type="button" class="btn" data-say>${icon('sound', 20)}Say “11 9”</button></div>
+  sheet(html`<h2 class="sheet-title">${t('soundCheck.title')}</h2>
+    <p class="sheet-text">${t('soundCheck.text')}</p>
+    <div class="btns"><button type="button" class="btn" data-beep>${icon('music', 20)}${t('soundCheck.beep')}</button>
+      <button type="button" class="btn" data-say>${icon('sound', 20)}${t('soundCheck.say')}</button></div>
     <output class="tester" data-info style="white-space:pre-line;font-size:12px">${info()}</output>
-    <p class="note" style="margin:0">On iPhone, the switch on the side mutes beeps when it’s on silent.</p>
-    <button type="button" class="btn primary block" data-done>Done</button>`.s, (el, close) => {
+    <p class="note" style="margin:0">${t('soundCheck.silentSwitch')}</p>
+    <button type="button" class="btn primary block" data-done>${t('common.done')}</button>`.s, (el, close) => {
     const out = el.querySelector('[data-info]');
     el.querySelector('[data-beep]').addEventListener('click', () => Audio.beep(880));
-    el.querySelector('[data-say]').addEventListener('click', () => Audio.say('11 9', { voiceURI: s().voiceURI, rate: s().speechRate }));
+    el.querySelector('[data-say]').addEventListener('click', () => Audio.say(t('call.score', { a: 11, b: 9 }), { voiceURI: s().voiceURI, rate: s().speechRate }));
     el.querySelector('[data-done]').addEventListener('click', close);
     timer = setInterval(() => { out.textContent = info(); }, 400);
   }, { onClose: () => clearInterval(timer) });
+}
+
+// ---------- language ----------
+
+// Automatic follows the device; a picked language is kept on this device.
+export function languageSheet(onDone = () => {}) {
+  const picked = s().language ?? '';
+  const row = (code, label, sub = '') => html`<button type="button" class="radio-row" role="radio" data-lang="${code}" aria-checked="${picked === code}">
+    <span class="radio"></span><span><strong>${label}</strong>${sub ? html`<small>${sub}</small>` : ''}</span></button>`;
+  sheet(html`<h2 class="sheet-title">${t('you.language')}</h2>
+    <div class="card" role="radiogroup">
+      ${row('', t('language.automatic'), t('language.automaticSub', { name: LANGUAGES[language()].name }))}
+      ${Object.entries(LANGUAGES).map(([code, l]) => row(code, l.name))}
+    </div>`.s, (el, close) => {
+    el.querySelectorAll('[data-lang]').forEach((b) => b.addEventListener('click', () => {
+      setSetting('language', b.dataset.lang);
+      setLanguage(b.dataset.lang);
+      close();
+    }));
+  }, { onClose: onDone });
 }

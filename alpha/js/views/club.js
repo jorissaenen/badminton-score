@@ -2,10 +2,11 @@
 // people, invites and settings.
 import * as Club from '../club.js';
 import { html, icon, avatar } from '../ui.js';
+import { t, locale } from '../i18n.js';
 import { clubScreen } from './clubview.js';
-import { answerButtons, wireAnswers, counts, dayName, eventName, mono, plural, NO_PLAYER } from './common.js';
+import { answerButtons, wireAnswers, counts, dayName, eventName, mono, noPlayer } from './common.js';
 
-const monthDay = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString('en-GB', { month: 'short' });
+const monthDay = (iso) => new Date(`${iso}T12:00:00`).toLocaleDateString(locale(), { month: 'short' });
 
 export function show(el, [clubId]) {
   let events = null;
@@ -22,25 +23,25 @@ export function show(el, [clubId]) {
     const next = upcoming.find((e) => e.status !== 'cancelled');
     const later = upcoming.filter((e) => e !== next);
     el.innerHTML = html`<div class="page">
-      <div class="top"><a class="back" href="#/clubs">${icon('back', 22)}Clubs</a>
+      <div class="top"><a class="back" href="#/clubs">${icon('back', 22)}${t('tab.clubs')}</a>
         <span class="board-buttons">
-          ${admin ? html`<a class="round" href="#/club/${clubId}/invite" aria-label="Invite">${icon('invite', 20)}</a>` : ''}
-          <a class="round" href="#/club/${clubId}/settings" aria-label="Club settings">${icon('settings', 20)}</a>
+          ${admin ? html`<a class="round" href="#/club/${clubId}/invite" aria-label="${t('invite.title')}">${icon('invite', 20)}</a>` : ''}
+          <a class="round" href="#/club/${clubId}/settings" aria-label="${t('clubSettings.title')}">${icon('settings', 20)}</a>
         </span></div>
       <div style="display:flex;align-items:center;gap:14px">${mono(club.name, true)}
         <div><h1 class="title small">${club.name}</h1>
-        <p class="sub" style="margin:4px 0 0">You’re ${myRole === 'admin' || myRole === 'owner' ? 'the' : 'a'} ${Club.ROLE_NAMES[myRole].toLowerCase()} · ${plural(players.length, 'player')}</p></div></div>
-      ${season ? html`<a class="card row" href="#/club/${clubId}/settings">${icon('calendar', 20)}<span class="grow"><strong>Season ${season.name}</strong>
+        <p class="sub" style="margin:4px 0 0">${t(`club.youAre.${myRole}`)} · ${t('club.nPlayers', { n: players.length })}</p></div></div>
+      ${season ? html`<a class="card row" href="#/club/${clubId}/settings">${icon('calendar', 20)}<span class="grow"><strong>${t('season.named', { name: season.name })}</strong>
           <small>${monthDay(season.start)} – ${monthDay(season.end)}</small></span>${icon('chevron', 18)}</a>`
-        : admin ? html`<a class="card row" href="#/club/${clubId}/settings">${icon('calendar', 20)}<span class="grow"><strong>Add a season</strong><small>Results count per season</small></span>${icon('chevron', 18)}</a>` : ''}
-      ${events === null ? '' : next ? nextCard(next, myPlayer) : html`<div class="card"><p class="empty">No events planned yet.${admin ? '' : ' Admins plan them.'}</p></div>`}
-      ${later.length ? html`<section><h2 class="h3">Coming up</h2><div class="card">${later.map((e) => row(e, myPlayer))}</div></section>` : ''}
+        : admin ? html`<a class="card row" href="#/club/${clubId}/settings">${icon('calendar', 20)}<span class="grow"><strong>${t('season.add')}</strong><small>${t('season.addSub')}</small></span>${icon('chevron', 18)}</a>` : ''}
+      ${events === null ? '' : next ? nextCard(next, myPlayer) : html`<div class="card"><p class="empty">${admin ? t('club.noEvents') : t('club.noEventsMember')}</p></div>`}
+      ${later.length ? html`<section><h2 class="h3">${t('club.comingUp')}</h2><div class="card">${later.map((e) => row(e, myPlayer))}</div></section>` : ''}
       <div>
-        <a class="btn primary block" ${admin ? html`href="#/club/${clubId}/plan"` : 'aria-disabled="true"'}>${icon('plus', 20)}Plan an event</a>
-        ${admin ? '' : html`<p class="note" style="text-align:center">Admins and owners plan events.</p>`}
+        <a class="btn primary block" ${admin ? html`href="#/club/${clubId}/plan"` : 'aria-disabled="true"'}>${icon('plus', 20)}${t('eventEdit.plan')}</a>
+        ${admin ? '' : html`<p class="note" style="text-align:center">${t('club.adminsPlan')}</p>`}
       </div>
-      <div class="card"><a class="row" href="#/club/${clubId}/people">${icon('clubs', 20)}<span class="grow"><strong>People</strong>
-        <small>${plural(players.length, 'player')} · ${plural(v.members.length, 'member')}</small></span>${icon('chevron', 18)}</a></div>
+      <div class="card"><a class="row" href="#/club/${clubId}/people">${icon('clubs', 20)}<span class="grow"><strong>${t('people.title')}</strong>
+        <small>${t('club.nPlayers', { n: players.length })} · ${t('club.nMembers', { n: v.members.length })}</small></span>${icon('chevron', 18)}</a></div>
     </div>`.s;
     const card = el.querySelector('[data-next]');
     card?.addEventListener('click', (ev) => { if (!ev.target.closest('button')) location.hash = `#/club/${clubId}/event/${next.id}`; });
@@ -59,13 +60,13 @@ export function show(el, [clubId]) {
     const going = r ? view.players.filter((p) => r[p.id]?.status === 'going') : [];
     const noAnswer = r ? view.players.length - c.going - c.notGoing : null;
     return html`<div class="event-card" role="link" tabindex="0" data-next>
-      <div class="line1"><span>Next · ${eventName(e)}</span><span>${dayName(e.date)}</span></div>
+      <div class="line1"><span>${t('event.next', { event: eventName(e) })}</span><span>${dayName(e.date)}</span></div>
       <div class="time"><span class="cap">${e.start}</span></div>
-      <div class="meta">${[`until ${e.end}`, e.location, plural(e.courts, 'court')].filter(Boolean).join(' · ')}</div>
+      <div class="meta">${[t('event.until', { end: e.end }), e.location, t('event.nCourts', { n: e.courts })].filter(Boolean).join(' · ')}</div>
       ${r ? html`<div style="display:flex;align-items:center;gap:10px;margin-top:12px">
         <span style="display:flex">${going.slice(0, 5).map((p, i) => html`<span style="margin-left:${i ? -8 : 0}px">${avatar(p.name, p.id === myPlayer?.id ? 'me' : '')}</span>`)}</span>
-        <span class="muted" style="font-size:13px">${c.going} going · ${c.notGoing} not · ${noAnswer} no answer</span></div>` : ''}
-      ${answerButtons(myPlayer ? r?.[myPlayer.id]?.status : null, myPlayer ? '' : NO_PLAYER)}
+        <span class="muted" style="font-size:13px">${t('event.counts', { going: c.going, notGoing: c.notGoing, noAnswer })}</span></div>` : ''}
+      ${answerButtons(myPlayer ? r?.[myPlayer.id]?.status : null, myPlayer ? '' : noPlayer())}
     </div>`;
   }
 
@@ -73,12 +74,12 @@ export function show(el, [clubId]) {
     const r = regs[e.id];
     const mine = myPlayer && r ? r[myPlayer.id]?.status : undefined;
     const day = new Date(`${e.date}T12:00:00`);
-    const chip = e.status === 'cancelled' ? html`<span class="chip notgoing">Cancelled</span>`
-      : mine === 'going' ? html`<span class="chip going">Going</span>` : mine === 'not going' ? html`<span class="chip notgoing">Not going</span>`
+    const chip = e.status === 'cancelled' ? html`<span class="chip notgoing">${t('event.cancelled')}</span>`
+      : mine === 'going' ? html`<span class="chip going">${t('answer.going')}</span>` : mine === 'not going' ? html`<span class="chip notgoing">${t('answer.notGoing')}</span>`
         : myPlayer && r ? html`<span class="chip">?</span>` : '';
-    const details = [`${e.start}–${e.end}`, e.courts > 2 ? plural(e.courts, 'court') : null, r ? `${counts(r).going} going` : null].filter(Boolean).join(' · ');
+    const details = [`${e.start}–${e.end}`, e.courts > 2 ? t('event.nCourts', { n: e.courts }) : null, r ? t('event.nGoing', { n: counts(r).going }) : null].filter(Boolean).join(' · ');
     return html`<a class="row" href="#/club/${clubId}/event/${e.id}">
-      <span style="width:40px;text-align:center;flex:none"><span class="muted" style="display:block;font-size:11px;font-weight:700;letter-spacing:.08em">${day.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()}</span>
+      <span style="width:40px;text-align:center;flex:none"><span class="muted" style="display:block;font-size:11px;font-weight:700;letter-spacing:.08em">${day.toLocaleDateString(locale(), { weekday: 'short' }).toUpperCase()}</span>
         <span class="display" style="display:block;font-size:24px;line-height:1">${day.getDate()}</span></span>
       <span class="grow"><strong>${eventName(e)}</strong><small>${details}</small></span>${chip}</a>`;
   }

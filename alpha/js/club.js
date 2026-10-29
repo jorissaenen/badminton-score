@@ -4,7 +4,6 @@ import { cloud } from './cloud.js';
 import { remindAt, smartReminder } from './reminder.js';
 
 export const ROLES = ['owner', 'admin', 'keeper', 'member'];
-export const ROLE_NAMES = { owner: 'Owner', admin: 'Admin', keeper: 'Score keeper', member: 'Member' };
 const RANK = { owner: 4, admin: 3, keeper: 2, member: 1 };
 
 export const isAdmin = (role) => (RANK[role] ?? 0) >= RANK.admin;
@@ -244,12 +243,8 @@ export function nextSeasonSuggestion(seasons, today = new Date()) {
 
 // ---------- events ----------
 
-export const EVENT_TYPES = {
-  training: 'Training',
-  random: 'Random tournament',
-  weighted: 'Weighted tournament',
-  knockout: 'Knockout tournament',
-};
+// The kinds of events; their names are in the language files (eventType.<kind>).
+export const EVENT_TYPES = ['training', 'random', 'weighted', 'knockout'];
 
 const pad = (n) => String(n).padStart(2, '0');
 export const isoDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;

@@ -3,14 +3,14 @@
 import * as Club from '../club.js';
 import { session } from '../session.js';
 import { html, icon, initials, dayText, longDay, toast } from '../ui.js';
+import { t } from '../i18n.js';
 
 export const backBar = (href, label, right = '') => html`<div class="top"><a class="back" href="${href}">${icon('back', 22)}${label}</a>${right}</div>`;
 
 export const isToday = (iso) => iso === Club.isoDate(new Date());
 export const isTomorrow = (iso) => iso === Club.isoDate(new Date(Date.now() + 86400_000));
-export const dayName = (iso, long = false) => (isToday(iso) ? 'Today' : isTomorrow(iso) ? 'Tomorrow' : long ? longDay(iso) : dayText(iso));
-export const eventName = (e) => Club.EVENT_TYPES[e?.type] ?? 'Event';
-export const plural = (n, word, many = `${word}s`) => `${n} ${n === 1 ? word : many}`;
+export const dayName = (iso, long = false) => (isToday(iso) ? t('day.today') : isTomorrow(iso) ? t('day.tomorrow') : long ? longDay(iso) : dayText(iso));
+export const eventName = (e) => (Club.EVENT_TYPES.includes(e?.type) ? t(`eventType.${e.type}`) : t('event.event'));
 
 export function counts(regs = {}) {
   const all = Object.values(regs);
@@ -24,8 +24,8 @@ export const mono = (name, light = false) => html`<span class="mono${light ? ' l
 // can't answer yet.
 export function answerButtons(status, disabledReason = '') {
   return html`<div class="answer">
-      <button type="button" class="going" data-answer="going" aria-pressed="${status === 'going'}" ${disabledReason ? 'disabled' : ''}>Going</button>
-      <button type="button" class="notgoing" data-answer="not going" aria-pressed="${status === 'not going'}" ${disabledReason ? 'disabled' : ''}>Not going</button>
+      <button type="button" class="going" data-answer="going" aria-pressed="${status === 'going'}" ${disabledReason ? 'disabled' : ''}>${t('answer.going')}</button>
+      <button type="button" class="notgoing" data-answer="not going" aria-pressed="${status === 'not going'}" ${disabledReason ? 'disabled' : ''}>${t('answer.notGoing')}</button>
     </div>${disabledReason ? html`<p class="note">${disabledReason}</p>` : ''}`;
 }
 
@@ -36,12 +36,12 @@ export function wireAnswers(el, { clubId, eventId, playerId, current, note = () 
     try {
       await Club.register(session.user, clubId, eventId, playerId, next, next === 'not going' ? note() : '');
     } catch (e) {
-      toast(`Couldn’t save your answer (${e.code || e.message})`);
+      toast(t('answer.failed', { error: e.code || e.message }));
     }
   }));
 }
 
-export const NO_PLAYER = 'To answer, link yourself to a player first: open the club → People → That’s me.';
+export const noPlayer = () => t('answer.noPlayer');
 
 // The next event of all your clubs, with your answer. Null when there is none.
 export async function nextOfAllClubs(user) {
@@ -58,9 +58,9 @@ export async function nextOfAllClubs(user) {
 
 export const signInCard = (text) => html`<div class="card pad" style="display:flex;flex-direction:column;gap:14px">
     <p class="sheet-text" style="margin:0">${text}</p>
-    <a class="btn primary" href="#/signin">Sign in</a></div>`;
+    <a class="btn primary" href="#/signin">${t('signin.button')}</a></div>`;
 
-export const spinner = () => html`<div class="spinner" role="status" aria-label="Loading"></div>`;
+export const spinner = () => html`<div class="spinner" role="status" aria-label="${t('common.loading')}"></div>`;
 
 // Not available in this edition (no Firebase set up).
 export const noCloud = () => !session.enabled;

@@ -20,28 +20,36 @@
   <script>document.documentElement.classList.toggle('landscape', innerWidth > innerHeight); document.documentElement.classList.toggle('short', innerWidth > innerHeight && innerHeight <= 500);</script>
 </head>
 <body>
+  <!-- Pictures of browser buttons for the install steps (js/install.js). -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-share" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v13m4-9l-4-4l-4 4m-4 6v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></g></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M12 15V3m9 12v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10l5 5l5-5"/></g></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></g></symbol>
+    <symbol id="i-add" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8m-4-4v8"/></g></symbol>
+  </svg>
   <!-- The tab screens: Play, Clubs, You, and the screens opened from them. -->
   <div id="app" class="app">
     <div id="view" class="view"></div>
-    <nav id="tabs" class="tabs" aria-label="Main">
-      <a href="#/play" class="tab" data-tab="play"><svg class="i" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l5.5-3.5z" fill="currentColor"/></svg>Play</a>
-      <a href="#/clubs" class="tab" data-tab="clubs"><svg class="i" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6.5 6.5 0 0 1 3.5 5.8"/></svg>Clubs</a>
-      <a href="#/you" class="tab" data-tab="you"><svg class="i" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>You</a>
+    <nav id="tabs" class="tabs" data-t-label="tab.main" aria-label="Main">
+      <a href="#/play" class="tab" data-tab="play"><svg class="i" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5v7l5.5-3.5z" fill="currentColor"/></svg><span data-t="tab.play">Play</span></a>
+      <a href="#/clubs" class="tab" data-tab="clubs"><svg class="i" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6.5 6.5 0 0 1 3.5 5.8"/></svg><span data-t="tab.clubs">Clubs</span></a>
+      <a href="#/you" class="tab" data-tab="you"><svg class="i" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span data-t="tab.you">You</span></a>
     </nav>
   </div>
 
   <!-- The match: flip tiles, full screen. -->
   <main id="board" class="board" hidden>
     <header class="board-top">
-      <button type="button" class="round" id="undoBtn" aria-label="Undo last point" tabindex="-1"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+      <button type="button" class="round" id="undoBtn" data-t-label="board.undo" aria-label="Undo last point" tabindex="-1"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
       <div class="board-info">
         <span class="board-title" id="boardTitle">GAME 1</span>
-        <span class="board-ends" id="changeEnds" role="status" hidden>CHANGE ENDS</span>
+        <span class="board-ends" id="changeEnds" role="status" hidden data-t="board.changeEndsBanner">CHANGE ENDS</span>
         <span class="board-sub" id="boardSub"></span>
       </div>
       <span class="board-buttons">
-        <button type="button" class="round" id="swapBtn" aria-label="Swap sides" tabindex="-1"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M16 3l4 4-4 4M20 17H4M8 21l-4-4 4-4"/></svg></button>
-        <button type="button" class="round" id="menuBtn" aria-label="Match menu and settings" tabindex="-1"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg></button>
+        <button type="button" class="round" id="swapBtn" data-t-label="board.swap" aria-label="Swap sides" tabindex="-1"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M16 3l4 4-4 4M20 17H4M8 21l-4-4 4-4"/></svg></button>
+        <button type="button" class="round" id="menuBtn" data-t-label="board.menu" aria-label="Match menu and settings" tabindex="-1"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg></button>
       </span>
     </header>
     <div class="sides">
@@ -49,23 +57,23 @@
         <span class="team-name" id="name0">HOME</span>
         <span class="games" id="games0" aria-hidden="true"></span>
         <div class="tiles" id="tiles0" aria-hidden="true"></div>
-        <span class="serves">SERVES</span>
+        <span class="serves" data-t="board.serves">SERVES</span>
       </section>
       <div class="net" aria-hidden="true"></div>
       <section class="team" data-team="1">
         <span class="team-name" id="name1">AWAY</span>
         <span class="games" id="games1" aria-hidden="true"></span>
         <div class="tiles" id="tiles1" aria-hidden="true"></div>
-        <span class="serves">SERVES</span>
+        <span class="serves" data-t="board.serves">SERVES</span>
       </section>
     </div>
 
     <div id="interval" class="overlay" hidden>
       <div class="overlay-card">
-        <div class="overlay-title" id="intervalTitle">Interval</div>
+        <div class="overlay-title" id="intervalTitle" data-t="board.interval">Interval</div>
         <div class="break-clock" id="intervalClock">1:00</div>
-        <div class="overlay-hint">Long press the remote, or score the next point, to end the interval</div>
-        <button type="button" class="btn primary" id="resumeBtn" tabindex="-1">Resume now</button>
+        <div class="overlay-hint" data-t="board.intervalHint">Long press the remote, or score the next point, to end the interval</div>
+        <button type="button" class="btn primary" id="resumeBtn" tabindex="-1" data-t="board.resumeNow">Resume now</button>
       </div>
     </div>
 
@@ -73,9 +81,9 @@
       <div class="overlay-card">
         <div class="overlay-title" id="gameoverTitle"></div>
         <div class="overlay-sub" id="gameoverSub"></div>
-        <div class="break-timer" id="breakTimer" hidden><span class="break-label">BREAK</span><span class="break-clock" id="breakClock">2:00</span></div>
-        <div class="overlay-ends" id="gameoverEnds" hidden>Teams change ends</div>
-        <div class="overlay-hint">Long press the remote to <span id="gameoverAction">start the next game</span></div>
+        <div class="break-timer" id="breakTimer" hidden><span class="break-label" data-t="board.break">BREAK</span><span class="break-clock" id="breakClock">2:00</span></div>
+        <div class="overlay-ends" id="gameoverEnds" hidden data-t="board.teamsChangeEnds">Teams change ends</div>
+        <div class="overlay-hint" id="gameoverHint"></div>
         <button type="button" class="btn primary" id="nextBtn" tabindex="-1">Start next game</button>
       </div>
     </div>
@@ -88,30 +96,30 @@
   <button type="button" id="installTrigger" hidden></button>
   <div id="installSheet" class="install-overlay" hidden>
     <div class="install-card" id="installCard" role="dialog" aria-modal="true" aria-labelledby="installTitle">
-      <button type="button" class="round install-close" id="installClose" aria-label="Close" tabindex="-1"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      <button type="button" class="round install-close" id="installClose" data-t-label="common.close" aria-label="Close" tabindex="-1"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
       <header class="install-head">
         <img src="icons/skoor-192.png" alt="" class="install-icon">
         <div>
-          <h2 id="installTitle">Install Skoor</h2>
-          <p>Opens full screen, works offline and keeps the remote working best.</p>
+          <h2 id="installTitle" data-t="install.title">Install Skoor</h2>
+          <p data-t="install.text">Opens full screen, works offline and keeps the remote working best.</p>
         </div>
       </header>
       <section id="installPick" class="install-section">
-        <h3>Which browser are you using?</h3>
+        <h3 data-t="install.whichBrowser">Which browser are you using?</h3>
         <p id="installHint" class="install-hint" hidden></p>
         <div id="installChoices" class="browser-list"></div>
       </section>
       <section id="installGuide" class="install-section" hidden>
-        <button type="button" class="link-btn" id="installBack" tabindex="-1">‹ Choose another browser</button>
+        <button type="button" class="link-btn" id="installBack" tabindex="-1" data-t="install.back">‹ Choose another browser</button>
         <h3 id="installGuideTitle"></h3>
         <ol id="installSteps" class="install-steps"></ol>
       </section>
       <section id="installOneTap" class="install-section" hidden>
-        <h3>Add it to your home screen with one tap.</h3>
+        <h3 data-t="install.oneTap">Add it to your home screen with one tap.</h3>
       </section>
       <footer class="install-buttons">
-        <button type="button" class="btn outline" id="installLater" tabindex="-1">Not now</button>
-        <button type="button" class="btn primary" id="installBtn" tabindex="-1" hidden>Install</button>
+        <button type="button" class="btn outline" id="installLater" tabindex="-1" data-t="common.notNow">Not now</button>
+        <button type="button" class="btn primary" id="installBtn" tabindex="-1" hidden data-t="install.install">Install</button>
       </footer>
     </div>
   </div>

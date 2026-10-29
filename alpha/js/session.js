@@ -1,6 +1,7 @@
 // Who is signed in, and whether the app reaches the database. No screens here: the You and Sign in
 // screens show this state and call these functions.
 import { EDITION } from './edition.js';
+import { t } from './i18n.js';
 import { isInstalled } from './install.js';
 import {
   checkServer, completeEmailLink, isEmailLink, isEmailLinkLanding, onUser, saveProfile, sendEmailLink,
@@ -16,17 +17,13 @@ const RETRY_S = [5, 10, 20];
 const OFFLINE_RETRY_S = 60;
 const CHECK_TIMEOUT_MS = 10_000;
 
-const AUTH_ERRORS = {
-  'auth/popup-closed-by-user': 'Sign-in cancelled.',
-  'auth/cancelled-popup-request': 'Sign-in cancelled.',
-  'auth/network-request-failed': 'No internet connection. Scoring keeps working; try again later.',
-  'auth/unauthorized-domain': 'This web address isn’t allowed yet in Firebase (Authentication → Settings → Authorized domains).',
-  'auth/operation-not-allowed': 'This sign-in method isn’t switched on in Firebase yet.',
-  'auth/invalid-email': 'That e-mail address doesn’t look right.',
-  'auth/invalid-action-code': 'This sign-in link was already used or has expired. Ask for a new one.',
-  'auth/expired-action-code': 'This sign-in link has expired. Ask for a new one.',
-};
-export const explain = (e) => AUTH_ERRORS[e?.code] ?? `Something went wrong (${e?.code || e?.message || e}).`;
+// Firebase sign-in errors with a text of their own (auth.<code without "auth/">).
+const AUTH_ERRORS = ['popup-closed-by-user', 'cancelled-popup-request', 'network-request-failed', 'unauthorized-domain',
+  'operation-not-allowed', 'invalid-email', 'invalid-action-code', 'expired-action-code'];
+export function explain(e) {
+  const code = String(e?.code ?? '').replace(/^auth\//, '');
+  return AUTH_ERRORS.includes(code) ? t(`auth.${code}`) : t('auth.other', { error: e?.code || e?.message || e });
+}
 
 function stored(key) {
   try { return localStorage.getItem(key); } catch { return null; }
@@ -51,7 +48,7 @@ const s = {
   started: false,
   ready: false, // the first answer about who is signed in has come in
   user: null,
-  conn: { state: 'trying', text: 'Connecting…' }, // online | trying | offline
+  conn: { state: 'trying', text: t('conn.connecting') }, // online | trying | offline
   landingLink: null, // a sign-in link opened here but asked for elsewhere (installed app)
   message: '',
 };
@@ -83,7 +80,7 @@ function countdown() {
   clearTimeout(connTimer);
   const left = Math.ceil((retryAt - Date.now()) / 1000);
   if (left <= 0) { check(); return; }
-  if (failures < RETRY_S.length) setConn('trying', `No connection · retrying in ${left} s`);
+  if (failures < RETRY_S.length) setConn('trying', t('conn.retrying', { s: left }));
   connTimer = setTimeout(countdown, Math.min(1000, retryAt - Date.now()));
 }
 
@@ -92,17 +89,17 @@ async function check() {
   const u = s.user;
   if (!u) return;
   const id = ++checkId;
-  if (failures < RETRY_S.length) setConn('trying', 'Connecting…');
+  if (failures < RETRY_S.length) setConn('trying', t('conn.connecting'));
   try {
     await withTimeout(checkServer(u), CHECK_TIMEOUT_MS);
     if (id !== checkId) return;
     failures = 0;
-    setConn('online', 'Online');
+    setConn('online', t('conn.online'));
   } catch (e) {
     if (id !== checkId) return;
-    if (e.code === 'permission-denied') { setConn('offline', 'Online, but the database isn’t set up yet'); return; }
+    if (e.code === 'permission-denied') { setConn('offline', t('conn.noDatabase')); return; }
     failures += 1;
-    if (failures >= RETRY_S.length) setConn('offline', 'Working offline');
+    if (failures >= RETRY_S.length) setConn('offline', t('conn.offline'));
     retryAt = Date.now() + (RETRY_S[failures - 1] ?? OFFLINE_RETRY_S) * 1000;
     countdown();
   }
@@ -137,14 +134,14 @@ export async function start() {
     await onUser(showUser);
   } catch {
     s.started = false; // retry next time, e.g. once back online
-    say('Can’t reach the sign-in service right now (offline?). Scoring keeps working.');
+    say(t('signin.unreachable'));
   }
 }
 
 // ---------- signing in and out ----------
 
 export async function google() {
-  say('Opening Google…');
+  say(t('signin.openingGoogle'));
   try {
     await start();
     await signInWithGoogle();
@@ -154,10 +151,10 @@ export async function google() {
   }
 }
 // Back from Google's window without signing in: don't leave "Opening Google…" standing.
-window.addEventListener('focus', () => setTimeout(() => { if (s.message === 'Opening Google…') say(''); }, 1500));
+window.addEventListener('focus', () => setTimeout(() => { if (s.message === t('signin.openingGoogle')) say(''); }, 1500));
 
 export async function sendLink(email) {
-  if (!email) { say('Type your e-mail address first.'); return false; }
+  if (!email) { say(t('signin.typeEmail')); return false; }
   try {
     await start();
     await sendEmailLink(email);
@@ -174,7 +171,7 @@ export async function signInWithLink(link, email) {
   try {
     await start();
     if (!(await isEmailLink(link))) {
-      say('That isn’t a sign-in link. Copy the link from the e-mail (press and hold it → Copy).');
+      say(t('signin.notALink'));
       return false;
     }
     await completeEmailLink(link, email);
@@ -189,14 +186,14 @@ export async function signInWithLink(link, email) {
 
 export function pasteLink(link, typedEmail = '') {
   const email = storedEmail() || typedEmail;
-  if (!email) { say('Type the e-mail address the link was sent to, then paste the link again.'); return Promise.resolve(false); }
+  if (!email) { say(t('signin.typeEmailThenPaste')); return Promise.resolve(false); }
   return signInWithLink(link, email);
 }
 
 export async function signOut() {
   try {
     await cloudSignOut();
-    say('Signed out.');
+    say(t('signin.signedOut'));
   } catch (e) {
     say(explain(e));
   }

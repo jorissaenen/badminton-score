@@ -1,6 +1,7 @@
 // When to remind people of an event. A reminder is { daysBefore, time }: so many days before the
 // event's date, at that time of day. That works for a single date and for every date of a weekly
 // series alike. null means no reminder.
+import { t, locale } from './i18n.js';
 
 // Smart default: an afternoon or evening event is reminded the same morning, a morning event the
 // evening before. Both leave time to answer and to plan the day.
@@ -24,30 +25,30 @@ export function sameReminder(a, b) {
 
 function moment(date, reminder) {
   const d = remindAt(date, reminder);
-  const day = d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+  const day = d.toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' });
   return `${day}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 // The choices offered for an event starting at `start`: value → { label, reminder }. 'other' lets
 // the admin pick the day and time themselves.
 export function reminderChoices(date, start) {
-  const choices = { smart: { reminder: smartReminder(start), label: 'Smart (recommended)' } };
+  const choices = { smart: { reminder: smartReminder(start), label: t('reminder.smart') } };
   for (const n of [1, 2, 3]) {
-    choices[`d${n}`] = { reminder: { daysBefore: n, time: start }, label: `${n} day${n === 1 ? '' : 's'} before` };
+    choices[`d${n}`] = { reminder: { daysBefore: n, time: start }, label: t('reminder.nDaysBefore', { n }) };
   }
-  choices.other = { reminder: null, label: 'Other day and time…' };
-  choices.none = { reminder: null, label: 'No reminder' };
+  choices.other = { reminder: null, label: t('reminder.other') };
+  choices.none = { reminder: null, label: t('reminder.none') };
   return choices;
 }
 
 // "Tue 3 Nov, 09:00: the same morning", shown under the choice.
 export function describeReminder(date, reminder) {
-  if (!reminder) return 'Nobody gets a reminder for this event.';
-  const when = reminder.daysBefore === 0 ? 'the same day'
-    : reminder.daysBefore === 1 ? 'the day before' : `${reminder.daysBefore} days before`;
-  const part = reminder.daysBefore === 0 && reminder.time < '12:00' ? 'the same morning'
-    : reminder.daysBefore === 1 && reminder.time >= '17:00' ? 'the evening before' : when;
-  return `Everyone who hasn’t said no gets a reminder on ${moment(date, reminder)}: ${part}.`;
+  if (!reminder) return t('reminder.nobody');
+  const when = reminder.daysBefore === 0 ? t('reminder.theSameDay')
+    : reminder.daysBefore === 1 ? t('reminder.theDayBefore') : t('reminder.nDaysBefore', { n: reminder.daysBefore });
+  const part = reminder.daysBefore === 0 && reminder.time < '12:00' ? t('reminder.theSameMorning')
+    : reminder.daysBefore === 1 && reminder.time >= '17:00' ? t('reminder.theEveningBefore') : when;
+  return t('reminder.everyone', { moment: moment(date, reminder), when: part });
 }
 
 // Which choice a stored reminder corresponds to (for editing).

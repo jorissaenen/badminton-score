@@ -2,6 +2,7 @@
 import * as M from './match.js';
 import { EDITION } from './edition.js';
 import { DEFAULT_TIMING } from './gesture.js';
+import { t } from './i18n.js';
 
 const STORAGE_KEY = EDITION.storageKey;
 
@@ -23,6 +24,7 @@ export const DEFAULT_SETTINGS = {
   headphones: false, // earbud play/pause, next and previous track act as the remote
   voiceURI: '', // '' = best available English voice
   speechRate: 1,
+  language: '', // '' = the device's language
 };
 
 export function rulesFrom(settings) {
@@ -79,5 +81,6 @@ export function isFinished() {
   return M.isGameOver(state.match, state.rules) && M.matchWinner(state.match, state.rules) !== null;
 }
 
-// The names to show: the players when known, otherwise HOME and AWAY.
-export const displayNames = (s = state.settings) => (s.namesKnown ? s.names : ['Home', 'Away']);
+// The names to show: the players when known, otherwise Home and Away (in the app's language).
+export const defaultNames = () => [t('board.home'), t('board.away')];
+export const displayNames = (s = state.settings) => (s.namesKnown ? s.names : defaultNames());

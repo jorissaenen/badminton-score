@@ -4,12 +4,13 @@ import * as Club from '../club.js';
 import { session, onSession, start } from '../session.js';
 import { setLastClub } from '../links.js';
 import { html } from '../ui.js';
+import { t } from '../i18n.js';
 import { gate } from './clubs.js';
 import { backBar, spinner } from './common.js';
 
 // draw(view) is called whenever something changes; view = { id, club, members, players, seasons,
 // invites, myRole, admin, me, myPlayer }. Returns the cleanup function.
-export function clubScreen(el, clubId, draw, { back = ['#/clubs', 'Clubs'] } = {}) {
+export function clubScreen(el, clubId, draw, { back = ['#/clubs', t('tab.clubs')] } = {}) {
   let stop = null;
   let run = 0;
   let view = null;
@@ -21,7 +22,7 @@ export function clubScreen(el, clubId, draw, { back = ['#/clubs', 'Clubs'] } = {
     stop?.();
     stop = null;
     view = null;
-    const blocked = gate('Sign in to open this club.');
+    const blocked = gate(t('club.signIn'));
     if (blocked) { plain(blocked); return; }
     plain(spinner());
     const u = session.user;
@@ -29,7 +30,7 @@ export function clubScreen(el, clubId, draw, { back = ['#/clubs', 'Clubs'] } = {
     if (mine !== run) return;
     if (!role) {
       await Club.forgetClub(u, clubId).catch(() => {});
-      plain(html`<div class="card"><p class="empty">You’re not a member of this club (any more). Ask for a new invite to join.</p></div>`);
+      plain(html`<div class="card"><p class="empty">${t('club.notMember')}</p></div>`);
       return;
     }
     setLastClub(clubId);
@@ -43,7 +44,7 @@ export function clubScreen(el, clubId, draw, { back = ['#/clubs', 'Clubs'] } = {
       view.myPlayer = s.players.find((p) => p.uid === u.uid) ?? null;
       draw(view);
     }, () => {
-      if (mine === run) plain(html`<div class="card"><p class="empty">You no longer have access to this club.</p></div>`);
+      if (mine === run) plain(html`<div class="card"><p class="empty">${t('club.noAccess')}</p></div>`);
     });
     if (mine !== run) unsubscribe();
     else stop = unsubscribe;
