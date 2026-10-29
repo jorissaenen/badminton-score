@@ -10,7 +10,9 @@ import { $, toast } from './ui.js';
 import { t, people } from './i18n.js';
 import { screenHeight } from './layout.js';
 import { sportOf } from './sports.js';
+import * as Club from './club.js';
 import { scoreCall as callFor, results as resultsFor } from './calls.js';
+import * as Shared from './clubmatch.js';
 
 const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab']);
 const SLEEP_AFTER_MS = 30000;
@@ -68,21 +70,62 @@ const results = (match) => resultsFor(match, state.rules);
 
 // ---------- actions ----------
 
-export function point(team) {
+// A changed score. A quick match changes here at once; a club match first goes to the server,
+// which may refuse it (someone else was first, the score is frozen, no connection): then the
+// score stays as it was, and you hear and feel why. Resolves with whether it counted.
+async function commit(action, next, changes = {}) {
+  if (!state.link) {
+    state.match = next;
+    save();
+    return true;
+  }
+  try {
+    await Shared.commit(action, next, changes);
+    return true;
+  } catch (e) {
+    refusedFeedback(e);
+    return false;
+  }
+}
+
+function refusedFeedback(e) {
+  if (e.code === 'skoor/busy') { beep(220); return; }
+  const text = {
+    'skoor/stale': e.by ? t('board.refusedFirst', { name: e.by }) : t('board.refusedChanged'),
+    // Frozen by someone else's point a moment ago: say who was first.
+    'skoor/frozen': e.by ? t('board.refusedJustBefore', { name: e.by }) : t('board.refusedFrozen', { s: Club.FREEZE_SECONDS }),
+    'skoor/offline': t('board.refusedOffline'),
+    'skoor/notlive': t('board.refusedNotLive'),
+    'skoor/gone': t('board.refusedGone'),
+  }[e.code] ?? t('board.refusedOther', { error: e.code || e.message });
+  beep(180, 2);
+  navigator.vibrate?.([90, 70, 90]);
+  toast(text);
+  say(t('call.notCounted'));
+  render();
+}
+
+// What a club match records with a new score: finished (and who won) after its last point.
+function outcome(next) {
+  const winner = M.isGameOver(next, state.rules) ? M.matchWinner(next, state.rules) : null;
+  return winner !== null ? { status: 'finished', winner } : { status: 'live', winner: null };
+}
+
+export async function point(team) {
   const { match, rules } = state;
   if (M.isGameOver(match, rules)) {
     toast(t('board.gameOverToast'));
     beep(220);
     return;
   }
-  stopBreak();
   const endsBefore = M.endsChanged(match, rules);
   const gamesBefore = tennis() ? M.display(match, rules).games : null;
   const before = Math.max(...M.gameScore(M.currentGame(match), rules));
-  state.match = M.addPoint(match, team, rules);
-  save();
-  render();
+  const next = M.addPoint(match, team, rules);
   flash(team);
+  if (!(await commit(`point${team}`, next, outcome(next)))) return;
+  stopBreak();
+  render();
   const endsNow = settings().autoEnds && M.endsChanged(state.match, rules) !== endsBefore;
 
   if (M.isGameOver(state.match, rules)) {
@@ -126,31 +169,32 @@ export function point(team) {
   say(scoreCall());
 }
 
-export function undoPoint() {
+export async function undoPoint() {
   const g = M.currentGame(state.match);
   if (g.rallies.length === 0 && state.match.games.length === 1) {
     toast(t('board.nothingToUndo'));
     beep(220);
     return;
   }
+  const next = M.undo(state.match);
+  if (!(await commit('undo', next, outcome(next)))) return;
   stopBreak();
-  state.match = M.undo(state.match);
-  save();
   render();
   toast(t('board.undone'));
   say(t('call.undo', { score: scoreCall() }));
 }
 
-function continueAfterGame() {
+async function continueAfterGame() {
   const { match, rules } = state;
   if (!M.isGameOver(match, rules)) return;
-  stopBreak();
   if (M.matchWinner(match, rules) !== null) {
+    stopBreak();
     onMatchEnd();
     return;
   }
-  state.match = M.nextGame(match, rules);
-  save();
+  const next = M.nextGame(match, rules);
+  if (!(await commit('next', next, outcome(next)))) return;
+  stopBreak();
   render();
   const n = state.match.games.length;
   toast(t(`board.${unit()}N`, { n }));
@@ -167,13 +211,65 @@ export function startMatch({ names: n, namesKnown, firstServer, swapped, sport: 
   state.settings = { ...s, names: n, namesKnown, firstServer, swapped };
   if (!rules) state.settings = { ...state.settings, sport: sportId, sportRules: { ...s.sportRules, [sportId]: options } };
   state.rules = rules ?? rulesFrom(state.settings);
-  state.link = link;
+  state.link = link ? { ...link, version: 0 } : null;
   state.match = M.newMatch(firstServer);
   save();
+  Shared.follow();
   lastEnds = null; // a new match is no change of ends
   $('changeEnds').hidden = true;
   render();
   say(t('call.newMatch', { name: displayNames()[firstServer], count: people(displayNames()[firstServer]) }));
+}
+
+// Keeps the score of a club match that's already being played (someone else started it): its
+// players, rules and score come from the club.
+export function joinMatch(m, link) {
+  stopBreak();
+  const side = (players) => players.map((p) => p.name).join(' & ');
+  state.settings = { ...state.settings, names: [side(m.home), side(m.away)], namesKnown: true, firstServer: m.state.games[0].firstServer, swapped: false };
+  state.rules = m.rules;
+  state.link = { ...link, version: m.version ?? 0 };
+  state.match = m.state;
+  save();
+  lastEnds = null;
+  $('changeEnds').hidden = true;
+  Shared.follow();
+  render();
+}
+
+// Someone else changed the score (or this device caught up): show it, with a flash on the side
+// that scored. Only the device that scored calls the score out.
+function remoteChange(m) {
+  if (m === 'gone') { toast(t('board.refusedGone')); render(); return; }
+  stopBreak();
+  render();
+  if (m.lastAction === 'point0' || m.lastAction === 'point1') flash(Number(m.lastAction.slice(-1)));
+}
+
+// Whether this device has the latest score (club matches): Live or Offline at the top, and while
+// the score is frozen after a point, a bar running down.
+export function renderSync() {
+  const el = $('syncState');
+  if (!el) return;
+  const sync = Shared.syncState();
+  el.hidden = !state.link;
+  el.className = `sync ${sync.live ? 'live' : 'offline'}`;
+  el.textContent = sync.live ? t('board.syncLive') : t('board.syncOffline');
+  el.title = sync.live ? t('board.syncLiveTitle') : t('board.syncOfflineTitle');
+  const bar = $('freezeBar');
+  const left = sync.frozenUntil - Date.now();
+  if (state.link && left > 0 && bar.dataset.until !== String(sync.frozenUntil)) {
+    bar.dataset.until = String(sync.frozenUntil);
+    bar.hidden = false;
+    bar.style.animation = 'none';
+    void bar.offsetWidth; // restart the animation
+    bar.style.animation = `freeze ${left}ms linear forwards`;
+    clearTimeout(renderSync.timer);
+    renderSync.timer = setTimeout(() => { bar.hidden = true; }, left);
+  } else if (!(left > 0)) {
+    bar.hidden = true;
+    delete bar.dataset.until;
+  }
 }
 
 // ---------- intervals and breaks ----------
@@ -388,6 +484,7 @@ export function render() {
     $('gameoverHint').textContent = matchWinner !== null ? t('board.longPressFinish') : t('board.longPressNext', { next });
     $('nextBtn').textContent = matchWinner !== null ? t('board.finishMatch') : t('board.startNext', { next });
   }
+  renderSync();
   fitTiles();
 }
 
@@ -518,6 +615,7 @@ export function init({ onEnd, onMenuOpen }) {
   onMatchEnd = onEnd;
   onMenu = onMenuOpen;
   wire();
+  Shared.followClubMatch({ remote: remoteChange, status: renderSync });
   mediaRemote.enable(settings().headphones);
   keepAwake();
   render();

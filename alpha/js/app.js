@@ -23,7 +23,7 @@ import * as EventEdit from './views/eventedit.js';
 import * as Join from './views/join.js';
 import * as EventMatch from './views/eventmatch.js';
 import * as LinkScreen from './views/linkscreen.js';
-import { keepClubMatchSaved, unlink } from './clubmatch.js';
+import { unlink } from './clubmatch.js';
 
 watchLayout();
 
@@ -102,7 +102,6 @@ export const currentPath = () => current;
 // ---------- the match ----------
 
 // A club match ends back at its event (with the results); a quick match at Play.
-keepClubMatchSaved();
 Board.init({
   onEnd: async () => {
     const link = state.link;

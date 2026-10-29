@@ -8,7 +8,9 @@ import * as M from '../match.js';
 import { sportOf } from '../sports.js';
 import { eventStats } from '../stats.js';
 import { state, isFinished } from '../state.js';
+import * as Board from '../scoreboard.js';
 import { sportName, rulesSummary } from './rules.js';
+import { unlink } from '../clubmatch.js';
 import { canLinkScreens, screensSection, wireScreens } from './screens.js';
 import { clubScreen } from './clubview.js';
 import { answerButtons, wireAnswers, dayName, eventName, noPlayer, face, roleKey } from './common.js';
@@ -162,7 +164,16 @@ export function show(el, [clubId, eventId], { go }) {
     sheet(html`<h2 class="sheet-title">${m.home.map((p) => p.name).join(' & ')} – ${m.away.map((p) => p.name).join(' & ')}</h2>
       <p class="sheet-text">${sportName(m.sport)} · ${rulesSummary(m.rules)}${m.status === 'live' ? ` · ${t('event.liveShort')}` : ''}</p>
       <div class="card">${scores.map((s, i) => html`<div class="row"><span class="grow">${t(sportOf(m.sport).scoring === 'tennis' ? 'board.setN' : 'board.gameN', { n: i + 1 })}</span><span class="display" style="font-size:22px">${s.join('–')}</span></div>`)}</div>
+      ${m.status === 'live' && state.link?.matchId !== m.id ? html`<button type="button" class="btn primary block" data-join>${t('event.keepScoreToo')}</button><p class="note" style="margin:-4px 4px 0">${t('event.keepScoreTooNote')}</p>` : ''}
+      ${m.status === 'live' && state.link?.matchId === m.id ? html`<button type="button" class="btn primary block" data-continue-this>${t('event.continueScoring')}</button>` : ''}
       ${canRemove ? html`<button type="button" class="btn danger block" data-remove-match>${t('event.removeMatch')}</button>` : ''}`.s, (sh, close) => {
+      sh.querySelector('[data-join]')?.addEventListener('click', async () => {
+        close();
+        if (state.link) await unlink(); // stop keeping another match on this phone
+        Board.joinMatch(m, { clubId, eventId, matchId: m.id });
+        go('#/match');
+      });
+      sh.querySelector('[data-continue-this]')?.addEventListener('click', () => { close(); go('#/match'); });
       sh.querySelector('[data-remove-match]')?.addEventListener('click', async () => {
         close();
         if (await confirmSheet(t('event.removeMatchQ'), t('event.removeMatchText'), t('common.remove'), true)) attempt(Club.deleteMatch(clubId, m.id), t('common.saveFailed'));

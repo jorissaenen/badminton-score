@@ -3,7 +3,7 @@
 import { after, before, beforeEach, describe, test } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing';
-import { Timestamp, deleteDoc, doc, getDoc, setDoc, setLogLevel, updateDoc } from 'firebase/firestore';
+import { Timestamp, deleteDoc, doc, getDoc, serverTimestamp, setDoc, setLogLevel, updateDoc } from 'firebase/firestore';
 
 setLogLevel('silent'); // denied writes are expected here; the assertions report them
 
@@ -62,18 +62,48 @@ describe('matches', () => {
     await assertFails(setDoc(m('member'), match('member', { status: 'finished' })));
   });
 
-  test('the keeper and admins update the score; other members do not', async () => {
-    const score = { state: { games: [{ firstServer: 0, rallies: [0, 1, 0] }] } };
-    await assertSucceeds(updateDoc(m('keeper', 'm1'), score));
-    await assertSucceeds(updateDoc(m('admin', 'm1'), { status: 'finished' }));
-    await assertFails(updateDoc(m('member', 'm1'), score));
+  // One change of the score: the next version, signed by whoever made it.
+  const change = (who, version, action, rallies = [0]) => ({
+    state: { games: [{ firstServer: 0, rallies }] }, version, lastAction: action, lastBy: who, lastByName: who,
+    lastPointAt: action.startsWith('point') ? serverTimestamp() : null,
+  });
+
+  test('every member keeps the score, one version at a time', async () => {
+    await assertSucceeds(updateDoc(m('member', 'm1'), change('member', 1, 'point0')));
+    await assertFails(updateDoc(m('stranger', 'm1'), change('stranger', 2, 'undo', [])));
+    await assertFails(updateDoc(m('keeper', 'm1'), change('member', 2, 'undo', [])), 'signed in someone else\'s name');
+  });
+
+  test('of two presses on the same score, only the first counts', async () => {
+    await assertSucceeds(updateDoc(m('member', 'm1'), change('member', 1, 'point0')));
+    await assertFails(updateDoc(m('keeper', 'm1'), change('keeper', 1, 'point1')), 'based on the old score');
+  });
+
+  test('after a point the score is frozen for 5 seconds; undo still works and ends the freeze', async () => {
+    await assertSucceeds(updateDoc(m('member', 'm1'), change('member', 1, 'point0')));
+    await assertFails(updateDoc(m('keeper', 'm1'), change('keeper', 2, 'point1', [0, 1])), 'frozen');
+    await assertSucceeds(updateDoc(m('keeper', 'm1'), change('keeper', 2, 'undo', [])));
+    await assertSucceeds(updateDoc(m('keeper', 'm1'), change('keeper', 3, 'point1', [1])), 'right after the undo');
+  });
+
+  test('once the freeze is over, the next point counts', async () => {
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'clubs', C, 'matches', 'm1'),
+      match('keeper', { version: 4, lastPointAt: Timestamp.fromMillis(Date.now() - 6000) })));
+    await assertSucceeds(updateDoc(m('member', 'm1'), change('member', 5, 'point0')));
+  });
+
+  test('a point records the server\'s time; undo, next game and stop clear it', async () => {
+    await assertFails(updateDoc(m('member', 'm1'), { ...change('member', 1, 'point0'), lastPointAt: Timestamp.fromMillis(0) }));
+    await assertFails(updateDoc(m('member', 'm1'), { ...change('member', 1, 'undo'), lastPointAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(m('admin', 'm1'), { ...change('admin', 1, 'stop'), status: 'stopped' }));
   });
 
   test('the players, event, sport and keeper stay', async () => {
-    await assertFails(updateDoc(m('keeper', 'm1'), { home: [{ name: 'Someone else' }] }));
-    await assertFails(updateDoc(m('keeper', 'm1'), { sport: 'tennis' }));
-    await assertFails(updateDoc(m('keeper', 'm1'), { keeper: 'member' }));
-    await assertFails(updateDoc(m('keeper', 'm1'), { status: 'won' }));
+    const ok = change('keeper', 1, 'undo', []);
+    await assertFails(updateDoc(m('keeper', 'm1'), { ...ok, home: [{ name: 'Someone else' }] }));
+    await assertFails(updateDoc(m('keeper', 'm1'), { ...ok, sport: 'tennis' }));
+    await assertFails(updateDoc(m('keeper', 'm1'), { ...ok, keeper: 'member' }));
+    await assertFails(updateDoc(m('keeper', 'm1'), { ...ok, status: 'won' }));
   });
 
   test('the keeper removes their live match; a finished one only an admin removes', async () => {

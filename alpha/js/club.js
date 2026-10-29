@@ -521,10 +521,68 @@ export async function addMatch(user, clubId, m) {
   const ref = F.doc(F.collection(db, 'clubs', clubId, 'matches'));
   F.setDoc(ref, {
     eventId: m.eventId, sport: m.sport, rules: m.rules, home: m.home, away: m.away, state: m.state,
-    court: m.court ?? null, status: 'live', winner: null, keeper: user.uid,
+    court: m.court ?? null, status: 'live', winner: null, keeper: user.uid, version: 0, lastPointAt: null,
     startedAt: F.serverTimestamp(), updatedAt: F.serverTimestamp(), schemaVersion: 1,
   }).catch(() => { /* reported by the connection status; retried by Firestore */ });
   return ref.id;
+}
+
+// Several people can keep the score of one match (phones, watches). Every change says which
+// version of the score it was based on, and only the first change on a version counts: a press
+// on an older version is refused, never retried. After a point the score is frozen for
+// FREEZE_SECONDS (the database rules check the time); undo always works and ends the freeze.
+export const FREEZE_SECONDS = 5;
+const refused = (code, extra = {}) => Object.assign(new Error(code), { code, ...extra });
+
+// `action`: 'point0', 'point1', 'undo', 'next' (next game) or 'stop'. Resolves with the new
+// version; rejects with code 'skoor/stale' (someone else was first: by = their name),
+// 'skoor/frozen' (too soon after a point), 'skoor/offline' or 'skoor/gone'.
+export async function changeMatch(user, clubId, matchId, basedOn, action, changes) {
+  const { db, F } = await cloud();
+  const ref = F.doc(db, 'clubs', clubId, 'matches', matchId);
+  const point = action.startsWith('point');
+  let seen = null; // the match as read: who changed it last
+  try {
+    return await F.runTransaction(db, async (tx) => {
+      const d = await tx.get(ref);
+      if (!d.exists()) throw refused('skoor/gone');
+      const m = d.data();
+      seen = m;
+      const version = m.version ?? 0;
+      if (version !== basedOn) throw refused('skoor/stale', { by: m.lastByName ?? '', version });
+      tx.update(ref, {
+        ...changes, version: version + 1, lastAction: action,
+        lastBy: user.uid, lastByName: (user.displayName || user.email?.split('@')[0] || '').slice(0, 60),
+        lastPointAt: point ? F.serverTimestamp() : null, updatedAt: F.serverTimestamp(),
+        ...(changes.status === 'finished' && { finishedAt: F.serverTimestamp() }),
+      });
+      return version + 1;
+    }, { maxAttempts: 1 });
+  } catch (e) {
+    if (e.code?.startsWith?.('skoor/')) throw e;
+    // The rules refuse a point during the freeze (the version was right, so that's the reason).
+    if (e.code === 'permission-denied') throw refused(point ? 'skoor/frozen' : 'skoor/denied', { by: seen?.lastBy !== user.uid ? seen?.lastByName ?? '' : '' });
+    if (['unavailable', 'deadline-exceeded'].includes(e.code) || !navigator.onLine) throw refused('skoor/offline');
+    // Changed by someone else between reading and writing (only one attempt: never retried).
+    if (['aborted', 'failed-precondition'].includes(e.code)) throw refused('skoor/stale', { by: '' });
+    throw e;
+  }
+}
+
+// Follows one match: `on(match, { live })` with live = the copy comes from the server right now
+// (not from the local cache, so the score shown is the latest).
+export async function watchMatch(clubId, matchId, on) {
+  const { db, F } = await cloud();
+  return F.onSnapshot(F.doc(db, 'clubs', clubId, 'matches', matchId), { includeMetadataChanges: true },
+    (d) => on(d.exists() ? { id: d.id, ...d.data() } : null, { live: !d.metadata.fromCache }),
+    () => on(undefined, { live: false }));
+}
+
+// Asks the server for one match (the regular check that the score is still the latest).
+export async function fetchMatch(clubId, matchId) {
+  const { db, F } = await cloud();
+  const d = await F.getDocFromServer(F.doc(db, 'clubs', clubId, 'matches', matchId));
+  return d.exists() ? { id: d.id, ...d.data() } : null;
 }
 
 export async function updateMatch(clubId, matchId, changes) {

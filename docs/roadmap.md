@@ -134,6 +134,12 @@ tabs (Play, Clubs, You) and full screens instead of the settings window.
       shown everywhere in your clubs. Badges on pictures for owner, admin and score keeper, with a
       key under the list on People and the event
 - [ ] Team admin badge, once there are teams within a club
+- [x] Several people keep the score of one match: every change is the next version of the score,
+      the first press counts and a press on an older score is refused (with who was first); after a
+      point the score is frozen for 5 s, undo always works. The phone shows Live or Offline and only
+      scores while live; a refused press beeps, vibrates and says why. "Keep score too" on the event
+- [ ] The 5-second freeze as a club setting (3–10 s)
+- [ ] Watches: pair with a key (like the screens), a server address for presses and the score, the Garmin app
 - [ ] Watch apps: Apple Watch, Wear OS and Garmin, round and square screens; seven screens (start,
       who serves, scoring, interval, game won, match won, menu) and one control language with the
       phone and its remotes (design board, boards 32–35)

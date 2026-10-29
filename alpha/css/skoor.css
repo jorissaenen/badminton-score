@@ -709,3 +709,13 @@ input::placeholder, textarea::placeholder { color: #5a5a5a; }
 .ov-g.won { color: var(--fg); font-weight: 600; }
 .ov-vs { font-size: clamp(10px, 1.4vh, 18px); font-weight: 600; letter-spacing: 0.12em; color: var(--faint); }
 .ov-foot { font-size: clamp(11px, 1.6vh, 20px); text-align: right; }
+
+/* A club match kept by several people: Live (this device has the latest score) or Offline, and
+   after a point a bar that runs down while the score is frozen. */
+.sync { display: inline-flex; align-items: center; gap: 0.4em; margin-top: 2px; font-size: max(11px, calc(11px * var(--u, 1))); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.sync::before { content: ''; width: 0.6em; height: 0.6em; border-radius: 50%; background: currentColor; }
+.sync.live { color: var(--green); }
+.sync.offline { color: #f59e0b; }
+.board-top { position: relative; }
+.freeze-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--fg); transform-origin: left; opacity: 0.7; }
+@keyframes freeze { from { transform: scaleX(1); } to { transform: scaleX(0); } }

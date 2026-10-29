@@ -341,8 +341,21 @@ service cloud.firestore {
         allow create: if isMember() && validMatch(request.resource.data)
           && request.resource.data.keeper == request.auth.uid
           && request.resource.data.status == 'live';
+        // Several members can keep the score of one match. Every change is the next version of
+        // the score, signed by whoever made it, so of two presses on the same score only the first
+        // counts. After a point the score is frozen for 5 seconds: another point is refused, an
+        // undo (or the next game, or stopping) is not, and ends the freeze.
+        function scoreChange(old, d) {
+          return d.version == old.get('version', 0) + 1
+            && d.lastBy == request.auth.uid
+            && d.get('lastByName', '') is string && d.get('lastByName', '').size() <= 60
+            && ((d.lastAction in ['point0', 'point1'] && d.lastPointAt == request.time
+                  && (old.get('lastPointAt', null) == null || request.time > old.lastPointAt + duration.value(5, 's')))
+              || (d.lastAction in ['undo', 'next', 'stop'] && d.lastPointAt == null));
+        }
+
         allow update: if isMember() && validMatch(request.resource.data)
-          && (resource.data.keeper == request.auth.uid || isAdmin())
+          && scoreChange(resource.data, request.resource.data)
           && request.resource.data.eventId == resource.data.eventId
           && request.resource.data.sport == resource.data.sport
           && request.resource.data.home == resource.data.home

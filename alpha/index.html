@@ -46,11 +46,13 @@
         <span class="board-title" id="boardTitle">GAME 1</span>
         <span class="board-ends" id="changeEnds" role="status" hidden data-t="board.changeEndsBanner">CHANGE ENDS</span>
         <span class="board-sub" id="boardSub"></span>
+        <span class="sync" id="syncState" role="status" hidden></span>
       </div>
       <span class="board-buttons">
         <button type="button" class="round" id="swapBtn" data-t-label="board.swap" aria-label="Swap sides" tabindex="-1"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M16 3l4 4-4 4M20 17H4M8 21l-4-4 4-4"/></svg></button>
         <button type="button" class="round" id="menuBtn" data-t-label="board.menu" aria-label="Match menu and settings" tabindex="-1"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg></button>
       </span>
+      <div class="freeze-bar" id="freezeBar" hidden></div>
     </header>
     <div class="sides">
       <section class="team" data-team="0">
