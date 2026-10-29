@@ -6,7 +6,7 @@ import { session, onSession, start, signOut } from '../session.js';
 import { state } from '../state.js';
 import { mediaControlsSupported } from '../media.js';
 import { speechSupported, onVoicesChanged } from '../audio.js';
-import { $, html, icon, initials, toast, confirmSheet } from '../ui.js';
+import { $, html, icon, initials, toast, confirmSheet, raw } from '../ui.js';
 import { toggle, wireToggles, voiceSheet, remoteSheet, voiceName, seconds, soundCheck, languageSheet } from './settings.js';
 import { spinner } from './common.js';
 import { burst, tapsCounter } from '../burst.js';
@@ -79,7 +79,7 @@ export function show(el) {
       </div></section>
       <section><h2 class="h3">${t('you.app')}</h2><div class="card">
         ${install.installed ? html`<div class="row"><span class="grow">${t('you.install')}</span><span class="val">${t('you.installed')}</span></div>`
-          : html`<button type="button" class="row" data-install ${canInstall ? '' : 'aria-disabled="true"'}>${icon('download', 20)}<span class="grow"><strong>${t('you.install')}</strong>
+          : html`<button type="button" class="row" data-install ${canInstall ? '' : raw('aria-disabled="true"')}>${icon('download', 20)}<span class="grow"><strong>${t('you.install')}</strong>
             <small>${canInstall ? t('you.installSub') : t('you.cantInstall')}</small></span></button>`}
         <button type="button" class="row" data-about style="cursor:default;user-select:none;-webkit-user-select:none"><span class="grow">${t('you.about')}</span><span class="val">Skoor ${EDITION.label}${version ? ` · ${version}` : ''}</span></button>
       </div>

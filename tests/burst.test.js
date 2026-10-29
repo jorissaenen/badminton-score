@@ -16,6 +16,11 @@ test('the easter egg needs five quick taps in a row', (t) => {
   assert.equal(fired, 0);
   tap();
   assert.equal(fired, 1);
+  now += 200; tap(); // keep tapping: a burst at every tap
+  assert.equal(fired, 2);
+  now += 2000; // after a pause: five taps again, as often as you like
+  for (let i = 0; i < 5; i++) { tap(); now += 200; }
+  assert.equal(fired, 3);
 });
 
 test('every sport has an icon and a name in every language', () => {

@@ -50,7 +50,8 @@ export default {
   'play.followCourt': 'Een veld volgen',
   'play.duringEvent': 'Tijdens een activiteit van je club',
   'play.duringEventNext': 'Tijdens een activiteit · volgende: {day} {time}',
-  'play.later': 'Komt met bewaarde clubwedstrijden, in een volgende versie',
+  'play.later': 'Nog niet beschikbaar: komt in een volgende versie',
+  'play.soon': 'Binnenkort',
   'play.quick': 'Snelle wedstrijd',
   'play.quickSub': 'Gewoon de score bijhouden; er wordt niets bij een club bewaard',
 

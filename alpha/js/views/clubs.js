@@ -45,9 +45,10 @@ export function show(el, _params, { go }) {
       : c.answer === 'not going' ? html`<span class="chip notgoing">${t('answer.notGoing')}</span>` : e && c.hasPlayer ? html`<span class="chip">${t('answer.answer')}</span>` : '';
     return html`<a class="card" href="#/club/${c.id}" style="display:block">
       <div class="row" style="min-height:72px">${mono(c.name, i === 0)}<span class="grow"><strong style="font-size:17px">${c.name}</strong><small>${sub}</small></span>${icon('chevron', 18)}</div>
-      ${e ? html`<div class="row" style="border-top:1px solid var(--line)">
+      ${e ? html`<div class="row" style="border-top:1px solid var(--line);min-height:64px">
         <span class="display" style="font-size:30px;line-height:1">${e.start}</span>
-        <span class="grow"><strong>${dayName(e.date)}</strong><small>${eventName(e)}</small></span>${answer}</div>` : ''}
+        <span class="grow"><strong>${dayName(e.date)}</strong><small>${eventName(e)}</small></span>${answer}</div>`
+        : html`<div class="row muted" style="border-top:1px solid var(--line);min-height:64px">${c.loaded ? t('club.noEvents') : ''}</div>`}
     </a>`;
   }
 
@@ -65,7 +66,7 @@ export function show(el, _params, { go }) {
           Club.myRoleIn(u, c.id), Club.listPlayers(c.id).catch(() => null), Club.nextEvent(c.id).catch(() => null),
         ]);
         const me = players?.find((p) => p.uid === u.uid);
-        Object.assign(c, { role, players: players?.length, event, hasPlayer: Boolean(me) });
+        Object.assign(c, { role, players: players?.length, event, hasPlayer: Boolean(me), loaded: true });
         if (event && me) c.answer = (await Club.myRegistration(c.id, event.id, me.id).catch(() => null))?.status;
       }));
       if (mine !== run) return;

@@ -59,17 +59,15 @@ export function burst(x, y, count = 42) {
   navigator.vibrate?.(30);
 }
 
-// Calls `then` after `times` taps, each within `gapMs` of the one before.
+// Calls `then` after `times` taps, each within `gapMs` of the one before; then again at every
+// further quick tap, and after a pause, again after `times` taps. As often as you like.
 export function tapsCounter(times, then, gapMs = 450) {
   let taps = 0;
-  let lastAt = 0;
+  let lastAt = -Infinity;
   return (e) => {
     const now = performance.now();
     taps = now - lastAt <= gapMs ? taps + 1 : 1;
     lastAt = now;
-    if (taps >= times) {
-      taps = 0;
-      then(e);
-    }
+    if (taps >= times) then(e);
   };
 }

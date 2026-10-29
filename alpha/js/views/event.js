@@ -2,7 +2,7 @@
 // editing, cancelling and deleting.
 import * as Club from '../club.js';
 import { session } from '../session.js';
-import { html, icon, avatar, choose, confirmSheet, attempt, toast, dayText } from '../ui.js';
+import { html, icon, avatar, choose, confirmSheet, attempt, toast, dayText, raw } from '../ui.js';
 import { t, locale } from '../i18n.js';
 import { clubScreen } from './clubview.js';
 import { answerButtons, wireAnswers, dayName, eventName, noPlayer } from './common.js';
@@ -34,7 +34,7 @@ export function show(el, [clubId, eventId], { go }) {
     const notGoing = players.filter((p) => regs[p.id]?.status === 'not going').sort(byName);
     const noAnswer = players.filter((p) => !regs[p.id]).sort(byName);
     const at = e.remindAt?.toDate();
-    const person = (p) => html`<button type="button" class="row" data-player="${p.id}" ${admin && !cancelled ? '' : 'disabled style="cursor:default"'}>
+    const person = (p) => html`<button type="button" class="row" data-player="${p.id}" ${admin && !cancelled ? '' : raw(raw('disabled style="cursor:default"'))}>
         ${avatar(p.name, p.id === myPlayer?.id ? 'me' : '')}<span class="grow"><strong>${p.name}${p.id === myPlayer?.id ? html` <span class="muted" style="font-weight:400">${t('common.you')}</span>` : ''}</strong>
         ${regs[p.id]?.note ? html`<small>${regs[p.id].note}</small>` : ''}</span></button>`;
     if (mine?.status !== 'not going') note = null;

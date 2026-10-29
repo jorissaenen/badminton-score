@@ -8,6 +8,7 @@ import { createMediaRemote, createRepeatFilter } from './media.js';
 import { state, save, rulesFrom, displayNames } from './state.js';
 import { $, toast } from './ui.js';
 import { t, people } from './i18n.js';
+import { screenHeight } from './layout.js';
 
 const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab']);
 const SLEEP_AFTER_MS = 30000;
@@ -379,7 +380,7 @@ function fitTiles() {
   const board = $('board');
   if (board.hidden) return;
   const w = window.innerWidth;
-  const h = window.innerHeight;
+  const h = screenHeight();
   const u = Math.min(2.6, Math.max(1, Math.min(w, h) / 430));
   const landscape = document.documentElement.classList.contains('landscape');
   const top = (44 + 12) * u; // the bar with the buttons

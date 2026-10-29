@@ -3,12 +3,33 @@ import * as M from '../match.js';
 import * as Club from '../club.js';
 import { session, onSession } from '../session.js';
 import { state, hasStarted, isFinished, displayNames } from '../state.js';
-import { html, icon, initials } from '../ui.js';
+import { html, icon, initials, raw } from '../ui.js';
 import { t } from '../i18n.js';
+import { EDITION } from '../edition.js';
+
+// The next event as last shown, so Play draws it at once next time (top to bottom, no jumping)
+// and then brings it up to date.
+const NEXT_KEY = `${EDITION.storageKey}-next`;
+function cachedNext(uid) {
+  try {
+    const c = JSON.parse(localStorage.getItem(NEXT_KEY));
+    return c?.uid === uid && c.event?.date >= new Date().toISOString().slice(0, 10) ? c.next : null;
+  } catch { return null; }
+}
+function cacheNext(uid, next) {
+  try {
+    if (!next) { localStorage.removeItem(NEXT_KEY); return; }
+    const { club, event: e, player, registrations } = next;
+    const event = { id: e.id, type: e.type, date: e.date, start: e.start, end: e.end, location: e.location ?? '' };
+    const regs = Object.fromEntries(Object.entries(registrations ?? {}).map(([id, r]) => [id, { status: r.status }]));
+    localStorage.setItem(NEXT_KEY, JSON.stringify({ uid, event, next: { club: { id: club.id, name: club.name }, event, player: player ? { id: player.id } : null, registrations: registrations ? regs : null } }));
+  } catch { /* only affects how fast Play shows the event */ }
+}
 import { answerButtons, wireAnswers, counts, dayName, eventName, nextOfAllClubs, noPlayer } from './common.js';
 
 export function show(el, _params, { go }) {
   let next = null; // { club, event, player, registrations }
+  let loading = false; // the next event is being looked up: keep its place
   let stopEvent = null;
   let run = 0;
 
@@ -20,7 +41,7 @@ export function show(el, _params, { go }) {
         <img class="logo" src="icons/skoor-logo.svg" alt="Skoor">
         <a href="#/you" aria-label="${t('tab.you')}">${u ? html`<span class="av me">${initials(name)}</span>` : html`<span class="av">${icon('you', 18)}</span>`}</a>
       </div>
-      ${next ? eventCard() : ''}
+      ${next ? eventCard() : loading ? html`<div class="event-card skeleton" aria-hidden="true"></div>` : ''}
       <section>
         <h2 class="h3">${t('play.title')}</h2>
         <div class="opts">${options()}</div>
@@ -55,8 +76,9 @@ export function show(el, _params, { go }) {
     const names = displayNames();
     const eventSoon = next ? t('play.duringEventNext', { day: dayName(next.event.date), time: next.event.start }) : t('play.duringEvent');
     const later = t('play.later');
-    const opt = (cls, ic, title, sub, to, off = '') => html`<button type="button" class="opt ${cls}" ${to && !off ? html`data-go="${to}"` : ''} ${off ? 'aria-disabled="true"' : ''}>
-        <span class="ic">${ic}</span><span><strong>${title}</strong><small>${off || sub}</small></span></button>`;
+    // An option that isn't available is dimmed, says why, and carries a "Soon" label.
+    const opt = (cls, ic, title, sub, to, off = '') => html`<button type="button" class="opt ${cls}" ${to && !off ? html`data-go="${to}"` : ''} ${off ? raw('aria-disabled="true"') : ''}>
+        <span class="ic">${ic}</span><span class="grow"><strong>${title}</strong><small>${off || sub}</small></span>${off ? html`<span class="chip">${t('play.soon')}</span>` : ''}</button>`;
     return [
       started ? opt('default', html`<span class="display" style="font-size:17px">${String(Math.max(...sc)).padStart(2, '0')}</span>`, t('play.continue'),
         `${names[0]} ${sc[0]} – ${sc[1]} ${names[1]}${state.rules.bestOf > 1 ? ` · ${t('play.gameN', { n: state.match.games.length })}` : ''}`, '#/match') : '',
@@ -71,29 +93,42 @@ export function show(el, _params, { go }) {
     const mine = ++run;
     stopEvent?.();
     stopEvent = null;
-    if (!u) { next = null; draw(); return; }
+    if (!u) {
+      next = null;
+      loading = session.started && !session.ready; // signed in last time: the event comes once known
+      draw();
+      return;
+    }
+    next = next ?? cachedNext(u.uid);
+    loading = !next;
+    if (loading || next) draw();
     try {
       const found = await nextOfAllClubs(u);
       if (mine !== run) return;
       next = found;
+      loading = false;
+      cacheNext(u.uid, found);
       draw();
       if (!found) return;
       const stop = await Club.watchEvent(found.club.id, found.event.id, (s) => {
         if (mine !== run || !next) return;
         next.registrations = s.registrations;
         if (s.event) next.event = s.event;
+        cacheNext(u.uid, next);
         draw();
       });
       if (mine !== run) stop();
       else stopEvent = stop;
-    } catch { /* offline: Play works without the event */ }
+    } catch {
+      loading = false; // offline: Play works without the event
+      if (mine === run) draw();
+    }
   }
 
-  draw();
-  loadNext(); // Firebase only loads when someone signed in before (see session.boot)
+  loadNext(); // draws at once; Firebase only loads when someone signed in before (see session.boot)
   let lastUser = session.user?.uid;
   const off = onSession(() => {
-    if (session.user?.uid === lastUser) return;
+    if (session.user?.uid === lastUser && !(loading && session.ready && !session.user)) return;
     lastUser = session.user?.uid;
     loadNext();
   });

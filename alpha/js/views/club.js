@@ -1,7 +1,7 @@
 // Club home: the season, the next event (are you coming?), the events after it, and the way to
 // people, invites and settings.
 import * as Club from '../club.js';
-import { html, icon, avatar } from '../ui.js';
+import { html, icon, avatar, raw } from '../ui.js';
 import { t, locale } from '../i18n.js';
 import { clubScreen } from './clubview.js';
 import { answerButtons, wireAnswers, counts, dayName, eventName, mono, noPlayer } from './common.js';
@@ -37,7 +37,7 @@ export function show(el, [clubId]) {
       ${events === null ? '' : next ? nextCard(next, myPlayer) : html`<div class="card"><p class="empty">${admin ? t('club.noEvents') : t('club.noEventsMember')}</p></div>`}
       ${later.length ? html`<section><h2 class="h3">${t('club.comingUp')}</h2><div class="card">${later.map((e) => row(e, myPlayer))}</div></section>` : ''}
       <div>
-        <a class="btn primary block" ${admin ? html`href="#/club/${clubId}/plan"` : 'aria-disabled="true"'}>${icon('plus', 20)}${t('eventEdit.plan')}</a>
+        <a class="btn primary block" ${admin ? html`href="#/club/${clubId}/plan"` : raw('aria-disabled="true"')}>${icon('plus', 20)}${t('eventEdit.plan')}</a>
         ${admin ? '' : html`<p class="note" style="text-align:center">${t('club.adminsPlan')}</p>`}
       </div>
       <div class="card"><a class="row" href="#/club/${clubId}/people">${icon('clubs', 20)}<span class="grow"><strong>${t('people.title')}</strong>

@@ -52,7 +52,8 @@ export default {
   'play.followCourt': 'Follow a court',
   'play.duringEvent': 'During an event of your club',
   'play.duringEventNext': 'During an event · next: {day} {time}',
-  'play.later': 'Comes with saved club matches, in a next version',
+  'play.later': 'Not available yet: comes in a next version',
+  'play.soon': 'Soon',
   'play.quick': 'Quick match',
   'play.quickSub': 'Just keep score; nothing is saved to a club',
 

@@ -1,7 +1,7 @@
 // People: members (with an account) and their roles, and players without an account. Members link
 // themselves to a player ("That's me") so their answers and results are theirs.
 import * as Club from '../club.js';
-import { html, icon, avatar, choose, confirmSheet, attempt, toast } from '../ui.js';
+import { html, icon, avatar, choose, confirmSheet, attempt, toast, raw } from '../ui.js';
 import { clubScreen } from './clubview.js';
 import { t } from '../i18n.js';
 
@@ -26,7 +26,7 @@ export function show(el, [clubId]) {
         ${sorted.map((m) => {
           const isSelf = m.id === me.uid;
           const canChange = Club.assignableRoles(myRole, m.role, isSelf).length > 0 || (!isSelf && (myRole === 'owner' || (admin && m.role !== 'owner')));
-          return html`<button type="button" class="row" data-member="${m.id}" ${canChange ? '' : 'disabled style="cursor:default"'}>
+          return html`<button type="button" class="row" data-member="${m.id}" ${canChange ? '' : raw(raw('disabled style="cursor:default"'))}>
             ${m.photoURL ? html`<img class="av" src="${m.photoURL}" alt="" referrerpolicy="no-referrer">` : avatar(m.name, isSelf ? 'me' : '')}
             <span class="grow"><strong>${m.name}${isSelf ? html` <span class="muted" style="font-weight:400">${t('common.you')}</span>` : ''}</strong></span>
             <span class="val">${t(`role.${m.role}`)}</span>${canChange ? icon('chevron', 18) : ''}</button>`;

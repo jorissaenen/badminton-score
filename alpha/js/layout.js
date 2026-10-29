@@ -15,14 +15,39 @@ export function chooseLayout(width, height, current) {
   return current ?? (width > height ? 'landscape' : 'portrait');
 }
 
+// The height the app may fill. Normally the window's height. But an app on the iPhone home screen
+// (with the status bar drawn over the page) gets a window that is shorter than the screen by the
+// status bar's height, while the page starts at the very top: fixed bars then end above the
+// bottom of the screen, and the page can shift up under the status bar. There, the app takes the
+// whole screen. (iPhone apps always fill the screen; iPads can share it, so they keep the window.)
+export function appHeight({ innerWidth: w, innerHeight: h, screenWidth, screenHeight, iphoneApp }) {
+  if (!iphoneApp) return h;
+  const full = w > h ? Math.min(screenWidth, screenHeight) : Math.max(screenWidth, screenHeight);
+  return Math.max(h, full);
+}
+
+let height = globalThis.innerHeight ?? 0;
+export const screenHeight = () => height;
+
+function fitScreen(root) {
+  height = appHeight({
+    innerWidth, innerHeight, screenWidth: screen.width, screenHeight: screen.height,
+    iphoneApp: /iPhone|iPod/.test(navigator.userAgent) && navigator.standalone === true,
+  });
+  root.style.setProperty('--app-h', `${height}px`);
+  // After the keyboard closes iOS can leave the page scrolled up; the page itself never scrolls.
+  if (scrollY) scrollTo(0, 0);
+}
+
 export function watchLayout(root = document.documentElement) {
   let current = root.classList.contains('landscape') ? 'landscape' : 'portrait';
   let timer = null;
 
   function apply() {
     timer = null;
+    fitScreen(root);
     const w = window.innerWidth;
-    const h = window.innerHeight;
+    const h = height;
     const next = chooseLayout(w, h, current);
     const short = next === 'landscape' && h <= 500;
     if (next !== current) {
@@ -39,5 +64,8 @@ export function watchLayout(root = document.documentElement) {
 
   window.addEventListener('resize', schedule);
   screen.orientation?.addEventListener?.('change', schedule);
+  window.visualViewport?.addEventListener('resize', schedule);
+  document.addEventListener('focusout', () => setTimeout(() => fitScreen(root), 100)); // keyboard closed
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) fitScreen(root); });
   apply();
 }
