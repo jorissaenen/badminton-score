@@ -335,7 +335,14 @@ async function start() {
   draw();
   const { auth, A, db, F } = await cloud();
   A.onAuthStateChanged(auth, async (user) => {
-    if (!user) { A.signInAnonymously(auth).catch(() => { root.innerHTML = html`<p class="empty">${t('screen.cantStart')}</p>`.s; }); return; }
+    if (!user) {
+      // Anonymous sign-in switched off in Firebase: say so, rather than blaming the connection.
+      A.signInAnonymously(auth).catch((e) => {
+        const off = ['auth/admin-restricted-operation', 'auth/operation-not-allowed'].includes(e.code);
+        root.innerHTML = html`<p class="empty">${t(off ? 'screen.notSetUp' : 'screen.cantStart')}<br><small class="muted">${e.code || e.message}</small></p>`.s;
+      });
+      return;
+    }
     uid = user.uid;
     await newKeyNow().catch(() => {});
     setInterval(() => newKeyNow().catch(() => {}), KEY_SECONDS * 1000);

@@ -657,6 +657,7 @@ export default {
   'screen.latest': 'Latest results',
   'screen.noCourt': 'No court',
   'screen.soundHint': 'Sound off: press OK or tap',
+  'screen.notSetUp': 'Screens aren’t switched on for this app yet: Anonymous sign-in is off in Firebase (Authentication → Sign-in method).',
   'screen.cantStart': 'This screen can’t connect right now. Check the internet connection and reload.',
   'screen.overviewFoot': 'Scores live from the courts',
   'slides.oneClickTitle': 'Keep score with one click',

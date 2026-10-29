@@ -655,6 +655,7 @@ export default {
   'screen.latest': 'Laatste uitslagen',
   'screen.noCourt': 'Geen veld',
   'screen.soundHint': 'Geluid uit: druk op OK of tik',
+  'screen.notSetUp': 'Schermen staan nog niet aan voor deze app: anoniem aanmelden staat uit in Firebase (Authentication → Sign-in method).',
   'screen.cantStart': 'Dit scherm kan nu geen verbinding maken. Controleer het internet en laad opnieuw.',
   'screen.overviewFoot': 'Scores live van de velden',
   'slides.oneClickTitle': 'Score bijhouden met één klik',
