@@ -646,7 +646,7 @@ export default {
   'screen.reconnecting': 'Opnieuw verbinden…',
   'screen.latest': 'Laatste uitslagen',
   'screen.noCourt': 'Geen veld',
-  'screen.tapForSound': 'Tik om de scoreaankondigingen aan te zetten',
+  'screen.soundHint': 'Geluid uit: druk op OK of tik',
   'screen.cantStart': 'Dit scherm kan nu geen verbinding maken. Controleer het internet en laad opnieuw.',
   'screen.overviewFoot': 'Scores live van de velden',
   'slides.oneClickTitle': 'Score bijhouden met één klik',

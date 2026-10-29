@@ -642,7 +642,8 @@ input::placeholder { color: #5a5a5a; }
 .lr-game { width: clamp(40px, 10vh, 130px); text-align: center; }
 .lr-row .lr-game { font-size: clamp(28px, 7.2vh, 96px); line-height: 1; color: #5a5a5a; }
 .lr-row .lr-game.won { color: var(--fg); }
-.sound-on { position: absolute; left: 50%; bottom: 4vh; transform: translateX(-50%); padding: 1.5vh 3vw; border-radius: 999px; border: 0; background: var(--green); color: #000; font-weight: 700; font-size: clamp(16px, 2.6vh, 32px); cursor: pointer; }
+.sound-hint { display: inline-flex; align-items: center; gap: 0.5vw; font-size: clamp(12px, 1.9vh, 26px); color: var(--muted); }
+.sound-hint svg { width: 1.2em; height: 1.2em; }
 
 /* The event overview */
 .ov-title { display: inline-flex; align-items: center; gap: 1vw; }

@@ -648,7 +648,7 @@ export default {
   'screen.reconnecting': 'Reconnecting…',
   'screen.latest': 'Latest results',
   'screen.noCourt': 'No court',
-  'screen.tapForSound': 'Tap to switch on the score calls',
+  'screen.soundHint': 'Sound off: press OK or tap',
   'screen.cantStart': 'This screen can’t connect right now. Check the internet connection and reload.',
   'screen.overviewFoot': 'Scores live from the courts',
   'slides.oneClickTitle': 'Keep score with one click',

@@ -41,7 +41,23 @@ let stops = [];
 let slide = 0;
 let loaded = { event: false, matches: false }; // what it follows has come in at least once
 let lastAnnounced = null; // { id, state } of the court's match, to know what changed
-let soundOn = false;
+let soundOn = false; // the browser lets this screen speak
+
+// Score calls. Browsers only allow sound after someone used the screen once; many TVs and kiosk
+// setups allow it at once. So: try, and only when it's blocked show a small note in the top bar;
+// any key on the remote (OK) or a tap switches it on. No buttons: most TVs can't be tapped.
+function trySound() {
+  if (soundOn) return;
+  Audio.unlock();
+  setTimeout(() => {
+    if (Audio.audioState() !== 'running') return;
+    soundOn = true;
+    Audio.keepOutputAwake(true);
+    draw();
+  }, 400);
+}
+const soundHint = () => html`<span class="sound-hint">${raw('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4zM22 9l-6 6M16 9l6 6"/></svg>')}${t('screen.soundHint')}</span>`;
+['keydown', 'pointerdown'].forEach((type) => document.addEventListener(type, () => { if (!soundOn && link?.announce) trySound(); }));
 let lastNewest = null; // the newest result on the overview, to slide in the next one
 
 // ---------- the key ----------
@@ -148,10 +164,9 @@ function drawCourt() {
       <div class="tiles">${tiles(view.tiles[s], !over && srv === s)}</div>
       <span class="serves">${t('board.serves')}</span></section>`;
   const title = view.tiebreak ? t('board.tiebreak') : t(tennis ? 'board.setN' : 'board.gameN', { n: live.state.games.length });
-  root.innerHTML = html`${top(`${label} · ${title}`, navigator.onLine && isLate(live) ? liveDot(live) : liveChip())}
+  root.innerHTML = html`${top(`${label} · ${title}`, html`${link.announce && !soundOn ? soundHint() : ''}${navigator.onLine && isLate(live) ? liveDot(live) : liveChip()}`)}
     <div class="sides">${side(0)}<div class="net"></div>${side(1)}</div>
-    ${link.announce && !soundOn ? html`<button type="button" class="sound-on" data-sound>${t('screen.tapForSound')}</button>` : ''}`.s;
-  root.querySelector('[data-sound]')?.addEventListener('click', () => { Audio.unlock(); Audio.keepOutputAwake(true); soundOn = true; draw(); });
+`.s;
 }
 
 // The last match of a free court, as a small scoreboard: a row per side, a column per game; the
@@ -300,6 +315,7 @@ async function start() {
       const next = d.exists() ? d.data() : null;
       const moved = JSON.stringify([next?.clubId, next?.eventId]) !== JSON.stringify([link?.clubId, link?.eventId]);
       link = next;
+      if (link?.announce) trySound();
       if (moved) follow();
       else draw();
     }, () => {});
