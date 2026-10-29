@@ -107,8 +107,7 @@ function drawCourt() {
   if (!live) {
     const last = matches.filter((m) => m.court === link.court && m.status === 'finished').at(-1);
     root.innerHTML = html`<header class="screen-top"><span class="display">${label}</span><span class="muted">${t('screen.free')}</span></header>
-      ${last ? html`<div class="last-result"><span class="muted">${t('screen.lastMatch')}</span> <strong>${names(last)[0]}</strong> – <strong>${names(last)[1]}</strong>
-        <span class="display">${M.gameScores(last.state, last.rules).map((s) => s.join('–')).join('  ')}</span></div>` : ''}
+      ${last ? lastResult(last) : ''}
       <section class="slides">${slides()}</section>`.s;
     return;
   }
@@ -129,6 +128,18 @@ function drawCourt() {
     <div class="sides">${side(0)}<div class="net"></div>${side(1)}</div>
     ${link.announce && !soundOn ? html`<button type="button" class="sound-on" data-sound>${t('screen.tapForSound')}</button>` : ''}`.s;
   root.querySelector('[data-sound]')?.addEventListener('click', () => { Audio.unlock(); Audio.keepOutputAwake(true); soundOn = true; draw(); });
+}
+
+// The last match of a free court, as a small scoreboard: a row per side, a column per game; the
+// winner of each game and of the match in white, the rest grey.
+function lastResult(m) {
+  const games = M.gameScores(m.state, m.rules);
+  const row = (s) => html`<div class="lr-row${m.winner === s ? ' won' : ''}"><span class="lr-name">${names(m)[s]}</span>
+    ${games.map((g) => html`<span class="lr-game display${g[s] > g[1 - s] ? ' won' : ''}">${g[s]}</span>`)}
+    <span class="lr-mark" ${m.winner === s ? raw(`role="img" aria-label="${t('screen.won')}"`) : ''}>${m.winner === s ? raw('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>') : ''}</span></div>`;
+  return html`<section class="last-result">
+    <div class="lr-head"><span class="lr-name">${t('screen.lastMatch')}</span>${games.map((_, i) => html`<span class="lr-game">${i + 1}</span>`)}<span class="lr-mark"></span></div>
+    <div class="lr-card">${row(0)}${row(1)}</div></section>`;
 }
 
 // The whole event: every court, the pinned message, statistics and the latest results.
