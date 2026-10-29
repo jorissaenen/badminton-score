@@ -39,6 +39,11 @@ function startAudio() {
 }
 window.addEventListener('keydown', startAudio);
 document.addEventListener('pointerdown', startAudio);
+// On iOS only these count as a user action that may start sound; the first touch doesn't. Any
+// tap anywhere in the app (Play, New match, a button) gets the sound ready for the match.
+for (const type of ['touchend', 'click', 'keydown']) {
+  document.addEventListener(type, () => { Audio.unlock(); startAudio(); }, { capture: true, passive: true });
+}
 
 function flash(team) {
   const el = document.querySelector(`.team[data-team="${team}"]`);

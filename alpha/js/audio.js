@@ -22,9 +22,34 @@ let pending = null;
 
 function audioContext() {
   ctx ??= new (window.AudioContext || window.webkitAudioContext)();
-  if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+  // Not only 'suspended': after a call, Siri or another app, iOS leaves it 'interrupted'.
+  if (ctx.state !== 'running' && ctx.state !== 'closed') ctx.resume().catch(() => {});
   return ctx;
 }
+
+// iOS only lets a page start sound during a tap that counts as a user action (touchend, click
+// or a key press; not the first touch of a tap). Call this from such a tap: it starts the audio
+// output with an inaudible sound and unlocks speech with an empty utterance, so beeps and score
+// calls work later, also when they come from the remote.
+let speechUnlocked = false;
+export function unlock() {
+  try {
+    const c = audioContext();
+    const src = c.createBufferSource();
+    src.buffer = c.createBuffer(1, 1, 22050);
+    src.connect(c.destination);
+    src.start(0);
+  } catch { /* no Web Audio */ }
+  if (!speechUnlocked && speechSupported() && !speechSynthesis.speaking) {
+    speechUnlocked = true;
+    const u = new SpeechSynthesisUtterance(' ');
+    u.volume = 0;
+    speechSynthesis.speak(u);
+  }
+}
+
+// The audio is running and may be heard (for the About line and testing).
+export const audioState = () => ctx?.state ?? 'not started';
 
 export function speechSupported() {
   return 'speechSynthesis' in window;
@@ -89,6 +114,7 @@ export function keepOutputAwake(on) {
 // call or keepOutputAwake().
 export function release() {
   clearTimeout(pending);
+  speechUnlocked = false; // unlock again at the first tap after coming back
   try {
     if (speechSupported()) speechSynthesis.cancel();
     keepAlive?.stop();
