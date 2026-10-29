@@ -647,7 +647,7 @@ export default {
   'screen.noCourt': 'Geen veld',
   'screen.tapForSound': 'Tik om de scoreaankondigingen aan te zetten',
   'screen.cantStart': 'Dit scherm kan nu geen verbinding maken. Controleer het internet en laad opnieuw.',
-  'screen.overviewFoot': 'scores live van de velden',
+  'screen.overviewFoot': 'Scores live van de velden',
   'slides.oneClickTitle': 'Score bijhouden met één klik',
   'slides.oneClickText': 'Een camera-afstandsbediening, oortjes of een tik op je telefoon. Elk punt live op dit scherm.',
   'slides.statsTitle': 'Elk punt telt',

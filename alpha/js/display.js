@@ -11,9 +11,9 @@ import * as Audio from './audio.js';
 import qrcode from './vendor/qrcode.js';
 import { announcement } from './calls.js';
 import { eventStats } from './stats.js';
-import { sportOf, sportIcon } from './sports.js';
+import { sportOf } from './sports.js';
 import { setLanguage, t } from './i18n.js';
-import { html, raw, esc } from './ui.js';
+import { html, raw } from './ui.js';
 
 setLanguage(''); // the screen's own language
 
@@ -89,6 +89,12 @@ function tickRing() {
 const names = (m) => [m.home, m.away].map((side) => side.map((p) => p.name).join(' & '));
 const tiles = (text, on) => [...text].map((d) => html`<span class="tile${on ? ' on' : ''}"><span class="cap">${d}</span><span class="split"></span></span>`);
 
+// The top of every screen: who it's from (the Skoor logo; with a paid plan later the club's own,
+// see the design board), what it shows, and LIVE.
+const top = (title, right = '') => html`<header class="screen-top"><img class="screen-logo" src="../icons/skoor-logo.svg" alt="Skoor">
+  <span class="display">${title}</span><span class="screen-right">${right}</span></header>`;
+const liveChip = () => (event && Club.eventPhase(event, Date.now(), matches) === 'live' ? html`<span class="chip live">${t('event.live')}</span>` : '');
+
 function slides() {
   const s = SLIDES[slide % SLIDES.length];
   return html`<div class="slide"><img class="logo" src="../icons/skoor-logo.svg" alt="Skoor"><h1>${t(s.title)}</h1><p>${t(s.text)}</p></div>`;
@@ -107,7 +113,7 @@ function drawCourt() {
   root.className = 'screen court';
   if (!live) {
     const last = matches.filter((m) => m.court === link.court && m.status === 'finished').at(-1);
-    root.innerHTML = html`<header class="screen-top"><span class="display">${label}</span><span class="muted">${t('screen.free')}</span></header>
+    root.innerHTML = html`${top(label, html`<span class="chip">${t('screen.free')}</span>`)}
       ${last ? lastResult(last) : ''}
       <section class="slides">${slides()}</section>`.s;
     return;
@@ -125,7 +131,7 @@ function drawCourt() {
       <div class="tiles">${tiles(view.tiles[s], !over && srv === s)}</div>
       <span class="serves">${t('board.serves')}</span></section>`;
   const title = view.tiebreak ? t('board.tiebreak') : t(tennis ? 'board.setN' : 'board.gameN', { n: live.state.games.length });
-  root.innerHTML = html`<header class="screen-top"><span class="display">${label}</span><span class="display">${title.toUpperCase()}</span><span class="muted">${club?.name ?? ''}</span></header>
+  root.innerHTML = html`${top(`${label} · ${title}`, liveChip())}
     <div class="sides">${side(0)}<div class="net"></div>${side(1)}</div>
     ${link.announce && !soundOn ? html`<button type="button" class="sound-on" data-sound>${t('screen.tapForSound')}</button>` : ''}`.s;
   root.querySelector('[data-sound]')?.addEventListener('click', () => { Audio.unlock(); Audio.keepOutputAwake(true); soundOn = true; draw(); });
@@ -166,8 +172,7 @@ function drawOverview() {
   const noCourt = live.filter((m) => !m.court || m.court > courts);
   root.className = 'screen overview';
   const newest = recent[0]?.id ?? null;
-  root.innerHTML = html`<header class="screen-top"><span class="ov-title">${raw(sportIcon(sport.id, 28))}<span class="display">${club?.name ?? ''}</span></span>
-      <span>${event ? `${t(`eventType.${event.type}`)} · ${event.start}–${event.end}` : ''}</span>${Club.eventPhase(event ?? {}, Date.now(), matches) === 'live' ? html`<span class="chip live">${t('event.live')}</span>` : ''}</header>
+  root.innerHTML = html`${top(event ? `${t(`eventType.${event.type}`)} · ${event.start}–${event.end}` : '', liveChip())}
     ${event?.pinned ? html`<div class="pinned">${event.pinned}</div>` : ''}
     <div class="ov-grid">
       <section class="ov-courts">${Array.from({ length: courts }, (_, i) => court(i + 1))}
@@ -179,7 +184,7 @@ function drawOverview() {
           ${recent.length ? recent.map((m) => resultCard(m, word(m.court), at(m.finishedAt))) : html`<p class="muted">—</p>`}</section>
       </aside>
     </div>
-    <footer class="ov-foot muted">skoor · ${esc(t('screen.overviewFoot'))}</footer>`.s;
+    <footer class="ov-foot muted">${t('screen.overviewFoot')}</footer>`.s;
   // A new result slides in at the top and pushes the others down.
   if (newest && lastNewest && newest !== lastNewest) root.querySelector('.ov-result')?.classList.add('arrive');
   lastNewest = newest;

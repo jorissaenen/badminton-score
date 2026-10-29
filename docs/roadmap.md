@@ -137,6 +137,9 @@ tabs (Play, Clubs, You) and full screens instead of the settings window.
 - [ ] Slides from venues and sponsors (advertising, a new source of income): who books them, the
       images or video, when they show (not linked, or a free court), and reporting
 - [ ] Tournament planning on the overview (with tournaments, Phase 4)
+- [ ] The top of the screens by plan: Free shows the Skoor logo (done), a paid Club plan the
+      club's logo and name with a small Skoor logo, the highest Organiser plan the organiser's
+      logo and event name without Skoor (design board, board 31); plans and prices to decide
 - [ ] **You:** switch on Anonymous sign-in in Firebase (firebase-setup.md, step 3)
 - [ ] Player picker for a match (Fill in for me; here and not playing first, by waiting time;
       playing now with their court; didn't say they'd come; a guest by name) (Phase 3)

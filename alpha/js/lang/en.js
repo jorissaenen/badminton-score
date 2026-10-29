@@ -649,7 +649,7 @@ export default {
   'screen.noCourt': 'No court',
   'screen.tapForSound': 'Tap to switch on the score calls',
   'screen.cantStart': 'This screen can’t connect right now. Check the internet connection and reload.',
-  'screen.overviewFoot': 'scores live from the courts',
+  'screen.overviewFoot': 'Scores live from the courts',
   'slides.oneClickTitle': 'Keep score with one click',
   'slides.oneClickText': 'A camera remote, earbuds or a tap on your phone. Every point on this screen, live.',
   'slides.statsTitle': 'Every point counts',
