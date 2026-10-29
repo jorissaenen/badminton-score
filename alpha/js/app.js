@@ -23,6 +23,7 @@ import * as EventEdit from './views/eventedit.js';
 import * as Join from './views/join.js';
 import * as EventMatch from './views/eventmatch.js';
 import * as LinkScreen from './views/linkscreen.js';
+import * as LinkWatch from './views/linkwatch.js';
 import { unlink } from './clubmatch.js';
 
 watchLayout();
@@ -48,6 +49,7 @@ const ROUTES = [
   [/^\/club\/(\w+)\/event\/([\w-]+)\/edit$/, EventEdit],
   [/^\/club\/(\w+)\/event\/([\w-]+)\/match$/, EventMatch],
   [/^\/screen\/([A-Z0-9]{6})$/, LinkScreen],
+  [/^\/watch\/([A-Z0-9]{6})$/, LinkWatch],
   [/^\/you$/, You, 'you'],
   [/^\/signin$/, SignIn],
   [/^\/join$/, Join],
@@ -122,7 +124,8 @@ route();
 
 // ---------- install prompt (browser tabs only) ----------
 
-setupInstallPrompt($('installSheet'), $('installTrigger'));
+// Not over a watch's linking page: someone who scanned its QR code only wants to confirm it.
+setupInstallPrompt($('installSheet'), $('installTrigger'), { autoShow: !location.hash.startsWith('#/watch/') });
 
 // ---------- offline support ----------
 

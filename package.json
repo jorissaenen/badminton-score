@@ -8,7 +8,8 @@
     "test": "node --test tests/*.test.js",
     "start": "python3 -m http.server 8080",
     "test:rules": "firebase emulators:exec --only firestore --project demo-badminton \"node --test tests/rules/*.test.js\"",
-    "emulators": "firebase emulators:start --only auth,firestore --project demo-badminton"
+    "emulators": "firebase emulators:start --only auth,firestore --project demo-badminton",
+    "engine": "cp alpha/js/match.js alpha/js/sports.js functions/engine/ && cp alpha/js/vendor/qrcode.js functions/engine/"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^6.0.0",

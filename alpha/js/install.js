@@ -213,7 +213,7 @@ function keyPicture(icon) {
   return key;
 }
 
-export function setupInstallPrompt(root, settingsBtn) {
+export function setupInstallPrompt(root, settingsBtn, { autoShow = true } = {}) {
   const platform = detectPlatform({
     userAgent: navigator.userAgent,
     platform: navigator.platform,
@@ -308,7 +308,7 @@ export function setupInstallPrompt(root, settingsBtn) {
     status.oneTap = true;
     settingsBtn.hidden = false;
     // Upgrade to one-tap install, unless the visitor is already reading instructions.
-    if (root.hidden ? !dismissedThisVisit() : el('installGuide').hidden) show();
+    if (root.hidden ? autoShow && !dismissedThisVisit() : el('installGuide').hidden) show();
   });
   window.addEventListener('appinstalled', () => {
     deferred = null;
@@ -330,8 +330,8 @@ export function setupInstallPrompt(root, settingsBtn) {
   root.addEventListener('click', (e) => { if (e.target === root) hide(true); }); // tap outside the card
   settingsBtn.addEventListener('click', show);
 
-  // Show straight away when the site is opened in a browser.
+  // Show straight away when the site is opened in a browser (not on a quick visit, autoShow false).
   settingsBtn.hidden = !canInstallHere;
-  status.dismissed = dismissedThisVisit();
+  status.dismissed = dismissedThisVisit() || !autoShow;
   if (!status.dismissed) show();
 }

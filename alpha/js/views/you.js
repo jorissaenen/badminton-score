@@ -1,4 +1,4 @@
-// You: your account, reminders, sound, the remote, the screen, installing and the version.
+// You: your account, reminders, your watches, sound, the remote, the screen, installing and the version.
 import { EDITION } from '../edition.js';
 import { isInstalled, installStatus } from '../install.js';
 import { disableReminders, enableReminders, remindersState } from '../cloud.js';
@@ -11,13 +11,17 @@ import { $, html, icon, avatar, toast, confirmSheet, raw, sheet } from '../ui.js
 import { toggle, wireToggles, voiceSheet, remoteSheet, voiceName, seconds, soundCheck, languageSheet } from './settings.js';
 import { spinner } from './common.js';
 import { burst, tapsCounter } from '../burst.js';
-import { t, LANGUAGES, language } from '../i18n.js';
+import { t, LANGUAGES, language, locale } from '../i18n.js';
+import * as Club from '../club.js';
 
 const REMINDER_STATES = ['on', 'off', 'blocked', 'install-first'];
 
 export function show(el) {
   let version = '';
   let busy = false;
+  let watches = null; // linked to this account (null: not known yet)
+  let stopWatches = null;
+  let watchesFor = null;
 
   function account() {
     if (!session.enabled) return '';
@@ -40,6 +44,46 @@ export function show(el) {
     </div>`;
   }
 
+  // Watches linked to this account (Garmin): unlink one, or link one by typing its key.
+  function watchList() {
+    if (!session.user) return '';
+    const day = (ts) => (ts?.toDate ? ts.toDate().toLocaleDateString(locale(), { day: 'numeric', month: 'short' }) : '');
+    return html`<section><h2 class="h3">${t('watch.watches')}</h2><div class="card">
+      ${(watches ?? []).map((w) => html`<div class="row">${icon('watch', 20)}<span class="grow"><strong>${w.model}</strong>
+        <small>${t('watch.linkedOn', { day: day(w.linkedAt), used: day(w.lastUsedAt) })}</small></span>
+        <button type="button" class="btn small" data-unlink-watch="${w.id}">${t('watch.unlink')}</button></div>`)}
+      <button type="button" class="row" data-link-watch>${icon('plus', 20)}<span class="grow"><strong>${t('watch.link')}</strong><small>${t('watch.linkSub')}</small></span></button>
+    </div></section>`;
+  }
+
+  function followWatches() {
+    const uid = session.user?.uid ?? null;
+    if (uid === watchesFor) return;
+    stopWatches?.();
+    stopWatches = null;
+    watches = null;
+    watchesFor = uid;
+    if (uid) Club.watchWatches(session.user, (list) => { watches = list; draw(); }).then((s) => { if (watchesFor === uid) stopWatches = s; else s(); }).catch(() => {});
+  }
+
+  function linkWatchSheet() {
+    sheet(html`<h2 class="sheet-title">${t('watch.link')}</h2>
+      <p class="sheet-text">${t('watch.howTo')}</p>
+      <label class="field">${t('watch.keyLabel')}<input type="text" data-key maxlength="7" autocomplete="off" autocapitalize="characters" placeholder="K7P 2QM" style="font-family:var(--display);font-size:28px;letter-spacing:.16em"></label>
+      <div class="sheet-buttons"><button type="button" class="btn primary" data-go>${t('watch.next')}</button></div>`.s, (sh, close) => {
+      const input = sh.querySelector('[data-key]');
+      const next = () => {
+        const key = Club.cleanKey(input.value);
+        if (key.length !== 6) { toast(t('watch.typeKey')); input.focus(); return; }
+        close();
+        location.hash = `#/watch/${key}`;
+      };
+      sh.querySelector('[data-go]').addEventListener('click', next);
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') next(); });
+      setTimeout(() => input.focus(), 250);
+    });
+  }
+
   function reminders() {
     if (!session.user) return '';
     const st = remindersState(isInstalled());
@@ -59,6 +103,7 @@ export function show(el) {
       ${account()}
       ${session.message ? html`<p class="note">${session.message}</p>` : ''}
       ${reminders()}
+      ${watchList()}
       <section><h2 class="h3">${t('you.language')}</h2><div class="card">
         <button type="button" class="row" data-language><span class="grow">${t('you.language')}</span><span class="val">${s.language ? LANGUAGES[language()].name : t('you.languageAuto', { name: LANGUAGES[language()].name })}</span>${icon('chevron', 18)}</button>
       </div></section>
@@ -99,6 +144,11 @@ export function show(el) {
     el.querySelector('[data-signout]')?.addEventListener('click', async () => {
       if (await confirmSheet(t('you.signOutQ'), t('you.signOutText'), t('you.signOut'))) signOut();
     });
+    el.querySelector('[data-link-watch]')?.addEventListener('click', linkWatchSheet);
+    el.querySelectorAll('[data-unlink-watch]').forEach((b) => b.addEventListener('click', async () => {
+      if (!(await confirmSheet(t('watch.unlinkQ'), t('watch.unlinkText'), t('watch.unlink'), true))) return;
+      Club.unlinkWatch(session.user, b.dataset.unlinkWatch).then(() => toast(t('watch.unlinked'))).catch((e) => toast(t('watch.linkFailed', { error: e.code || e.message })));
+    }));
     el.querySelector('[data-reminders]')?.addEventListener('change', async (e) => {
       busy = true;
       draw();
@@ -178,7 +228,8 @@ export function show(el) {
 
   start(); // load sign-in only when someone looks at it
   draw();
-  const off = onSession(draw);
+  followWatches();
+  const off = onSession(() => { followWatches(); draw(); });
   onVoicesChanged(() => { if (el.isConnected) draw(); });
-  return off;
+  return () => { off(); stopWatches?.(); };
 }

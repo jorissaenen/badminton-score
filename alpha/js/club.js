@@ -698,3 +698,35 @@ export async function setPinned(clubId, eventId, text) {
   const { db, F } = await cloud();
   await F.updateDoc(F.doc(db, 'clubs', clubId, 'events', eventId), { pinned: text.slice(0, 280) });
 }
+
+// ---------- watches ----------
+// A watch links to an account like a screen: it shows a key (watchLinks/{key}, made by the server),
+// someone signed in confirms it here, and the watch then gets its own key for this account. The
+// account's watches are users/{uid}/watches; deleting one unlinks it.
+
+// The watch waiting with this key: { model, expired }, or null when unknown.
+export async function watchLink(key) {
+  const { db, F } = await cloud();
+  const d = await F.getDoc(F.doc(db, 'watchLinks', key));
+  if (!d.exists()) return null;
+  const w = d.data();
+  return { model: w.model, expired: w.expiresAt.toMillis() < Date.now(), taken: Boolean(w.uid) };
+}
+
+export async function confirmWatch(user, key) {
+  const { db, F } = await cloud();
+  await F.updateDoc(F.doc(db, 'watchLinks', key), {
+    uid: user.uid, userName: (user.displayName || user.email?.split('@')[0] || '').slice(0, 60), confirmedAt: F.serverTimestamp(),
+  });
+}
+
+export async function watchWatches(user, on) {
+  const { db, F } = await cloud();
+  return F.onSnapshot(F.collection(db, 'users', user.uid, 'watches'),
+    (s) => on(s.docs.map((d) => ({ id: d.id, ...d.data() }))), () => on([]));
+}
+
+export async function unlinkWatch(user, watchId) {
+  const { db, F } = await cloud();
+  await F.deleteDoc(F.doc(db, 'users', user.uid, 'watches', watchId));
+}

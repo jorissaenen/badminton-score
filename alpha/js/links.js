@@ -37,6 +37,12 @@ export function parseEventLink(search) {
 // Reads the address once at start and takes the codes out of it. Returns where to go first:
 // '#/join', an event, or null.
 export function takeFromAddress() {
+  // A watch's QR code: …/?watch=<key>
+  const watch = /[?&]watch=([A-Z0-9]{6})\b/.exec(location.search);
+  if (watch) {
+    history.replaceState(null, '', location.pathname);
+    return `#/watch/${watch[1]}`;
+  }
   // A screen's QR code: …/?display=<key>
   const screen = /[?&]display=([A-Z0-9]{6})\b/.exec(location.search);
   if (screen) {

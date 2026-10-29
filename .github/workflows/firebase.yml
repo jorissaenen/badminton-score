@@ -33,6 +33,8 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: npm ci
+      - run: npm ci
+        working-directory: functions
       - run: npm test
       - run: npm run test:rules
 

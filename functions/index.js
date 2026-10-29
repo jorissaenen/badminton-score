@@ -3,11 +3,25 @@ import { initializeApp } from 'firebase-admin/app';
 import { FieldValue, Timestamp, getFirestore } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { onRequest } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions';
 import { reminderDue, reminderText } from './reminders.js';
+import { handle as handleWatch } from './watch.js';
 
 initializeApp();
 const db = getFirestore();
+
+// What watches talk to: linking a watch to an account, and following and scoring matches (see
+// watch.js). Public: a watch has no Google sign-in; it proves who it is with its own key.
+export const watch = onRequest({ region: 'europe-west1', invoker: 'public', cors: false }, async (req, res) => {
+  try {
+    const r = await handleWatch(db, { method: req.method, path: req.path, query: req.query, body: req.body, headers: req.headers });
+    res.status(r.status).json(r.json);
+  } catch (e) {
+    logger.error('watch request failed', req.path, e);
+    res.status(500).json({ error: 'server' });
+  }
+});
 
 // Every 15 minutes: send the reminders whose moment has come (each event has its own, set when it
 // was planned: by default the same morning for an evening event, the evening before for a morning
