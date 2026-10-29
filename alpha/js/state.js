@@ -50,7 +50,7 @@ function load() {
       if (saved.settings && !('namesKnown' in saved.settings)) {
         settings.namesKnown = settings.names[0] !== 'Home' || settings.names[1] !== 'Away';
       }
-      return { settings, rules: { sport: DEFAULT_SPORT, ...saved.rules }, match: saved.match };
+      return { settings, rules: { sport: DEFAULT_SPORT, ...saved.rules }, match: saved.match, link: saved.link ?? null };
     }
   } catch { /* fall through to defaults */ }
   // First start of this edition: take over production's settings (voice, remote timing), but start
@@ -60,7 +60,8 @@ function load() {
     fromProduction = JSON.parse(localStorage.getItem(EDITION.productionStorageKey))?.settings ?? {};
   } catch { /* nothing to copy */ }
   const settings = migrate({ ...DEFAULT_SETTINGS, ...fromProduction, names: DEFAULT_SETTINGS.names, namesKnown: false });
-  return { settings, rules: rulesFrom(settings), match: M.newMatch(settings.firstServer) };
+  // link: the club match this match is saved to ({ clubId, eventId, matchId }), or null.
+  return { settings, rules: rulesFrom(settings), match: M.newMatch(settings.firstServer), link: null };
 }
 
 export const state = load();

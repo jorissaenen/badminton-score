@@ -186,6 +186,13 @@ img.av { object-fit: cover; }
 .chip { font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--edge); white-space: nowrap; flex: none; }
 .chip.going { background: var(--green); color: #000; border-color: var(--green); }
 .chip.notgoing { color: var(--red); border-color: #5b2323; }
+.chip.live { display: inline-flex; align-items: center; gap: 6px; color: var(--green); border-color: var(--green); }
+.chip.live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 1.4s ease-in-out infinite; }
+.event-card.is-live { border-color: var(--green); }
+.event-card .go-on { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-weight: 600; }
+.row .stat { width: 46px; text-align: center; font-variant-numeric: tabular-nums; color: var(--muted); }
+.row .stat b { color: var(--fg); }
+.row .grow strong + strong { margin-top: 2px; }
 .chip.light { background: var(--fg); color: #000; border-color: var(--fg); }
 
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: none; display: inline-block; }
@@ -354,6 +361,9 @@ input::placeholder { color: #5a5a5a; }
 .serve-side { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 0; border: 0; background: none; cursor: pointer; }
 .mini-tiles { display: flex; gap: 6px; }
 .mini-tiles .tile { --tile-h: 94px; }
+/* Inside a card (a match's side): smaller, and darker than the card */
+.card .mini-tiles .tile { --tile-h: 64px; }
+.card .tile:not(.on) { background: #000; }
 .serve-name { font-family: var(--display); font-weight: 800; font-size: 20px; letter-spacing: 0.1em; line-height: 1.1; text-transform: uppercase; text-align: center; max-width: 150px; overflow-wrap: anywhere; }
 .serve-hint { font-family: var(--display); font-weight: 800; font-size: 15px; letter-spacing: 0.14em; line-height: 1; color: var(--faint); }
 .serve-side[aria-pressed="true"] .serve-hint { color: var(--green); }

@@ -3,7 +3,8 @@
 // and a long press picks it; then one click switches who serves, two clicks draw, a long press starts.
 import * as Board from '../scoreboard.js';
 import { secureCoinFlip } from '../random.js';
-import { state } from '../state.js';
+import { state, isFinished } from '../state.js';
+import { unlink } from '../clubmatch.js';
 import { html, raw, icon, sheet, toast } from '../ui.js';
 import { t, people } from '../i18n.js';
 import { defaultNames } from '../state.js';
@@ -126,8 +127,10 @@ export function show(el, _params, { go }) {
     });
   }
 
-  function startNow() {
+  async function startNow() {
     if (drawing || !setup.sport) return;
+    // A club match still being scored here is stopped: a quick match takes its place.
+    if (state.link && !isFinished()) await unlink('stopped');
     Board.startMatch({
       names: setup.names, namesKnown: setup.namesKnown, firstServer: setup.server,
       swapped: state.settings.swapped, sport: setup.sport, options: setup.options,

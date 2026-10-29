@@ -117,7 +117,12 @@ tabs (Play, Clubs, You) and full screens instead of the settings window.
 - [ ] Pickleball's traditional side-out scoring (only the serving side scores; doubles server
       numbers); now rally scoring only
 - [ ] Reminder notifications (sent by the server) in each person's language
-- [ ] Club match and Follow a court on Play (need Phase 3: matches saved with players)
+- [x] Events live: LIVE on Play and the club, no answering while it's on; tap the event to
+      start a match (players from who's here, waiting longest first, "Fill in for me", guests by
+      name); matches saved to the club as they're scored; live and finished matches and
+      statistics on the event, final once it has ended
+- [ ] Admins start a tournament in an event (Phase 4)
+- [ ] Follow a court: a screen that shows a live match full screen
 - [ ] Player picker for a match (Fill in for me; here and not playing first, by waiting time;
       playing now with their court; didn't say they'd come; a guest by name) (Phase 3)
 - [ ] Head-to-head on New match and when accepting a challenge: the exact line-up for racket and

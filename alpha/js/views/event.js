@@ -2,8 +2,13 @@
 // editing, cancelling and deleting.
 import * as Club from '../club.js';
 import { session } from '../session.js';
-import { html, icon, avatar, choose, confirmSheet, attempt, toast, dayText, raw } from '../ui.js';
+import { html, icon, avatar, choose, confirmSheet, attempt, toast, dayText, raw, sheet } from '../ui.js';
 import { t, locale } from '../i18n.js';
+import * as M from '../match.js';
+import { sportOf } from '../sports.js';
+import { eventStats } from '../stats.js';
+import { state, isFinished } from '../state.js';
+import { sportName, rulesSummary } from './rules.js';
 import { clubScreen } from './clubview.js';
 import { answerButtons, wireAnswers, dayName, eventName, noPlayer } from './common.js';
 
@@ -15,6 +20,8 @@ export function show(el, [clubId, eventId], { go }) {
   let view = null;
   let note = null; // the reason being typed, kept across redraws
   let waiting = false;
+  let matches = [];
+  let stopMatches = null;
 
   function draw(v) {
     view = v;
@@ -28,13 +35,14 @@ export function show(el, [clubId, eventId], { go }) {
     const e = event;
     const { admin, players, myPlayer } = v;
     const cancelled = e.status === 'cancelled';
+    const phase = Club.eventPhase(e); // upcoming, live, ended (or cancelled)
     const mine = myPlayer ? regs[myPlayer.id] : null;
     const byName = (a, b) => a.name.localeCompare(b.name);
     const going = players.filter((p) => regs[p.id]?.status === 'going').sort(byName);
     const notGoing = players.filter((p) => regs[p.id]?.status === 'not going').sort(byName);
     const noAnswer = players.filter((p) => !regs[p.id]).sort(byName);
     const at = e.remindAt?.toDate();
-    const person = (p) => html`<button type="button" class="row" data-player="${p.id}" ${admin && !cancelled ? '' : raw(raw('disabled style="cursor:default"'))}>
+    const person = (p) => html`<button type="button" class="row" data-player="${p.id}" ${admin && !cancelled ? '' : raw('disabled style="cursor:default"')}>
         ${avatar(p.name, p.id === myPlayer?.id ? 'me' : '')}<span class="grow"><strong>${p.name}${p.id === myPlayer?.id ? html` <span class="muted" style="font-weight:400">${t('common.you')}</span>` : ''}</strong>
         ${regs[p.id]?.note ? html`<small>${regs[p.id].note}</small>` : ''}</span></button>`;
     if (mine?.status !== 'not going') note = null;
@@ -47,19 +55,22 @@ export function show(el, [clubId, eventId], { go }) {
         <div class="display" style="font-size:64px;line-height:1;margin:0 2px"><span class="cap">${e.start}</span></div>
         <p class="sub">${t('event.until', { end: e.end })}</p>
         ${cancelled ? html`<p class="chip notgoing" style="display:inline-block;margin:10px 4px 0">${t('event.cancelled')}</p>` : ''}
+        ${phase === 'live' ? html`<p class="chip live" style="display:inline-flex;margin:10px 4px 0">${t('event.live')}</p>` : ''}
+        ${phase === 'ended' ? html`<p class="chip" style="display:inline-block;margin:10px 4px 0">${t('event.ended')}</p>` : ''}
       </div>
+      ${phase === 'live' || phase === 'ended' ? playing(v) : ''}
       <div class="card">
         ${e.location ? html`<a class="row" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.location)}" target="_blank" rel="noopener">${icon('pin', 20)}<span class="grow">${e.location}</span><span class="val">${t('event.maps')}</span></a>` : ''}
         <div class="row">${icon('courts', 20)}<span class="grow">${t('event.nCourts', { n: e.courts })}</span></div>
         ${cancelled ? '' : html`<div class="row">${icon('bell', 20)}<span class="grow">${at ? t('event.reminderAt', { day: at.toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' }), time: at.toTimeString().slice(0, 5) }) : t('reminder.none')}</span></div>`}
         ${e.seriesId ? html`<div class="row">${icon('calendar', 20)}<span class="grow">${t('event.everyWeekday', { day: dayText(e.date, { weekday: 'long' }) })}</span></div>` : ''}
       </div>
-      ${cancelled ? '' : html`<section><h2 class="h3">${t('event.coming')}</h2>
+      ${phase !== 'upcoming' ? '' : html`<section><h2 class="h3">${t('event.coming')}</h2>
         ${answerButtons(mine?.status, myPlayer ? '' : noPlayer())}
         ${mine?.status === 'not going' ? html`<label class="field" style="margin-top:12px">${t('event.reason')}
           <input type="text" data-note maxlength="140" value="${note ?? ''}" placeholder="${t('event.reasonExample')}"></label>` : ''}
       </section>`}
-      <section><h2 class="h3">${t('event.goingN', { n: going.length })}</h2><div class="card">${going.length ? going.map(person) : html`<p class="empty">${t('event.nobodyYet')}</p>`}</div></section>
+      <section><h2 class="h3">${t(phase === 'upcoming' ? 'event.goingN' : 'event.hereN', { n: going.length })}</h2><div class="card">${going.length ? going.map(person) : html`<p class="empty">${t('event.nobodyYet')}</p>`}</div></section>
       ${notGoing.length ? html`<section><h2 class="h3">${t('event.notGoingN', { n: notGoing.length })}</h2><div class="card">${notGoing.map(person)}</div></section>` : ''}
       ${noAnswer.length ? html`<section><h2 class="h3">${t('event.noAnswerN', { n: noAnswer.length })}</h2><div class="card">${noAnswer.map(person)}</div>
         <p class="note">${[at && !e.reminded ? t('event.theyGetReminder') : '', admin && !cancelled ? t('event.tapToAnswer') : ''].filter(Boolean).join(' ')}</p></section>` : ''}
@@ -70,7 +81,9 @@ export function show(el, [clubId, eventId], { go }) {
       </div></section>` : ''}
     </div>`.s;
 
-    if (myPlayer && !cancelled) {
+    el.querySelector('[data-continue]')?.addEventListener('click', () => go('#/match'));
+    el.querySelectorAll('[data-match]').forEach((b) => b.addEventListener('click', () => matchSheet(matches.find((m) => m.id === b.dataset.match))));
+    if (myPlayer && phase === 'upcoming') {
       wireAnswers(el, { clubId, eventId, playerId: myPlayer.id, current: () => regs[myPlayer.id]?.status, note: () => note ?? '' });
     }
     const input = el.querySelector('[data-note]');
@@ -83,6 +96,57 @@ export function show(el, [clubId, eventId], { go }) {
     el.querySelector('[data-toggle]')?.addEventListener('click', toggleCancelled);
     el.querySelector('[data-delete]')?.addEventListener('click', deleteOne);
     el.querySelector('[data-delete-series]')?.addEventListener('click', deleteSeries);
+  }
+
+  // During and after the event: start a match (while it's on), the matches played and being
+  // played, and the statistics so far (final once the event has ended).
+  function playing(v) {
+    const live = Club.eventPhase(event) === 'live';
+    const mineHere = state.link?.eventId === eventId && !isFinished();
+    const shown = matches.filter((m) => m.status !== 'stopped');
+    const now = shown.filter((m) => m.status === 'live');
+    const done = shown.filter((m) => m.status === 'finished').reverse();
+    const stats = eventStats(matches);
+    const row = (m) => {
+      const scores = M.gameScores(m.state, m.rules);
+      const result = m.status === 'live'
+        ? `${M.display(m.state, m.rules).tiles.join('–')}${scores.length > 1 ? ` · ${t(sportOf(m.sport).scoring === 'tennis' ? 'play.setN' : 'play.gameN', { n: scores.length })}` : ''}`
+        : scores.map((s) => s.join('–')).join('  ');
+      const won = (side) => m.status === 'finished' && m.winner === side;
+      return html`<button type="button" class="row" data-match="${m.id}">
+        <span class="grow"><strong ${won(0) ? '' : raw('style="font-weight:500"')}>${m.home.map((p) => p.name).join(' & ')}</strong>
+          <strong ${won(1) ? '' : raw('style="font-weight:500"')}>${m.away.map((p) => p.name).join(' & ')}</strong></span>
+        <span class="val display" style="font-size:20px;white-space:nowrap">${result}</span>
+        ${m.status === 'live' ? html`<span class="chip live">${t('event.liveShort')}</span>` : ''}</button>`;
+    };
+    return html`
+      ${live ? html`<div class="btns">${mineHere ? html`<button type="button" class="btn primary" data-continue>${t('event.continueScoring')}</button>`
+        : html`<a class="btn primary" href="#/club/${clubId}/event/${eventId}/match">${icon('plus', 20)}${t('event.startMatch')}</a>`}</div>` : ''}
+      <section><h2 class="h3">${t('event.matchesN', { n: shown.length })}</h2><div class="card">
+        ${shown.length ? [...now, ...done].map(row) : html`<p class="empty">${live ? t('event.noMatchesYet') : t('event.noMatches')}</p>`}</div></section>
+      ${stats.length ? html`<section><h2 class="h3">${live ? t('event.statsSoFar') : t('event.stats')}</h2><div class="card">
+        <div class="row muted" style="min-height:0;font-size:12px;font-weight:600;letter-spacing:.06em">
+          <span class="grow"></span><span class="stat">${t('stats.played')}</span><span class="stat">${t('stats.won')}</span><span class="stat">${t('stats.diff')}</span></div>
+        ${stats.map((r, i) => html`<div class="row" style="min-height:48px"><span class="muted display" style="width:22px">${i + 1}</span>${avatar(r.name, r.id && r.id === v.myPlayer?.id ? 'me' : '')}
+          <span class="grow"><strong>${r.name}</strong></span>
+          <span class="stat">${r.played}</span><span class="stat"><b>${r.won}</b></span><span class="stat">${r.for - r.against > 0 ? '+' : ''}${r.for - r.against}</span></div>`)}
+      </div><p class="note">${t('event.statsNote')}</p></section>` : ''}`;
+  }
+
+  // A match's details: every game, and for the keeper or an admin, removing it.
+  function matchSheet(m) {
+    if (!m) return;
+    const canRemove = view.admin || (m.keeper === session.user?.uid && m.status !== 'finished');
+    const scores = M.gameScores(m.state, m.rules);
+    sheet(html`<h2 class="sheet-title">${m.home.map((p) => p.name).join(' & ')} – ${m.away.map((p) => p.name).join(' & ')}</h2>
+      <p class="sheet-text">${sportName(m.sport)} · ${rulesSummary(m.rules)}${m.status === 'live' ? ` · ${t('event.liveShort')}` : ''}</p>
+      <div class="card">${scores.map((s, i) => html`<div class="row"><span class="grow">${t(sportOf(m.sport).scoring === 'tennis' ? 'board.setN' : 'board.gameN', { n: i + 1 })}</span><span class="display" style="font-size:22px">${s.join('–')}</span></div>`)}</div>
+      ${canRemove ? html`<button type="button" class="btn danger block" data-remove-match>${t('event.removeMatch')}</button>` : ''}`.s, (sh, close) => {
+      sh.querySelector('[data-remove-match]')?.addEventListener('click', async () => {
+        close();
+        if (await confirmSheet(t('event.removeMatchQ'), t('event.removeMatchText'), t('common.remove'), true)) attempt(Club.deleteMatch(clubId, m.id), t('common.saveFailed'));
+      });
+    });
   }
 
   const top = ([href, label], right = '') => html`<div class="top"><a class="back" href="${href}">${icon('back', 22)}${label}</a>${right}</div>`;
@@ -128,6 +192,10 @@ export function show(el, [clubId, eventId], { go }) {
 
   async function follow() {
     stopEvent = () => {};
+    Club.watchEventMatches(clubId, eventId, (list) => {
+      matches = list;
+      if (!document.activeElement?.matches?.('[data-note]')) screen.redraw();
+    }).then((stop) => { if (closed) stop(); else stopMatches = stop; });
     const stop = await Club.watchEvent(clubId, eventId, (s) => {
       event = s.event;
       regs = s.registrations;
@@ -140,5 +208,7 @@ export function show(el, [clubId, eventId], { go }) {
   }
 
   const screen = clubScreen(el, clubId, draw);
-  return () => { closed = true; saveNote(); screen.cleanup(); stopEvent?.(); };
+  // Starts and ends on its own: redraw each minute while the screen is open.
+  const tick = setInterval(() => { if (!document.activeElement?.matches?.('input')) screen.redraw(); }, 60_000);
+  return () => { closed = true; saveNote(); screen.cleanup(); stopEvent?.(); stopMatches?.(); clearInterval(tick); };
 }

@@ -21,6 +21,8 @@ import * as ClubSettings from './views/clubsettings.js';
 import * as Event from './views/event.js';
 import * as EventEdit from './views/eventedit.js';
 import * as Join from './views/join.js';
+import * as EventMatch from './views/eventmatch.js';
+import { keepClubMatchSaved, unlink } from './clubmatch.js';
 
 watchLayout();
 
@@ -43,6 +45,7 @@ const ROUTES = [
   [/^\/club\/(\w+)\/plan$/, EventEdit],
   [/^\/club\/(\w+)\/event\/([\w-]+)$/, Event],
   [/^\/club\/(\w+)\/event\/([\w-]+)\/edit$/, EventEdit],
+  [/^\/club\/(\w+)\/event\/([\w-]+)\/match$/, EventMatch],
   [/^\/you$/, You, 'you'],
   [/^\/signin$/, SignIn],
   [/^\/join$/, Join],
@@ -96,8 +99,14 @@ export const currentPath = () => current;
 
 // ---------- the match ----------
 
+// A club match ends back at its event (with the results); a quick match at Play.
+keepClubMatchSaved();
 Board.init({
-  onEnd: () => go('#/play'),
+  onEnd: async () => {
+    const link = state.link;
+    await unlink();
+    go(link ? `#/club/${link.clubId}/event/${link.eventId}` : '#/play');
+  },
   onMenuOpen: () => openMatchMenu({ go }),
 });
 

@@ -224,6 +224,44 @@ service cloud.firestore {
           allow delete: if isAdmin() || (isMember() && isMyPlayer());
         }
       }
+
+      // ---------- matches: scored during an event, with the players on each side ----------
+
+      // A member starts a match of an event and keeps its score (keeper = them). The keeper, or
+      // an admin, updates it while it's played; the event, sport and players stay. An admin
+      // removes a match; the keeper removes their own before it's finished.
+      match /matches/{matchId} {
+        function eventPath(eventId) {
+          return /databases/$(database)/documents/clubs/$(clubId)/events/$(eventId);
+        }
+
+        function validSide(side) {
+          return side is list && side.size() >= 1 && side.size() <= 2;
+        }
+
+        function validMatch(d) {
+          return d.keys().hasAll(['eventId', 'sport', 'rules', 'home', 'away', 'state', 'status', 'keeper', 'schemaVersion'])
+            && d.eventId is string && exists(eventPath(d.eventId))
+            && d.sport is string && d.rules is map && d.state is map
+            && validSide(d.home) && validSide(d.away)
+            && d.status in ['live', 'finished', 'stopped']
+            && d.keeper is string;
+        }
+
+        allow read: if isMember();
+        allow create: if isMember() && validMatch(request.resource.data)
+          && request.resource.data.keeper == request.auth.uid
+          && request.resource.data.status == 'live';
+        allow update: if isMember() && validMatch(request.resource.data)
+          && (resource.data.keeper == request.auth.uid || isAdmin())
+          && request.resource.data.eventId == resource.data.eventId
+          && request.resource.data.sport == resource.data.sport
+          && request.resource.data.home == resource.data.home
+          && request.resource.data.away == resource.data.away
+          && request.resource.data.keeper == resource.data.keeper;
+        allow delete: if isAdmin()
+          || (isMember() && resource.data.keeper == request.auth.uid && resource.data.status != 'finished');
+      }
     }
 
     // Everything else is locked.

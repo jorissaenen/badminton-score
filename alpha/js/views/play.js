@@ -61,12 +61,16 @@ export function show(el, _params, { go }) {
     const { club, event: e, player, registrations } = next;
     const c = counts(registrations);
     const mine = player ? registrations?.[player.id]?.status : null;
-    const meta = [t('event.dayUntil', { day: dayName(e.date), end: e.end }), e.location, registrations ? t('event.nGoing', { n: c.going }) : null].filter(Boolean).join(' · ');
-    return html`<div class="event-card" role="link" tabindex="0" data-go="#/club/${club.id}/event/${e.id}">
-      <div class="line1"><span>${t('event.next', { event: eventName(e) })}</span><span>${club.name}</span></div>
+    // While it's on: LIVE, who's here, and a tap opens it to play; before: are you coming?
+    const phase = Club.eventPhase(e);
+    const on = phase === 'live' || phase === 'ended';
+    const meta = [on ? t('event.until', { end: e.end }) : t('event.dayUntil', { day: dayName(e.date), end: e.end }), e.location,
+      registrations ? t(on ? 'event.nHere' : 'event.nGoing', { n: c.going }) : null].filter(Boolean).join(' · ');
+    return html`<div class="event-card${phase === 'live' ? ' is-live' : ''}" role="link" tabindex="0" data-go="#/club/${club.id}/event/${e.id}">
+      <div class="line1"><span>${phase === 'live' ? html`<span class="chip live">${t('event.live')}</span> ${eventName(e)}` : phase === 'ended' ? t('event.endedName', { event: eventName(e) }) : t('event.next', { event: eventName(e) })}</span><span>${club.name}</span></div>
       <div class="time"><span class="cap">${e.start}</span></div>
       <div class="meta">${meta}</div>
-      ${answerButtons(mine, player ? '' : noPlayer())}
+      ${on ? html`<div class="go-on">${phase === 'live' ? t('event.tapToPlay') : t('event.seeResults')}${icon('chevron', 18)}</div>` : answerButtons(mine, player ? '' : noPlayer())}
     </div>`;
   }
 
@@ -75,16 +79,12 @@ export function show(el, _params, { go }) {
     const tiles = M.display(state.match, state.rules).tiles;
     const tennis = sportOf(state.rules.sport).scoring === 'tennis';
     const names = displayNames();
-    const eventSoon = next ? t('play.duringEventNext', { day: dayName(next.event.date), time: next.event.start }) : t('play.duringEvent');
-    const later = t('play.later');
-    // An option that isn't available is dimmed, says why, and carries a "Soon" label.
-    const opt = (cls, ic, title, sub, to, off = '') => html`<button type="button" class="opt ${cls}" ${to && !off ? html`data-go="${to}"` : ''} ${off ? raw('aria-disabled="true"') : ''}>
-        <span class="ic">${ic}</span><span class="grow"><strong>${title}</strong><small>${off || sub}</small></span>${off ? html`<span class="chip">${t('play.soon')}</span>` : ''}</button>`;
+    // Club matches are started from the event while it's on (tap the event above).
+    const opt = (cls, ic, title, sub, to) => html`<button type="button" class="opt ${cls}" data-go="${to}">
+        <span class="ic">${ic}</span><span class="grow"><strong>${title}</strong><small>${sub}</small></span></button>`;
     return [
       started ? opt('default', raw(sportIcon(state.rules.sport, 22)), t('play.continue'),
         `${names[0]} ${tiles[0]} – ${tiles[1]} ${names[1]} · ${t(tennis ? 'play.setN' : 'play.gameN', { n: state.match.games.length })}`, '#/match') : '',
-      opt('', icon('court'), t('play.clubMatch'), eventSoon, null, later),
-      opt('', icon('screen'), t('play.followCourt'), eventSoon, null, later),
       opt(started ? '' : 'default', icon('quick'), t('play.quick'), t('play.quickSub'), '#/match/new'),
     ];
   }
@@ -133,5 +133,7 @@ export function show(el, _params, { go }) {
     lastUser = session.user?.uid;
     loadNext();
   });
-  return () => { run += 1; off(); stopEvent?.(); };
+  // The event starts and ends on its own: redraw each minute.
+  const tick = setInterval(() => { if (next) draw(); }, 60_000);
+  return () => { run += 1; off(); stopEvent?.(); clearInterval(tick); };
 }

@@ -34,14 +34,14 @@ export function show(el, [clubId], { go }) {
         ${rulesFields(sport, d, { disabled: !admin })}
       </div></section>
       <section><h2 class="h3">${t('season.seasons')}${admin ? html`<button type="button" data-add-season>${t('season.add')}</button>` : ''}</h2><div class="card">
-        ${seasons.length ? seasons.map((s) => html`<button type="button" class="row" data-season="${s.id}" ${admin ? '' : raw(raw('disabled style="cursor:default"'))}>
+        ${seasons.length ? seasons.map((s) => html`<button type="button" class="row" data-season="${s.id}" ${admin ? '' : raw('disabled style="cursor:default"')}>
             <span class="grow"><strong>${s.name}${s.id === now?.id ? html` <span class="chip light" style="margin-left:6px;padding:2px 8px">${t('season.current')}</span>` : ''}</strong>
             <small>${fullDate(s.start)} – ${fullDate(s.end)}</small></span>${admin ? icon('chevron', 18) : ''}</button>`)
           : html`<p class="empty">${t('season.none')}</p>`}
       </div><p class="note">${t('season.explain')}</p></section>
       <section><h2 class="h3">${t('clubSettings.leaveOrDelete')}</h2><div class="card">
-        <button type="button" class="row danger" data-leave ${myRole === 'owner' ? raw(raw('disabled style="opacity:.42;cursor:default"')) : ''}>${t('clubSettings.leave', { club: club.name })}</button>
-        <button type="button" class="row danger" data-delete ${myRole === 'owner' ? '' : raw(raw('disabled style="opacity:.42;cursor:default"'))}>${t('clubSettings.delete')}</button>
+        <button type="button" class="row danger" data-leave ${myRole === 'owner' ? raw('disabled style="opacity:.42;cursor:default"') : ''}>${t('clubSettings.leave', { club: club.name })}</button>
+        <button type="button" class="row danger" data-delete ${myRole === 'owner' ? '' : raw('disabled style="opacity:.42;cursor:default"')}>${t('clubSettings.delete')}</button>
       </div><p class="note">${myRole === 'owner' ? t('clubSettings.ownerLeave') : t('clubSettings.ownerDeletes')}</p></section>
     </div>`.s;
 

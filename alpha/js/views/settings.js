@@ -9,6 +9,7 @@ import { state, save, hasStarted } from '../state.js';
 import { html, icon, sheet, choose } from '../ui.js';
 import { t, LANGUAGES, language, setLanguage } from '../i18n.js';
 import { sportOf } from '../sports.js';
+import { unlink } from '../clubmatch.js';
 import { sportName, rulesSummary } from './rules.js';
 
 const s = () => state.settings;
@@ -75,11 +76,21 @@ export function openMatchMenu({ go }) {
     el.querySelector('[data-resume]').addEventListener('click', close);
     el.querySelector('[data-end]').addEventListener('click', async () => {
       close();
-      const answer = await choose(t('menu.endQ'), hasStarted() ? t('menu.endText') : '', [
+      const link = state.link;
+      const answer = await choose(t('menu.endQ'), link ? t('menu.endClubText') : hasStarted() ? t('menu.endText') : '', [
         { label: t('menu.keep'), value: 'keep', style: 'primary' },
-        { label: t('menu.clear'), value: 'clear', style: 'danger' },
+        { label: link ? t('menu.stop') : t('menu.clear'), value: 'clear', style: 'danger' },
       ]);
       if (!answer) return;
+      if (link) {
+        if (answer === 'clear') {
+          await unlink('stopped');
+          state.match = M.newMatch(s().firstServer);
+          save();
+        }
+        go(`#/club/${link.clubId}/event/${link.eventId}`);
+        return;
+      }
       if (answer === 'clear') {
         state.match = M.newMatch(s().firstServer);
         save();

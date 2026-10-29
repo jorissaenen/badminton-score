@@ -26,7 +26,7 @@ export function show(el, [clubId]) {
         ${sorted.map((m) => {
           const isSelf = m.id === me.uid;
           const canChange = Club.assignableRoles(myRole, m.role, isSelf).length > 0 || (!isSelf && (myRole === 'owner' || (admin && m.role !== 'owner')));
-          return html`<button type="button" class="row" data-member="${m.id}" ${canChange ? '' : raw(raw('disabled style="cursor:default"'))}>
+          return html`<button type="button" class="row" data-member="${m.id}" ${canChange ? '' : raw('disabled style="cursor:default"')}>
             ${m.photoURL ? html`<img class="av" src="${m.photoURL}" alt="" referrerpolicy="no-referrer">` : avatar(m.name, isSelf ? 'me' : '')}
             <span class="grow"><strong>${m.name}${isSelf ? html` <span class="muted" style="font-weight:400">${t('common.you')}</span>` : ''}</strong></span>
             <span class="val">${t(`role.${m.role}`)}</span>${canChange ? icon('chevron', 18) : ''}</button>`;

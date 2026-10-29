@@ -59,14 +59,16 @@ export function show(el, [clubId]) {
     const c = counts(r);
     const going = r ? view.players.filter((p) => r[p.id]?.status === 'going') : [];
     const noAnswer = r ? view.players.length - c.going - c.notGoing : null;
+    const phase = Club.eventPhase(e);
     return html`<div class="event-card" role="link" tabindex="0" data-next>
-      <div class="line1"><span>${t('event.next', { event: eventName(e) })}</span><span>${dayName(e.date)}</span></div>
+      <div class="line1"><span>${phase === 'live' ? html`<span class="chip live">${t('event.live')}</span> ${eventName(e)}` : t('event.next', { event: eventName(e) })}</span><span>${dayName(e.date)}</span></div>
       <div class="time"><span class="cap">${e.start}</span></div>
       <div class="meta">${[t('event.until', { end: e.end }), e.location, t('event.nCourts', { n: e.courts })].filter(Boolean).join(' · ')}</div>
       ${r ? html`<div style="display:flex;align-items:center;gap:10px;margin-top:12px">
         <span style="display:flex">${going.slice(0, 5).map((p, i) => html`<span style="margin-left:${i ? -8 : 0}px">${avatar(p.name, p.id === myPlayer?.id ? 'me' : '')}</span>`)}</span>
         <span class="muted" style="font-size:13px">${t('event.counts', { going: c.going, notGoing: c.notGoing, noAnswer })}</span></div>` : ''}
-      ${answerButtons(myPlayer ? r?.[myPlayer.id]?.status : null, myPlayer ? '' : noPlayer())}
+      ${phase === 'upcoming' ? answerButtons(myPlayer ? r?.[myPlayer.id]?.status : null, myPlayer ? '' : noPlayer())
+        : html`<div class="go-on">${phase === 'live' ? t('event.tapToPlay') : t('event.seeResults')}${icon('chevron', 18)}</div>`}
     </div>`;
   }
 

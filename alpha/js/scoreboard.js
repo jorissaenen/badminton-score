@@ -181,11 +181,14 @@ function continueAfterGame() {
 }
 
 // Starts a new match with the sport, names, sides, first server and rules chosen on New match.
-export function startMatch({ names: n, namesKnown, firstServer, swapped, sport: sportId, options }) {
+// A club match passes its `rules` and `link` (where it's saved); a quick match its sport and options.
+export function startMatch({ names: n, namesKnown, firstServer, swapped, sport: sportId, options, rules, link = null }) {
   stopBreak();
   const s = state.settings;
-  state.settings = { ...s, names: n, namesKnown, firstServer, swapped, sport: sportId, sportRules: { ...s.sportRules, [sportId]: options } };
-  state.rules = rulesFrom(state.settings);
+  state.settings = { ...s, names: n, namesKnown, firstServer, swapped };
+  if (!rules) state.settings = { ...state.settings, sport: sportId, sportRules: { ...s.sportRules, [sportId]: options } };
+  state.rules = rules ?? rulesFrom(state.settings);
+  state.link = link;
   state.match = M.newMatch(firstServer);
   save();
   lastEnds = null; // a new match is no change of ends

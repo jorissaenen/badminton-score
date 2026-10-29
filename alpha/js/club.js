@@ -490,3 +490,49 @@ export async function listPlayers(clubId) {
   const snap = await F.getDocs(F.collection(db, 'clubs', clubId, 'players'));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
+
+// ---------- matches during an event ----------
+// clubs/{clubId}/matches/{matchId}: { eventId, sport, rules, home: [{ id?, name }], away, state
+// (the match as in match.js), status: live | finished | stopped, winner, keeper (uid) }. Players
+// without an id are guests, by name only.
+
+// Returns the new match's id right away; the write goes out when there's a connection.
+export async function addMatch(user, clubId, m) {
+  const { db, F } = await cloud();
+  const ref = F.doc(F.collection(db, 'clubs', clubId, 'matches'));
+  F.setDoc(ref, {
+    eventId: m.eventId, sport: m.sport, rules: m.rules, home: m.home, away: m.away, state: m.state,
+    status: 'live', winner: null, keeper: user.uid,
+    startedAt: F.serverTimestamp(), updatedAt: F.serverTimestamp(), schemaVersion: 1,
+  }).catch(() => { /* reported by the connection status; retried by Firestore */ });
+  return ref.id;
+}
+
+export async function updateMatch(clubId, matchId, changes) {
+  const { db, F } = await cloud();
+  await F.updateDoc(F.doc(db, 'clubs', clubId, 'matches', matchId), {
+    ...changes, updatedAt: F.serverTimestamp(),
+    ...(changes.status === 'finished' && { finishedAt: F.serverTimestamp() }),
+  });
+}
+
+export async function deleteMatch(clubId, matchId) {
+  const { db, F } = await cloud();
+  await F.deleteDoc(F.doc(db, 'clubs', clubId, 'matches', matchId));
+}
+
+// The matches of one event, oldest first, as they change.
+export async function watchEventMatches(clubId, eventId, on) {
+  const { db, F } = await cloud();
+  const q = F.query(F.collection(db, 'clubs', clubId, 'matches'), F.where('eventId', '==', eventId));
+  return F.onSnapshot(q, (s) => on(s.docs.map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (a.startedAt?.toMillis?.() ?? Date.now()) - (b.startedAt?.toMillis?.() ?? Date.now()))), () => on([]));
+}
+
+// Before, during or after an event (in this device's time zone): 'upcoming', 'live', 'ended',
+// or 'cancelled'.
+export function eventPhase(e, now = Date.now()) {
+  if (e.status === 'cancelled') return 'cancelled';
+  if (now < startsAt(e.date, e.start).getTime()) return 'upcoming';
+  return now < startsAt(e.date, e.end).getTime() ? 'live' : 'ended';
+}
