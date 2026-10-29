@@ -661,7 +661,6 @@ input::placeholder { color: #5a5a5a; }
 .ov-court-top { display: flex; align-items: center; justify-content: space-between; gap: 1vw; }
 .ov-state { display: inline-flex; align-items: center; gap: 0.6vw; font-size: clamp(12px, 1.8vh, 24px); color: var(--muted); }
 .ov-state.late { color: #f59e0b; }
-.ov-which { color: var(--faint); }
 .ov-side .ov-name { flex: 1; min-width: 0; }
 .ov-side .ov-g { font-size: clamp(14px, 2.4vh, 32px); }
 /* Live: a green dot, softly blinking; late (no points for a while) or no connection: orange, still */
@@ -675,8 +674,11 @@ input::placeholder { color: #5a5a5a; }
 .ov-side { display: flex; align-items: center; justify-content: space-between; gap: 1vw; }
 .ov-name { font-size: clamp(16px, 2.8vh, 38px); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ov-name.serving { color: var(--green); }
-.ov-tiles { display: flex; gap: 0.4vh; --tile-h: clamp(30px, 6vh, 80px); }
-.ov-tiles .tile { --tile-h: inherit; }
+.ov-tiles { display: flex; gap: 0.5vh; --tile-h: clamp(32px, 6.4vh, 86px); }
+/* Small tiles on a card: a darker tile so it stands out, digits sized to fit inside */
+.ov-tiles .tile { --tile-h: inherit; background: var(--bg); font-size: calc(var(--tile-h) * 0.86); overflow: hidden; }
+.ov-tiles .tile.on { background: var(--green); }
+.ov-tiles .tile:not(.on) .split { background: var(--card); }
 .ov-side-col { display: flex; flex-direction: column; gap: 2vh; min-height: 0; overflow: hidden; }
 .ov-side-col .h3 { font-size: clamp(12px, 1.7vh, 22px); margin: 0 0.4vw; }
 .ov-card { background: var(--card); border: 1px solid var(--line); border-radius: 2vh; padding: 1.4vh 1.2vw; }
