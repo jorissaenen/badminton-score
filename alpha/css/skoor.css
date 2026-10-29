@@ -451,7 +451,7 @@ input::placeholder { color: #5a5a5a; }
 .toast {
   position: fixed;
   left: 50%;
-  top: calc(env(safe-area-inset-top) + 16px);
+  bottom: calc(env(safe-area-inset-bottom) + 76px); /* above the tabs, clear of the top bar */
   transform: translateX(-50%);
   z-index: 9;
   background: rgba(20, 20, 20, 0.94);
