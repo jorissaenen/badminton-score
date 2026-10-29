@@ -43,6 +43,12 @@ const ev = (who, id = 'e2') => doc(as(who), 'clubs', C, 'events', id);
 const reg = (who, player, e = 'e1') => doc(as(who), 'clubs', C, 'events', e, 'registrations', player);
 
 describe('events', () => {
+  test('a place with an address and notes, within limits', async () => {
+    await assertSucceeds(setDoc(ev('admin'), { ...event, address: 'Kerkstraat 12, 2000 Antwerpen', note: 'Parking behind the hall' }));
+    await assertFails(setDoc(ev('admin'), { ...event, address: 'x'.repeat(161) }));
+    await assertFails(setDoc(ev('admin'), { ...event, note: 'x'.repeat(281) }));
+  });
+
   test('admins create, change and delete events', async () => {
     await assertSucceeds(setDoc(ev('admin'), event));
     await assertSucceeds(updateDoc(ev('admin'), { status: 'cancelled' }));

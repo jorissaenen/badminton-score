@@ -134,6 +134,7 @@ tabs (Play, Clubs, You) and full screens instead of the settings window.
       shown everywhere in your clubs. Badges on pictures for owner, admin and score keeper, with a
       key under the list on People and the event
 - [ ] Team admin badge, once there are teams within a club
+- [x] An event's place: name, address and notes (parking, entrance); the route opens in Google Maps, Apple Maps or Waze. The club's usual place fills in new events
 - [x] Anonymous logins (screens) can't create clubs, join, read invites or write a profile (rules)
 - [ ] **You:** automatic clean-up of old screen keys (firebase-setup.md, step 7b)
 - [ ] App Check before the public release: only the real app may use the database, which stops

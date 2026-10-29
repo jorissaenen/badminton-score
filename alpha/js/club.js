@@ -83,7 +83,8 @@ export async function renameClub(user, clubId, name) {
   await F.setDoc(F.doc(db, 'users', user.uid, 'clubs', clubId), { name }, { merge: true });
 }
 
-// Other club details admins change: the usual place (suggested for new events) and the defaults
+// Other club details admins change: the usual place, its address and notes (suggested for new
+// events), and the defaults
 // for club matches.
 export async function updateClub(clubId, changes) {
   const { db, F } = await cloud();
@@ -281,7 +282,7 @@ export function weeklyDates(from, until) {
 }
 
 // The fields an admin edits; series edits copy these to every date.
-export const EVENT_FIELDS = ['type', 'date', 'start', 'end', 'location', 'courts', 'reminder'];
+export const EVENT_FIELDS = ['type', 'date', 'start', 'end', 'location', 'address', 'note', 'courts', 'reminder'];
 
 // The derived times: when it starts and when to remind (null: no reminder).
 function times(F, e) {
@@ -305,7 +306,7 @@ function retimes(F, old, next) {
 function eventDoc(F, e) {
   return {
     type: e.type ?? 'training', date: e.date, start: e.start, end: e.end,
-    location: e.location ?? '', courts: e.courts ?? 2, note: e.note ?? '',
+    location: e.location ?? '', address: e.address ?? '', courts: e.courts ?? 2, note: e.note ?? '',
     status: e.status ?? 'planned', ...(e.seriesId && { seriesId: e.seriesId }),
     ...times(F, e),
     schemaVersion: 1,
@@ -325,7 +326,7 @@ export async function addEvents(user, clubId, e, repeatUntil = null) {
   const dates = weeklyDates(e.date, repeatUntil);
   const batch = F.writeBatch(db);
   batch.set(series, {
-    type: e.type, start: e.start, end: e.end, location: e.location ?? '', courts: e.courts ?? 2,
+    type: e.type, start: e.start, end: e.end, location: e.location ?? '', address: e.address ?? '', note: e.note ?? '', courts: e.courts ?? 2,
     reminder: e.reminder === undefined ? null : e.reminder,
     from: e.date, until: repeatUntil, createdBy: user.uid, createdAt: F.serverTimestamp(), schemaVersion: 1,
   });
@@ -338,7 +339,9 @@ export async function addEvents(user, clubId, e, repeatUntil = null) {
   return dates.length;
 }
 
-const sameValue = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+// An empty text is the same as none (older events have no address or note).
+const blank = (v) => (v === '' || v === undefined ? null : v);
+const sameValue = (a, b) => JSON.stringify(blank(a)) === JSON.stringify(blank(b));
 
 // The fields that differ between an event and the edited values.
 export function changedFields(event, edited) {

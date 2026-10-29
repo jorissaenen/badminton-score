@@ -70,6 +70,12 @@ describe('clubs', () => {
     await assertFails(setDoc(doc(as('alice'), 'clubs', 'x'), { name: 'X', createdBy: 'bob', schemaVersion: 1 }));
   });
 
+  test('the usual place, its address and notes, within limits', async () => {
+    const edit = { name: 'BC Smash', createdBy: 'owner', schemaVersion: 1, place: 'Sporthal', placeAddress: 'Kerkstraat 12', placeNote: 'Parking behind' };
+    await assertSucceeds(setDoc(doc(as('admin'), 'clubs', C), edit));
+    await assertFails(setDoc(doc(as('admin'), 'clubs', C), { ...edit, placeAddress: 'x'.repeat(161) }));
+  });
+
   test('admins edit the club, members do not; only owners delete it', async () => {
     const edit = { name: 'Autumn 2026', createdBy: 'owner', schemaVersion: 1 };
     await assertSucceeds(setDoc(doc(as('admin'), 'clubs', C), edit));

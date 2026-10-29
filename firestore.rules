@@ -143,7 +143,10 @@ service cloud.firestore {
       function validClub(d) {
         return d.keys().hasAll(['name', 'createdBy', 'schemaVersion'])
           && d.name is string && d.name.size() > 0 && d.name.size() <= 60
-          && d.schemaVersion is int;
+          && d.schemaVersion is int
+          && d.get('place', '') is string && d.get('place', '').size() <= 80
+          && d.get('placeAddress', '') is string && d.get('placeAddress', '').size() <= 160
+          && d.get('placeNote', '') is string && d.get('placeNote', '').size() <= 280;
       }
 
       // Read by members. Created by anyone signed in, who becomes its owner in the same write
@@ -275,6 +278,7 @@ service cloud.firestore {
             && d.date is string && d.date.size() == 10
             && d.start is string && d.end is string && d.startsAt is timestamp
             && d.get('location', '') is string && d.get('location', '').size() <= 80
+            && d.get('address', '') is string && d.get('address', '').size() <= 160
             && d.get('note', '') is string && d.get('note', '').size() <= 280
             && d.get('pinned', '') is string && d.get('pinned', '').size() <= 280;
         }

@@ -22,7 +22,7 @@ export function show(el, [clubId, eventId], { go }) {
     const until = season?.end && season.end > Club.isoDate(new Date()) ? season.end : Club.isoDate(new Date(Date.now() + 90 * 86400_000));
     return {
       type: 'training', date: Club.isoDate(new Date()), start: '20:00', end: '21:30', courts: 2,
-      location: v.club.place ?? '', weekly: false, until, untilIsSeason: until === season?.end,
+      location: v.club.place ?? '', address: v.club.placeAddress ?? '', note: v.club.placeNote ?? '', weekly: false, until, untilIsSeason: until === season?.end,
       choice: 'smart', otherDays: 0, otherTime: '09:00',
     };
   }
@@ -31,6 +31,7 @@ export function show(el, [clubId, eventId], { go }) {
     const choice = choiceFor(e.reminder, e.date, e.start);
     return {
       type: e.type, date: e.date, start: e.start, end: e.end, courts: e.courts ?? 2, location: e.location ?? '',
+      address: e.address ?? '', note: e.note ?? '',
       weekly: false, choice, otherDays: e.reminder?.daysBefore ?? 0, otherTime: e.reminder?.time ?? '09:00',
     };
   }
@@ -75,8 +76,11 @@ export function show(el, [clubId, eventId], { go }) {
         <label class="switch"><span>${t('eventEdit.everyWeek')}<small>${f.weekly ? t('eventEdit.nDates', { n: dates, weekday }) : t('eventEdit.repeatEvery', { weekday })}</small></span><input type="checkbox" data-weekly ${f.weekly ? 'checked' : ''}></label>
         ${f.weekly ? html`<div class="pad" style="padding:0 16px 14px"><label class="field">${f.untilIsSeason ? t('eventEdit.untilSeasonEnd') : t('eventEdit.until')}<input type="date" data-f="until" value="${f.until}"></label></div>` : ''}
       </div>`}</section>
-      <section><h2 class="h3">${t('eventEdit.where')}</h2>
-        <input type="text" data-f="location" value="${f.location}" maxlength="80" placeholder="${t('eventEdit.whereExample')}" style="margin-top:0"></section>
+      <section><h2 class="h3">${t('eventEdit.where')}</h2><div class="card pad" style="display:flex;flex-direction:column;gap:12px">
+        <label class="field">${t('eventEdit.placeName')}<input type="text" data-f="location" value="${f.location}" maxlength="80" placeholder="${t('eventEdit.whereExample')}"></label>
+        <label class="field">${t('eventEdit.address')}<input type="text" data-f="address" value="${f.address}" maxlength="160" autocomplete="street-address" placeholder="${t('eventEdit.addressExample')}"></label>
+        <label class="field">${t('eventEdit.note')}<textarea data-f="note" maxlength="280" rows="3" placeholder="${t('eventEdit.noteExample')}">${f.note}</textarea></label>
+      </div><p class="note">${t('eventEdit.addressNote')}</p></section>
       <section><h2 class="h3">${t('eventEdit.courts')}</h2><div class="card row"><span class="grow">${t('eventEdit.courts')}</span>
         <span class="stepper"><button type="button" class="round" data-courts="-1" aria-label="${t('eventEdit.courtLess')}" ${f.courts <= 1 ? 'disabled' : ''}>−</button>
         <span class="display" style="font-size:26px;min-width:24px;text-align:center">${f.courts}</span>
@@ -96,7 +100,7 @@ export function show(el, [clubId, eventId], { go }) {
       const key = input.dataset.f;
       input.addEventListener('input', () => { f[key] = key === 'otherDays' ? Number(input.value) : input.value; if (key === 'until') f.untilIsSeason = false; });
       // Dates and times change the texts around them: redraw once the field is done.
-      if (key !== 'location') input.addEventListener('change', () => { input.blur(); render(); });
+      if (!['location', 'address', 'note'].includes(key)) input.addEventListener('change', () => { input.blur(); render(); });
     });
     el.querySelector('[data-weekly]')?.addEventListener('change', (e) => { f.weekly = e.target.checked; render(); });
     el.querySelectorAll('[data-courts]').forEach((b) => b.addEventListener('click', () => { f.courts = Math.min(20, Math.max(1, f.courts + Number(b.dataset.courts))); render(); }));
@@ -108,7 +112,7 @@ export function show(el, [clubId, eventId], { go }) {
     if (busy) return;
     const e = {
       type: f.type, date: f.date, start: f.start, end: f.end, courts: f.courts,
-      location: f.location.trim(), reminder: reminder(),
+      location: f.location.trim(), address: f.address.trim(), note: f.note.trim(), reminder: reminder(),
     };
     const until = !editing && f.weekly ? f.until : null;
     if (!e.date || !e.start || !e.end) { toast(t('eventEdit.needTimes')); return; }

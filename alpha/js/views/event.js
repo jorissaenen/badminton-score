@@ -72,7 +72,8 @@ export function show(el, [clubId, eventId], { go }) {
         <button type="button" class="btn small primary" data-save-pinned>${t('common.save')}</button></div>
         <p class="note">${t('screen.pinnedNote')}</p></section>` : ''}
       <div class="card">
-        ${e.location ? html`<a class="row" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.location)}" target="_blank" rel="noopener">${icon('pin', 20)}<span class="grow">${e.location}</span><span class="val">${t('event.maps')}</span></a>` : ''}
+        ${e.location || e.address ? html`<button type="button" class="row" data-directions>${icon('pin', 20)}<span class="grow"><strong style="font-weight:500">${e.location || e.address}</strong>${e.location && e.address ? html`<small>${e.address}</small>` : ''}</span><span class="val">${t('event.directions')}</span>${icon('chevron', 18)}</button>` : ''}
+        ${e.note ? html`<div class="row" style="align-items:flex-start">${icon('info', 20)}<span class="grow" style="white-space:pre-line">${e.note}</span></div>` : ''}
         <div class="row">${icon('courts', 20)}<span class="grow">${t('event.nCourts', { n: e.courts })}</span></div>
         ${cancelled ? '' : html`<div class="row">${icon('bell', 20)}<span class="grow">${at ? t('event.reminderAt', { day: at.toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' }), time: at.toTimeString().slice(0, 5) }) : t('reminder.none')}</span></div>`}
         ${e.seriesId ? html`<div class="row">${icon('calendar', 20)}<span class="grow">${t('event.everyWeekday', { day: dayText(e.date, { weekday: 'long' }) })}</span></div>` : ''}
@@ -100,6 +101,7 @@ export function show(el, [clubId, eventId], { go }) {
     el.querySelector('[data-save-pinned]')?.addEventListener('click', async () => {
       if (await attempt(Club.setPinned(clubId, eventId, (pinned ?? e.pinned ?? '').trim()), t('common.saveFailed'))) { pinned = null; toast(t('common.saved')); }
     });
+    el.querySelector('[data-directions]')?.addEventListener('click', () => directions(e));
     el.querySelector('[data-continue]')?.addEventListener('click', () => go('#/match'));
     el.querySelectorAll('[data-match]').forEach((b) => b.addEventListener('click', () => matchSheet(matches.find((m) => m.id === b.dataset.match))));
     if (myPlayer && phase === 'upcoming') {
@@ -176,6 +178,27 @@ export function show(el, [clubId, eventId], { go }) {
     const text = (note ?? '').trim();
     if (text === (regs[p.id].note ?? '')) return;
     attempt(Club.register(session.user, clubId, eventId, p.id, 'not going', text), t('event.reasonFailed'));
+  }
+
+  // Directions in the navigation app of your choice; to the address when there is one, else the
+  // place's name. On a computer, Google Maps opens in the browser.
+  function directions(e) {
+    const to = encodeURIComponent(e.address || e.location);
+    const apps = [
+      ['Google Maps', `https://www.google.com/maps/dir/?api=1&destination=${to}`],
+      ['Apple Maps', `https://maps.apple.com/?daddr=${to}`],
+      ['Waze', `https://waze.com/ul?q=${to}&navigate=yes`],
+    ];
+    sheet(html`<h2 class="sheet-title">${t('event.directions')}</h2>
+      <p class="sheet-text">${e.location}${e.location && e.address ? html`<br>` : ''}${e.address ?? ''}</p>
+      <div class="sheet-buttons">${apps.map(([name, href], i) => html`<a class="btn ${i ? 'outline' : 'primary'}" href="${href}" target="_blank" rel="noopener">${name}</a>`)}
+        ${e.address ? html`<button type="button" class="btn outline" data-copy>${t('event.copyAddress')}</button>` : ''}</div>`.s, (sh, close) => {
+      sh.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => setTimeout(close, 300)));
+      sh.querySelector('[data-copy]')?.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(e.address); toast(t('event.addressCopied')); } catch { toast(e.address); }
+        close();
+      });
+    });
   }
 
   async function answerFor(p) {

@@ -15,18 +15,21 @@ export function show(el, [clubId], { go }) {
 
   function draw(v) {
     const { club, admin, myRole, seasons } = v;
-    if (document.activeElement?.matches?.('.view input')) return; // don't redraw under typing
+    if (document.activeElement?.matches?.('.view input, .view textarea')) return; // don't redraw under typing
     const now = Club.currentSeason(seasons);
     const d = club.defaults ?? {};
     const sport = club.sport ?? 'badminton';
-    const field = (key, label, value, placeholder) => html`<label class="field">${label}
-      <input type="text" data-field="${key}" maxlength="60" value="${typed[key] ?? value ?? ''}" placeholder="${placeholder}" ${admin ? '' : 'disabled'}></label>`;
+    const field = (key, label, value, placeholder, max = 60) => html`<label class="field">${label}
+      <input type="text" data-field="${key}" maxlength="${max}" value="${typed[key] ?? value ?? ''}" placeholder="${placeholder}" ${admin ? '' : 'disabled'}></label>`;
     el.innerHTML = html`<div class="page">
       <div class="top"><a class="back" href="#/club/${clubId}">${icon('back', 22)}${club.name}</a></div>
       <h1 class="title">${t('clubSettings.title')}</h1>
       <section><h2 class="h3">${t('club.club')}</h2><div class="card pad" style="display:flex;flex-direction:column;gap:12px">
         ${field('name', t('clubSettings.name'), club.name, t('create.name'))}
-        ${field('place', t('clubSettings.place'), club.place, t('eventEdit.whereExample'))}
+        ${field('place', t('clubSettings.place'), club.place, t('eventEdit.whereExample'), 80)}
+        ${field('placeAddress', t('eventEdit.address'), club.placeAddress, t('eventEdit.addressExample'), 160)}
+        <label class="field">${t('eventEdit.note')}<textarea data-field="placeNote" maxlength="280" rows="3" placeholder="${t('eventEdit.noteExample')}" ${admin ? '' : 'disabled'}>${typed.placeNote ?? club.placeNote ?? ''}</textarea></label>
+        <p class="note" style="margin:-4px 0 0">${t('clubSettings.placeNote')}</p>
         ${admin ? html`<button type="button" class="btn primary" data-save-club>${t('common.save')}</button>` : html`<p class="note" style="margin:0">${t('clubSettings.adminsChange')}</p>`}
       </div></section>
       <section><h2 class="h3">${t('clubSettings.matches')}</h2><div class="card pad" style="display:flex;flex-direction:column;gap:12px">
@@ -62,14 +65,17 @@ export function show(el, [clubId], { go }) {
 
   async function saveClub(v) {
     const name = (typed.name ?? v.club.name).trim();
-    const place = (typed.place ?? v.club.place ?? '').trim();
+    const place = Object.fromEntries(['place', 'placeAddress', 'placeNote'].map((k) => [k, (typed[k] ?? v.club[k] ?? '').trim()]));
+    const placeChanged = Object.keys(place).some((k) => place[k] !== (v.club[k] ?? ''));
     if (!name) { toast(t('clubSettings.needName')); return; }
     let ok = true;
     if (name !== v.club.name) ok = await attempt(Club.renameClub(session.user, clubId, name), t('clubSettings.renameFailed'));
-    if (ok && place !== (v.club.place ?? '')) ok = await attempt(Club.updateClub(clubId, { place }), t('clubSettings.placeFailed'));
+    if (ok && placeChanged) ok = await attempt(Club.updateClub(clubId, place), t('clubSettings.placeFailed'));
     if (ok) {
       delete typed.name;
       delete typed.place;
+      delete typed.placeAddress;
+      delete typed.placeNote;
       toast(t('common.saved'));
       screen.redraw();
     }
