@@ -108,6 +108,13 @@ describe('scoring with a watch', () => {
     const m = r.json.matches[0];
     assert.deepEqual([m.home, m.away, m.court, m.tiles, m.server, m.version], ['Ann & Koen', 'Lies & Tom', 1, ['00', '00'], 0, 0]);
     assert.deepEqual([m.mine, m.ends, m.interval], [null, false, false]);
+    assert.equal(r.json.pollIn, 20, 'a match being played: ask again in 20 s');
+  });
+
+  test('how long a point takes, for the watch to ask when the next one is likely', async () => {
+    const token = await linkWatch();
+    const r = await call('GET', '/watch/match', { token, query: { club: C, match: 'm1', pace: '1' } });
+    assert.equal(r.json.pointMs, 18000, 'nothing to go on yet: what is usual in badminton');
   });
 
   test('the side you play on (for "My team on UP"), the interval and the change of ends', async () => {

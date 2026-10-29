@@ -22,11 +22,18 @@ else keeps it on a phone or another watch.
 - **Several keepers.** The first press on a score counts; a press on a score that has just
   changed doesn't, and gets an orange *Not counted* card with who was first, and a different
   buzz. After a point the score is frozen for 5 seconds (undo still works).
-- **Live or not.** The watch asks for the score every 3 seconds right after a point, every 5 during
-  play, every 10 after two quiet minutes and every 15 once the match is won (each request wakes the
-  Bluetooth link: the main battery cost). With a recent answer it shows LIVE in green; otherwise
-  OFFLINE in orange and a grey *Scoring paused* card. Without a connection a press is refused at
-  once, with why.
+- **Asking at the right moments.** Every request wakes the Bluetooth link, the main battery cost,
+  so the watch asks when a change is likely. It knows how long a point takes in this match (the
+  server's estimate from the match and the same players' earlier matches that evening, then
+  learnt from every point it sees): right after a point it waits (the score is frozen for 5 s
+  anyway), asks every 2.5 s in the window where the next point is expected, and slows to 6 s, then
+  12 s, when play stops. Calm in the interval (10 s, faster near its end), between games (15 s,
+  faster near the end of the 2 minutes) and after the match (20 s). The list of matches asks when
+  the server says: soon when a court is about to come free (a match at match point), every 20 s
+  while matches are played, every 10 s once the event is on, up to every 10 minutes with no event
+  today (see `functions/pace.js`).
+- **Live or not.** With a recent answer the watch shows LIVE in green; otherwise OFFLINE in orange
+  and a grey *Scoring paused* card. Without a connection a press is refused at once, with why.
 - **Leaving.** As in Garmin's own activities, BACK is a button of the match (undo, like LAP), and you
   leave through START → *Other match* (the list) or *Close Skoor*; on the list, BACK closes it.
   The match goes on for the others. The watch's app list then shows Skoor first, as the last app

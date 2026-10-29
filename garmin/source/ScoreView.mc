@@ -18,11 +18,16 @@ module Score {
 //! the side that serves in green. UP gives the team on top a point, DOWN the one below, BACK
 //! undoes, START opens the menu (or the next game).
 //!
-//! The watch only scores while it's sure it has the latest score. It asks for it every 3 seconds
-//! right after a point, every 5 seconds during play, every 10 after two quiet minutes and every 15
-//! once the match is won: every request wakes the Bluetooth link, the largest part of the battery
-//! the app uses. It shows LIVE (green) while the last answer is recent, OFFLINE (orange) otherwise,
-//! with scoring paused. The screen is only drawn again when something on it changes. Every press says which version of the score it was made on; the server
+//! The watch only scores while it's sure it has the latest score, and asks for it when a change is
+//! likely: every request wakes the Bluetooth link, the largest part of the battery the app uses.
+//! It knows how long a point takes in this match (the server's estimate from the match and the
+//! players' earlier matches, then learnt from every point it sees), so after a point it waits, asks
+//! often in the window where the next point is expected, and slows down when play stops; calm in
+//! the interval, between games and after the match. It shows LIVE (green) while the last answer is
+//! recent, OFFLINE (orange) otherwise, with scoring paused. The screen is only drawn again when
+//! something on it changes.
+//!
+//! Every press says which version of the score it was made on; the server
 //! counts the first press only, and freezes the score for 5 seconds after a point (undo still
 //! works). A press that doesn't count gets an orange NOT COUNTED card and a different buzz.
 class ScoreView extends WatchUi.View {
@@ -40,7 +45,10 @@ class ScoreView extends WatchUi.View {
     var alertUntil as Number = 0;
     private var _pollBusy as Boolean = false;
     private var _nextPoll as Number = 0;
-    private var _lastChange as Number = 0; // when the score last changed, or this watch pressed
+    private var _lastPoint as Number = 0; // when the last point was seen (or scored here)
+    private var _paceMs as Number = 18000; // expected time from one point to the next, learnt
+    private var _paced as Boolean = false; // got the server's estimate (asked once, with pace=1)
+    private var _wait as Number = 3000; // the wait chosen at the last check
     private var _drawnLive as Boolean = true;
     private var _timer as Timer.Timer?;
 
@@ -50,17 +58,44 @@ class ScoreView extends WatchUi.View {
         match = matchId;
         s = first;
         lastOk = System.getTimer();
-        _lastChange = lastOk;
+        _lastPoint = lastOk;
         frozenUntil = lastOk + (first["frozenMs"] as Number);
     }
 
     //! How long to wait before asking for the score again (see above).
     function pollMs() as Number {
-        var quiet = System.getTimer() - _lastChange;
+        var since = System.getTimer() - _lastPoint;
         if (s["matchWinner"] != null) {
-            return 15000;
+            return 20000; // only an undo can still come
         }
-        return quiet < 20000 ? 3000 : quiet < 120000 ? 5000 : 10000;
+        if (s["gameOver"] == true) {
+            return since < 90000 ? 15000 : 4000; // two minutes between games
+        }
+        if (s["interval"] == true) {
+            return since < 45000 ? 10000 : 4000; // the 60-second interval
+        }
+        // The window of the next point: from 60% to 180% of the usual time, never in the 5-second
+        // freeze after a point (nothing else can count then).
+        var opens = _paceMs * 6 / 10 > 5000 ? _paceMs * 6 / 10 : 5000;
+        var closes = _paceMs * 18 / 10;
+        if (since < opens) {
+            var left = opens - since;
+            return left < 2500 ? 2500 : left > 10000 ? 10000 : left;
+        }
+        if (since < closes) {
+            return 2500;
+        }
+        return since < 120000 ? 6000 : 12000; // play stopped: a break, a long rally, a discussion
+    }
+
+    //! A point seen: learn how long points take here (leaving out breaks and long pauses).
+    function learn() as Void {
+        var now = System.getTimer();
+        var gap = now - _lastPoint;
+        if (gap > 3000 && gap < 3 * _paceMs) {
+            _paceMs = (_paceMs * 7 + gap * 3) / 10;
+        }
+        _lastPoint = now;
     }
 
     //! Whether the watch can reach Skoor now: through the phone (Bluetooth), or Wi-Fi/LTE.
@@ -86,7 +121,7 @@ class ScoreView extends WatchUi.View {
 
     //! Live: connected, and the last answer is no older than two waits (plus a margin).
     function live() as Boolean {
-        return lastOk != 0 && connected() && System.getTimer() - lastOk < 2 * pollMs() + 3000;
+        return lastOk != 0 && connected() && System.getTimer() - lastOk < _wait + 6000;
     }
 
     //! Once a second: ask when it's time, and draw only what changed (the frozen bar running down,
@@ -107,17 +142,26 @@ class ScoreView extends WatchUi.View {
         if (_pollBusy || pressBusy) {
             return;
         }
-        _nextPoll = System.getTimer() + pollMs();
+        _wait = pollMs();
+        _nextPoll = System.getTimer() + _wait;
         if (!connected()) {
             return; // nothing to ask through; checked again at the next tick
         }
         _pollBusy = true;
-        Api.get("/match", { "club" => club, "match" => match }, method(:onMatch));
+        var params = { "club" => club, "match" => match };
+        if (!_paced) {
+            params["pace"] = "1";
+        }
+        Api.get("/match", params, method(:onMatch));
     }
 
     function onMatch(code as Number, data as Dictionary or String or Null) as Void {
         _pollBusy = false;
         if (code == 200 && data instanceof Dictionary) {
+            if (!_paced && data["pointMs"] != null) {
+                _paceMs = data["pointMs"] as Number;
+                _paced = true;
+            }
             take(data);
         } else if (code == 401) {
             unlinked();
@@ -131,7 +175,12 @@ class ScoreView extends WatchUi.View {
     function take(d as Dictionary) as Void {
         if ((d["version"] as Number) > (s["version"] as Number)) {
             alertFor(s, d);
-            _lastChange = System.getTimer();
+            var action = d["lastAction"] as String?;
+            if (action != null && action.find("point") == 0) {
+                learn();
+            } else {
+                _lastPoint = System.getTimer(); // an undo or the next game: count from now
+            }
         }
         if ((d["version"] as Number) >= (s["version"] as Number)) {
             s = d;
@@ -189,7 +238,6 @@ class ScoreView extends WatchUi.View {
             return;
         }
         pressBusy = true;
-        _lastChange = System.getTimer();
         Api.post("/press", { "club" => club, "match" => match, "basedOn" => s["version"], "action" => action }, method(:onPress));
     }
 

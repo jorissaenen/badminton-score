@@ -11,6 +11,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import * as M from './engine/match.js';
 import qrcode from './engine/qrcode.js';
+import { pointMs, pollIn, endsAt } from './pace.js';
 
 export const FREEZE_MS = 5000;
 const LINK_MS = 10 * 60_000; // how long a watch's linking key is valid
@@ -118,17 +119,33 @@ async function isMember(db, clubId, uid) {
   return (await db.doc(`clubs/${clubId}/members/${uid}`).get()).exists;
 }
 
-// The matches being played now in the account's clubs, by court.
+// Today's date where the club is ("2026-10-29").
+const today = (timeZone, now) => new Intl.DateTimeFormat('en-CA', { timeZone: timeZone || 'Europe/Brussels' }).format(new Date(now));
+
+// The matches being played now in the account's clubs, by court, and when to ask again (pollIn,
+// in seconds: see pace.js).
 async function listMatches(db, me, now) {
   const clubs = await db.collection(`users/${me.uid}/clubs`).get();
   const out = [];
+  const raw = [];
+  const events = [];
   for (const c of clubs.docs) {
     if (!(await isMember(db, c.id, me.uid))) continue;
-    const live = await db.collection(`clubs/${c.id}/matches`).where('status', '==', 'live').get();
-    for (const d of live.docs) out.push({ ...summary(d.id, c.id, d.data(), now, me.uid), clubName: c.data().name ?? '' });
+    const [live, club] = await Promise.all([
+      db.collection(`clubs/${c.id}/matches`).where('status', '==', 'live').get(),
+      db.doc(`clubs/${c.id}`).get(),
+    ]);
+    for (const d of live.docs) {
+      raw.push(d.data());
+      out.push({ ...summary(d.id, c.id, d.data(), now, me.uid), clubName: c.data().name ?? '' });
+    }
+    const todays = await db.collection(`clubs/${c.id}/events`).where('date', '==', today(club.data()?.timeZone, now)).get();
+    for (const e of todays.docs) {
+      if (e.data().status !== 'cancelled' && e.data().startsAt) events.push({ startsAt: e.data().startsAt.toMillis(), endsAt: endsAt(e.data()) });
+    }
   }
   out.sort((a, b) => (a.court ?? 99) - (b.court ?? 99));
-  return ok({ matches: out.slice(0, 20) });
+  return ok({ matches: out.slice(0, 20), pollIn: pollIn(raw, events, now) });
 }
 
 async function getMatch(db, me, query, now) {
@@ -136,7 +153,10 @@ async function getMatch(db, me, query, now) {
   if (!club || !match || !(await isMember(db, club, me.uid))) return fail(404, 'not found');
   const d = await db.doc(`clubs/${club}/matches/${match}`).get();
   if (!d.exists) return fail(404, 'not found');
-  return ok(summary(d.id, club, d.data(), now, me.uid));
+  // pace=1 (when the watch opens the match): the same players' earlier matches of the event too.
+  const m = d.data();
+  const history = query.pace ? (await db.collection(`clubs/${club}/matches`).where('eventId', '==', m.eventId).get()).docs.map((x) => x.data()) : [];
+  return ok({ ...summary(d.id, club, m, now, me.uid), pointMs: pointMs(m, history, now) });
 }
 
 // One press: 'point0', 'point1', 'undo' or 'next' (the next game), on version `basedOn`. Answers

@@ -18,15 +18,27 @@ class MatchesView extends WatchUi.View {
         View.initialize();
     }
 
+    //! The server says when to ask again (pollIn): soon when a court is about to come free, every
+    //! 20 s while matches are being played, every 10 s once the event is on, up to every 10 minutes
+    //! with no event today. Until it has answered: every 15 s.
+    private var _pollIn as Number = 15;
+
     function onShow() as Void {
-        load();
         _timer = new Timer.Timer();
-        _timer.start(method(:load), 15000, true); // a new match is rare: every 15 s saves battery
+        load();
+    }
+
+    function again() as Void {
+        if (_timer != null) {
+            _timer.stop();
+            _timer.start(method(:load), _pollIn * 1000, false);
+        }
     }
 
     function onHide() as Void {
         if (_timer != null) {
             _timer.stop();
+            _timer = null; // an answer arriving later doesn't start it again
         }
     }
 
@@ -38,6 +50,7 @@ class MatchesView extends WatchUi.View {
             _message = Api.problem(Communications.BLE_CONNECTION_UNAVAILABLE);
             WatchUi.requestUpdate();
         }
+        again(); // in case this one gets no answer
         _busy = true;
         Api.get("/matches", null, method(:onMatches));
     }
@@ -45,9 +58,14 @@ class MatchesView extends WatchUi.View {
     function onMatches(code as Number, data as Dictionary or String or Null) as Void {
         _busy = false;
         if (code == 200 && data instanceof Dictionary) {
-            matches = data["matches"] as Array;
-            if (selected >= matches.size()) {
+            var list = data["matches"] as Array;
+            matches = list;
+            if (selected >= list.size()) {
                 selected = 0;
+            }
+            if (data["pollIn"] instanceof Number) {
+                _pollIn = data["pollIn"] as Number;
+                again();
             }
         } else if (code == 401) {
             unlinked();
