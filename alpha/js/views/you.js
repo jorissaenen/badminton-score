@@ -9,6 +9,7 @@ import { speechSupported, onVoicesChanged } from '../audio.js';
 import { $, html, icon, initials, toast, confirmSheet } from '../ui.js';
 import { toggle, wireToggles, voiceSheet, remoteSheet, voiceName, seconds, soundCheck, languageSheet } from './settings.js';
 import { spinner } from './common.js';
+import { burst, tapsCounter } from '../burst.js';
 import { t, LANGUAGES, language } from '../i18n.js';
 
 const REMINDER_STATES = ['on', 'off', 'blocked', 'install-first'];
@@ -80,13 +81,15 @@ export function show(el) {
         ${install.installed ? html`<div class="row"><span class="grow">${t('you.install')}</span><span class="val">${t('you.installed')}</span></div>`
           : html`<button type="button" class="row" data-install ${canInstall ? '' : 'aria-disabled="true"'}>${icon('download', 20)}<span class="grow"><strong>${t('you.install')}</strong>
             <small>${canInstall ? t('you.installSub') : t('you.cantInstall')}</small></span></button>`}
-        <div class="row"><span class="grow">${t('you.about')}</span><span class="val">Skoor ${EDITION.label}${version ? ` · ${version}` : ''}</span></div>
+        <button type="button" class="row" data-about style="cursor:default;user-select:none;-webkit-user-select:none"><span class="grow">${t('you.about')}</span><span class="val">Skoor ${EDITION.label}${version ? ` · ${version}` : ''}</span></button>
       </div>
       <p class="note">${aboutLine(install)}</p></section>
     </div>`.s;
     wireToggles(el);
     el.querySelectorAll('input[data-set="voice"]').forEach((i) => i.addEventListener('change', draw));
     el.querySelector('[data-voice]')?.addEventListener('click', () => voiceSheet(draw));
+    // Five quick taps on About: every supported sport's icon bursts out of it.
+    el.querySelector('[data-about]').addEventListener('click', aboutTaps);
     el.querySelector('[data-language]').addEventListener('click', () => languageSheet(draw));
     el.querySelector('[data-soundcheck]').addEventListener('click', soundCheck);
     el.querySelector('[data-remote]').addEventListener('click', () => remoteSheet(draw));
@@ -109,6 +112,11 @@ export function show(el) {
       }
     });
   }
+
+  const aboutTaps = tapsCounter(5, (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    burst(e.clientX || r.left + r.width / 2, e.clientY || r.top + r.height / 2);
+  });
 
   // Version and detection details, to help when something doesn't show up on a device.
   function aboutLine(s) {
