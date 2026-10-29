@@ -8,6 +8,8 @@ module Menus {
         var menu = new WatchUi.Menu2({ :title => "Skoor" });
         menu.addItem(new WatchUi.MenuItem("Undo last point", null, :undo, null));
         menu.addItem(touchItem());
+        menu.addItem(new WatchUi.ToggleMenuItem("My team on UP", "When you play in the match", :myUp, Api.isOn("myUp"), null));
+        menu.addItem(new WatchUi.ToggleMenuItem("Interval alerts", "Interval and change ends", :alerts, Api.isOn("alerts"), null));
         menu.addItem(new WatchUi.MenuItem("Other match", null, :other, null));
         menu.addItem(new WatchUi.MenuItem("Unlink watch", null, :unlink, null));
         WatchUi.pushView(menu, new MatchMenuDelegate(view), WatchUi.SLIDE_UP);
@@ -25,6 +27,8 @@ module Menus {
     function showLinked() as Void {
         var menu = new WatchUi.Menu2({ :title => "Skoor" });
         menu.addItem(touchItem());
+        menu.addItem(new WatchUi.ToggleMenuItem("My team on UP", "When you play in the match", :myUp, Api.isOn("myUp"), null));
+        menu.addItem(new WatchUi.ToggleMenuItem("Interval alerts", "Interval and change ends", :alerts, Api.isOn("alerts"), null));
         menu.addItem(new WatchUi.MenuItem("Unlink watch", null, :unlink, null));
         WatchUi.pushView(menu, new MatchMenuDelegate(null), WatchUi.SLIDE_UP);
     }
@@ -45,6 +49,10 @@ class MatchMenuDelegate extends WatchUi.Menu2InputDelegate {
             return;
         }
         if (id == :notouch) {
+            return;
+        }
+        if (id == :myUp || id == :alerts) {
+            Api.setOn(id == :myUp ? "myUp" : "alerts", (item as WatchUi.ToggleMenuItem).isEnabled());
             return;
         }
         WatchUi.popView(WatchUi.SLIDE_DOWN);

@@ -277,6 +277,16 @@ export function midpoint(state, rules = DEFAULT_RULES) {
   return sp.ends.decider === 'floor' ? Math.floor(points / 2) : Math.ceil(points / 2);
 }
 
+// True right after the point that brings the leader to the midpoint (11 in a game to 21): badminton's
+// interval. False for shorter games and sports without it.
+export function intervalNow(state, rules = DEFAULT_RULES) {
+  const mid = midpoint(state, rules);
+  if (!sport(rules).breaks?.interval || !mid || isGameOver(state, rules)) return false;
+  const g = currentGame(state);
+  if ((g.points ?? rules.points) < 15 || Math.max(...gameScore(g)) !== mid) return false;
+  return Math.max(...gameScore({ ...g, rallies: g.rallies.slice(0, -1) })) < mid;
+}
+
 // What the scoreboard shows for each side: the big two-character tiles ('07', '15', 'AD'), and
 // for tennis the games in the current set.
 export function display(state, rules = DEFAULT_RULES) {

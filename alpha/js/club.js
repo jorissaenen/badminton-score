@@ -659,7 +659,8 @@ export async function linkScreen(user, displayId, key, link) {
   const { db, F } = await cloud();
   await F.setDoc(F.doc(db, 'displays', displayId), {
     clubId: link.clubId, eventId: link.eventId, mode: link.mode, court: link.mode === 'court' ? link.court : null,
-    announce: Boolean(link.announce), linkedBy: user.uid, code: key, linkedAt: F.serverTimestamp(),
+    announce: Boolean(link.announce), beep: Boolean(link.beep), notices: link.notices !== false, flip: Boolean(link.flip),
+    linkedBy: user.uid, code: key, linkedAt: F.serverTimestamp(),
   });
 }
 

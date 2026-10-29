@@ -15,6 +15,10 @@ else keeps it on a phone or another watch.
 - **Scoring.** UP: point for the top team · DOWN: point for the bottom team · BACK: undo ·
   START: the menu, or the next game when a game is over. Touch scoring (tap the top or bottom
   half) can be switched on in the menu; it's off by default because sleeves and sweat tap too.
+- **Your team on UP.** When you play in the match yourself, your own team is on top and on the UP
+  button, whichever side it's on, so the same button is always "our point" (menu: *My team on UP*).
+- **Interval and change ends.** At 11 (and in the decider: change ends) and when the teams change
+  ends with the next game, a green card and a buzz (menu: *Interval alerts*).
 - **Several keepers.** The first press on a score counts; a press on a score that has just
   changed doesn't, and gets an orange *Not counted* card with who was first, and a different
   buzz. After a point the score is frozen for 5 seconds (undo still works).

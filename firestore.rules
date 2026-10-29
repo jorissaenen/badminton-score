@@ -109,7 +109,9 @@ service cloud.firestore {
       function validLink(d) {
         return d.clubId is string && d.eventId is string && d.mode in ['court', 'overview']
           && (d.mode == 'overview' || (d.court is int && d.court >= 1 && d.court <= 40))
-          && d.announce is bool && d.linkedBy == request.auth.uid;
+          && d.announce is bool && d.linkedBy == request.auth.uid
+          // A beep at every point, the interval and change of ends, left and right swapped.
+          && d.get('beep', false) is bool && d.get('notices', true) is bool && d.get('flip', false) is bool;
       }
 
       allow get: if isMe(displayId)

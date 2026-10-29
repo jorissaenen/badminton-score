@@ -11,7 +11,7 @@ import { t, people } from './i18n.js';
 import { screenHeight } from './layout.js';
 import { sportOf } from './sports.js';
 import * as Club from './club.js';
-import { scoreCall as callFor, results as resultsFor } from './calls.js';
+import { scoreCall as callFor, results as resultsFor, notice } from './calls.js';
 import * as Shared from './clubmatch.js';
 
 const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab']);
@@ -251,10 +251,24 @@ export function joinMatch(m, link) {
 
 // Someone else changed the score (or this device caught up): show it, with a flash on the side
 // that scored. Only the device that scored calls the score out.
-function remoteChange(m) {
+// Someone else changed the score (another phone, a watch): show it, with the interval, the break
+// between games and the change of ends as for a point scored here (as far as the settings say).
+function remoteChange(m, before) {
   if (m === 'gone') { toast(t('board.refusedGone')); render(); return; }
   stopBreak();
   render();
+  const { match, rules } = state;
+  const n = before ? notice(before, match, rules) : null;
+  const gameJustOver = before && M.isGameOver(match, rules) && !M.isGameOver(before, rules);
+  if (gameJustOver && settings().intervals && M.matchWinner(match, rules) === null) {
+    startBreak('game', sport().breaks?.between ?? BETWEEN_GAMES_SECONDS);
+  } else if ((n === 'interval' || n === 'intervalEnds') && settings().intervals) {
+    $('intervalTitle').textContent = t(n === 'intervalEnds' ? 'board.intervalChangeEnds' : 'board.interval');
+    say(t(n === 'intervalEnds' ? 'call.intervalChangeEnds' : 'call.interval', { score: scoreCall() }));
+    startBreak('interval', sport().breaks.interval);
+  } else if (n && n !== 'interval' && settings().autoEnds) {
+    say(t('call.changeEnds', { score: scoreCall() })); // the banner comes with render()
+  }
   // The orange card shows the score that stands: keep it up to date.
   if (!$('refused').hidden && m.lastByName) {
     $('refusedText').textContent = t('board.refusedFirst', { name: m.lastByName, score: scoreText() });

@@ -45,6 +45,17 @@ module Api {
         Application.Storage.setValue(TOUCH_KEY, on);
     }
 
+    //! A switch kept on the watch, on unless switched off: "myUp" (your own team on top and on UP,
+    //! when you play in the match) and "alerts" (the interval and change of ends, with a buzz).
+    function isOn(key as String) as Boolean {
+        var v = Application.Storage.getValue(key);
+        return v instanceof Boolean ? v as Boolean : true;
+    }
+
+    function setOn(key as String, on as Boolean) as Void {
+        Application.Storage.setValue(key, on);
+    }
+
     function headers(json as Boolean) as Dictionary {
         var h = {};
         if (json) {

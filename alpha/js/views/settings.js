@@ -6,10 +6,13 @@ import * as Board from '../scoreboard.js';
 import { mediaControlsSupported } from '../media.js';
 import { DEFAULT_TIMING } from '../gesture.js';
 import { state, save, hasStarted } from '../state.js';
-import { html, icon, sheet, choose } from '../ui.js';
+import { html, icon, sheet, choose, attempt } from '../ui.js';
 import { t, LANGUAGES, language, setLanguage } from '../i18n.js';
 import { sportOf } from '../sports.js';
 import { unlink } from '../clubmatch.js';
+import * as Club from '../club.js';
+import { session } from '../session.js';
+import { screenSwitches, canLinkScreens } from './screens.js';
 import { sportName, rulesSummary } from './rules.js';
 
 const s = () => state.settings;
@@ -41,6 +44,7 @@ export const seconds = (ms) => `${(ms / 1000).toFixed(ms % 100 ? 2 : 1).replace(
 const miniTiles = (text, on) => html`<span class="mini-tiles">${[...text].map((d) => html`<span class="tile${on ? ' on' : ''}" style="--tile-h:46px"><span class="cap">${d}</span><span class="split"></span></span>`)}</span>`;
 
 export function openMatchMenu({ go }) {
+  let stopScreens = () => {};
   const { match, rules } = state;
   const tiles = M.display(match, rules).tiles;
   const srv = M.server(M.currentGame(match), rules, match);
@@ -62,6 +66,7 @@ export function openMatchMenu({ go }) {
       ${toggle('autoEnds', t('settings.autoEnds'), t('settings.autoEndsSub'))}
       <button type="button" class="row" data-remote>${icon('remote')}<span class="grow"><strong>${t('menu.remote')}</strong><small>${t('menu.remoteSub')}</small></span>${icon('chevron', 18)}</button>
     </div>
+    <div data-court-screens></div>
     <div class="btns">
       <button type="button" class="btn danger" data-end>${t('menu.end')}</button>
       <button type="button" class="btn primary" data-resume>${t('menu.resume')}</button>
@@ -73,6 +78,7 @@ export function openMatchMenu({ go }) {
       b.setAttribute('aria-pressed', String(s()[key]));
     }));
     el.querySelector('[data-remote]').addEventListener('click', () => { close(); remoteSheet(); });
+    stopScreens = courtScreens(el.querySelector('[data-court-screens]'));
     el.querySelector('[data-resume]').addEventListener('click', close);
     el.querySelector('[data-end]').addEventListener('click', async () => {
       close();
@@ -97,7 +103,33 @@ export function openMatchMenu({ go }) {
       }
       go('#/play');
     });
-  });
+  }, { onClose: () => stopScreens() });
+}
+
+// The screens at the venue that show the court of this club match: their sound, notices and sides,
+// to put right from the court. Changing them is for score keepers, admins and owners (as linking
+// them); others see them switched off, with why. Nothing when no screen shows this court.
+function courtScreens(host) {
+  const link = state.link;
+  if (!link) return () => {};
+  let stop = () => {};
+  let closed = false;
+  (async () => {
+    const [m, role] = await Promise.all([Club.fetchMatch(link.clubId, link.matchId).catch(() => null), Club.myRoleIn(session.user, link.clubId)]);
+    if (closed || !m?.court) return;
+    const may = canLinkScreens(role);
+    stop = await Club.watchEventScreens(link.clubId, link.eventId, (list) => {
+      const screens = list.filter((x) => x.mode === 'court' && x.court === m.court);
+      host.innerHTML = screens.length ? html`<div class="h3">${t('menu.screensOnCourt', { n: m.court, count: screens.length })}</div>
+        ${screens.map((x, i) => html`${screens.length > 1 ? html`<small class="muted">${t('menu.screenN', { n: i + 1 })}</small>` : ''}<div class="card" data-id="${x.id}">${screenSwitches({ notices: true, ...x }, !may)}</div>`)}
+        ${may ? '' : html`<p class="note" style="margin:0">${t('menu.screensKeepersOnly')}</p>`}`.s : '';
+      host.querySelectorAll('[data-id]').forEach((card) => card.querySelectorAll('[data-screen-set]').forEach((input) => input.addEventListener('change', () => {
+        attempt(Club.changeScreen(session.user, card.dataset.id, { [input.dataset.screenSet]: input.checked }), t('common.saveFailed'));
+      })));
+    });
+    if (closed) stop();
+  })();
+  return () => { closed = true; stop(); };
 }
 
 // ---------- sound ----------

@@ -94,3 +94,13 @@ test('change of ends: after each game and at 11 in the deciding game', () => {
   assert.equal(M.endsChanged(play(g3, times(0, 11)), R), true, '11-0 in game 3: change ends');
   assert.equal(M.endsChanged(M.undo(play(g3, times(0, 11))), R), false, 'undo back to 10 swaps back');
 });
+
+test('the interval: right after the point that brings the leader to 11', () => {
+  const g1 = M.newMatch();
+  assert.equal(M.intervalNow(play(g1, times(0, 10)), R), false, '10-0');
+  assert.equal(M.intervalNow(play(g1, times(0, 11)), R), true, '11-0');
+  assert.equal(M.intervalNow(play(g1, [...times(0, 11), 1]), R), false, 'play went on: 11-1');
+  assert.equal(M.intervalNow(play(g1, [...times(0, 11), ...times(1, 10)]), R), false, '11-10: the leader was at 11 already');
+  assert.equal(M.intervalNow(play(g1, times(0, 11)), { ...R, points: 11 }), false, 'a game to 11: it is over, no interval');
+  assert.equal(M.intervalNow(play(g1, times(0, 11)), { ...R, sport: 'squash' }), false, 'squash has none');
+});

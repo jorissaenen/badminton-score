@@ -1,6 +1,6 @@
 // Screens at the venue, from the phone of a score keeper, admin or owner: the screens linked to an
 // event, linking one with its key (or QR code), choosing what it shows (one court or table, or the
-// overview) and whether it announces the score, and unlinking it.
+// overview), its sound and notices, which side each team is on, and unlinking it.
 import * as Club from '../club.js';
 import { session } from '../session.js';
 import { sportOf } from '../sports.js';
@@ -25,6 +25,13 @@ export const screensSection = (screens, sport) => html`<section><h2 class="h3">$
     <button type="button" class="row" data-link-screen>${icon('plus', 20)}<span class="grow"><strong>${t('screen.link')}</strong><small>${t('screen.linkSub')}</small></span></button>
   </div></section>`;
 
+// What a court screen does besides the score: score calls, a beep at every point, the interval and
+// change of ends, and left and right swapped (for a screen on the other side of the court). Also
+// in the match menu, for the screens on the court being scored. Only for one court, not the overview.
+export const SCREEN_SETTINGS = ['announce', 'beep', 'notices', 'flip'];
+export const screenSwitches = (values, off = false) => html`${SCREEN_SETTINGS.map((key) => html`<label class="switch"><span>${t(`screen.set.${key}`)}<small>${off ? t('screen.set.courtOnly') : t(`screen.set.${key}Sub`)}</small></span>
+    <input type="checkbox" data-screen-set="${key}" ${values[key] ? 'checked' : ''} ${off ? raw('disabled') : ''}></label>`)}`;
+
 export function wireScreens(el, screens, ctx) {
   el.querySelector('[data-link-screen]')?.addEventListener('click', () => screenSheet({ ...ctx }));
   el.querySelectorAll('[data-screen]').forEach((b) => b.addEventListener('click', () => screenSheet({ ...ctx, screen: screens.find((s) => s.id === b.dataset.screen) })));
@@ -34,7 +41,7 @@ export function wireScreens(el, screens, ctx) {
 // key?, screen?, done? }.
 export function screenSheet(ctx) {
   const s = ctx.screen;
-  const pick = { mode: s?.mode ?? 'court', court: s?.court ?? 1, announce: s?.announce ?? false };
+  const pick = { mode: s?.mode ?? 'court', court: s?.court ?? 1, announce: s?.announce ?? false, beep: s?.beep ?? false, notices: s?.notices ?? true, flip: s?.flip ?? false };
   const courts = Math.max(1, ctx.courts ?? 1);
   const draw = () => html`<h2 class="sheet-title">${s ? screenLabel(s, ctx.sport) : t('screen.link')}</h2>
     ${s || ctx.key ? '' : html`<label class="field">${t('screen.keyLabel')}<input type="text" data-key maxlength="7" autocomplete="off" autocapitalize="characters" spellcheck="false"
@@ -44,7 +51,7 @@ export function screenSheet(ctx) {
       <button type="button" class="pick" data-mode="court" aria-pressed="${pick.mode === 'court'}">${t(sportOf(ctx.sport).id === 'tabletennis' ? 'screen.oneTable' : 'screen.oneCourt')}</button>
       <button type="button" class="pick" data-mode="overview" aria-pressed="${pick.mode === 'overview'}">${t('screen.overview')}</button></div></section>
     ${pick.mode === 'court' ? html`<section><div class="chips">${Array.from({ length: courts }, (_, i) => i + 1).map((n) => html`<button type="button" class="pick" data-court="${n}" aria-pressed="${pick.court === n}">${courtWord(ctx.sport, n)}</button>`)}</div></section>` : ''}
-    <div class="card"><label class="switch"><span>${t('screen.calls')}<small>${t('screen.callsSub')}</small></span><input type="checkbox" data-announce ${pick.announce ? 'checked' : ''} ${pick.mode === 'court' ? '' : raw('disabled')}></label></div>
+    <div class="card">${screenSwitches(pick, pick.mode !== 'court')}</div>
     <button type="button" class="btn primary block" data-save>${s ? t('common.save') : t('screen.linkButton')}</button>
     ${s ? html`<button type="button" class="btn danger block" data-unlink>${t('screen.unlink')}</button>` : ''}`.s;
 
@@ -58,7 +65,7 @@ export function screenSheet(ctx) {
       }
       el.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => { pick.mode = b.dataset.mode; redraw(); }));
       el.querySelectorAll('[data-court]').forEach((b) => b.addEventListener('click', () => { pick.court = Number(b.dataset.court); redraw(); }));
-      el.querySelector('[data-announce]').addEventListener('change', (e) => { pick.announce = e.target.checked; });
+      el.querySelectorAll('[data-screen-set]').forEach((input) => input.addEventListener('change', () => { pick[input.dataset.screenSet] = input.checked; }));
       el.querySelector('[data-save]').addEventListener('click', save);
       el.querySelector('[data-unlink]')?.addEventListener('click', async () => {
         close();
@@ -70,10 +77,11 @@ export function screenSheet(ctx) {
       wire();
     };
     async function save() {
-      const link = { clubId: ctx.clubId, eventId: ctx.eventId, mode: pick.mode, court: pick.court, announce: pick.mode === 'court' && pick.announce };
+      const court = pick.mode === 'court';
+      const link = { clubId: ctx.clubId, eventId: ctx.eventId, mode: pick.mode, court: pick.court, announce: court && pick.announce, beep: court && pick.beep, notices: pick.notices, flip: pick.flip };
       try {
         if (s) {
-          await Club.changeScreen(session.user, s.id, { mode: link.mode, court: link.mode === 'court' ? link.court : null, announce: link.announce });
+          await Club.changeScreen(session.user, s.id, { mode: link.mode, court: court ? link.court : null, announce: link.announce, beep: link.beep, notices: link.notices, flip: link.flip });
           toast(t('common.saved'));
         } else {
           const key = ctx.key ?? typed;

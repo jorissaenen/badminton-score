@@ -58,3 +58,14 @@ export function announcement(before, after, rules, names) {
   }
   return scoreCall(after, rules, names);
 }
+
+// What the players have to know after a change of the score, besides the score: 'interval',
+// 'intervalEnds' (the interval, and change ends: the decider), 'ends' (change ends: mid-game, or
+// as the next game starts) or null. Undos and unchanged scores give null.
+export function notice(before, after, rules) {
+  const count = (m) => m.games.reduce((n, g) => n + g.rallies.length, 0) + m.games.length;
+  if (!before || !after || count(after) <= count(before) || M.isGameOver(after, rules)) return null;
+  const ends = M.endsChanged(after, rules) !== M.endsChanged(before, rules);
+  if (M.intervalNow(after, rules)) return ends ? 'intervalEnds' : 'interval';
+  return ends ? 'ends' : null;
+}

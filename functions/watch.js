@@ -89,11 +89,13 @@ async function account(db, headers, now) {
 const side = (players) => players.map((p) => p.name).join(' & ');
 
 // What a watch shows of a match: the score as on the flip tiles, who serves, the earlier games,
-// and how long the score is still frozen.
-export function summary(id, clubId, m, now) {
+// how long the score is still frozen, the side the watch's owner plays on (mine: 0, 1 or null),
+// whether the teams stand on the other ends (ends) and whether it's the interval (at 11).
+export function summary(id, clubId, m, now, uid = null) {
   const { rules, state } = m;
   const d = M.display(state, rules);
   const over = M.isGameOver(state, rules);
+  const mine = uid ? [m.home, m.away].findIndex((players) => players.some((p) => p.id === uid)) : -1;
   const frozen = m.lastPointAt ? Math.max(0, m.lastPointAt.toMillis() + FREEZE_MS - now) : 0;
   return {
     club: clubId, match: id, version: m.version ?? 0, status: m.status, court: m.court ?? null,
@@ -107,6 +109,8 @@ export function summary(id, clubId, m, now) {
     gameWinner: over ? M.currentWinner(state, rules) : null,
     matchWinner: M.matchWinner(state, rules),
     frozenMs: frozen, lastBy: m.lastByName ?? '', lastAction: m.lastAction ?? '',
+    mine: mine === -1 ? null : mine,
+    ends: M.endsChanged(state, rules), interval: M.intervalNow(state, rules),
   };
 }
 
@@ -121,7 +125,7 @@ async function listMatches(db, me, now) {
   for (const c of clubs.docs) {
     if (!(await isMember(db, c.id, me.uid))) continue;
     const live = await db.collection(`clubs/${c.id}/matches`).where('status', '==', 'live').get();
-    for (const d of live.docs) out.push({ ...summary(d.id, c.id, d.data(), now), clubName: c.data().name ?? '' });
+    for (const d of live.docs) out.push({ ...summary(d.id, c.id, d.data(), now, me.uid), clubName: c.data().name ?? '' });
   }
   out.sort((a, b) => (a.court ?? 99) - (b.court ?? 99));
   return ok({ matches: out.slice(0, 20) });
@@ -132,7 +136,7 @@ async function getMatch(db, me, query, now) {
   if (!club || !match || !(await isMember(db, club, me.uid))) return fail(404, 'not found');
   const d = await db.doc(`clubs/${club}/matches/${match}`).get();
   if (!d.exists) return fail(404, 'not found');
-  return ok(summary(d.id, club, d.data(), now));
+  return ok(summary(d.id, club, d.data(), now, me.uid));
 }
 
 // One press: 'point0', 'point1', 'undo' or 'next' (the next game), on version `basedOn`. Answers
@@ -148,7 +152,7 @@ async function press(db, me, body, now) {
     if (!d.exists) return fail(404, 'not found');
     const m = d.data();
     const { rules, state } = m;
-    const refuse = (reason) => ok({ counted: false, reason, by: m.lastBy !== me.uid ? m.lastByName ?? '' : '', ...summary(d.id, club, m, now) });
+    const refuse = (reason) => ok({ counted: false, reason, by: m.lastBy !== me.uid ? m.lastByName ?? '' : '', ...summary(d.id, club, m, now, me.uid) });
     // A finished match takes one thing: undoing its last point, which reopens it (as on the phone).
     if (m.status !== 'live' && !(m.status === 'finished' && action === 'undo')) return refuse('over');
     if ((m.version ?? 0) !== basedOn) return refuse('stale');
@@ -173,7 +177,7 @@ async function press(db, me, body, now) {
       ...(winner !== null && { finishedAt: FieldValue.serverTimestamp() }),
     };
     tx.update(ref, changes);
-    return ok({ counted: true, ...summary(d.id, club, { ...m, ...changes }, now) });
+    return ok({ counted: true, ...summary(d.id, club, { ...m, ...changes }, now, me.uid) });
   });
 }
 

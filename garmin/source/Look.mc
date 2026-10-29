@@ -138,8 +138,8 @@ module Look {
     }
 
     //! A card in the middle of the screen with a big title and a line under it: orange for "Not
-    //! counted", grey for "Scoring paused".
-    function card(dc as Graphics.Dc, title as String, line as String, orange as Boolean) as Void {
+    //! counted", grey (CARD) for "Scoring paused", green for the interval and change of ends.
+    function card(dc as Graphics.Dc, title as String, line as String, color as Number) as Void {
         var w = dc.getWidth();
         var h = dc.getHeight();
         var cw = (w * 0.82).toNumber();
@@ -148,10 +148,10 @@ module Look {
         var y = (h - ch) / 2;
         dc.setColor(BLACK, BLACK);
         dc.fillRoundedRectangle(x - 4, y - 4, cw + 8, ch + 8, 18);
-        dc.setColor(orange ? ORANGE : CARD, orange ? ORANGE : CARD);
+        dc.setColor(color, color);
         dc.fillRoundedRectangle(x, y, cw, ch, 14);
-        var fg = orange ? BLACK : WHITE;
-        text(dc, w / 2, y + ch * 0.34, Graphics.FONT_SMALL, title, fg);
-        text(dc, w / 2, y + ch * 0.70, Graphics.FONT_XTINY, line, orange ? BLACK : MUTED);
+        var dark = color != CARD; // black text on orange and green
+        text(dc, w / 2, y + ch * 0.34, Graphics.FONT_SMALL, title, dark ? BLACK : WHITE);
+        text(dc, w / 2, y + ch * 0.70, Graphics.FONT_XTINY, line, dark ? BLACK : MUTED);
     }
 }

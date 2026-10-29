@@ -14,8 +14,9 @@ module Score {
     }
 }
 
-//! One match, being scored: team 1 on top, team 2 below, as flip tiles; the side that serves in
-//! green. UP gives team 1 a point, DOWN team 2, BACK undoes, START opens the menu (or the next game).
+//! One match, being scored: team 1 on top, team 2 below (or your own team on top), as flip tiles;
+//! the side that serves in green. UP gives the team on top a point, DOWN the one below, BACK
+//! undoes, START opens the menu (or the next game).
 //!
 //! The watch only scores while it's sure it has the latest score: it asks every 2.5 seconds, and
 //! shows LIVE (green) while the last answer is less than 8 seconds old, OFFLINE (orange) otherwise,
@@ -34,6 +35,9 @@ class ScoreView extends WatchUi.View {
     var refusedText as String? = null;
     var refusedUntil as Number = 0;
     var pressBusy as Boolean = false;
+    var alertTitle as String? = null; // INTERVAL, CHANGE ENDS
+    var alertLine as String = "";
+    var alertUntil as Number = 0;
     private var _pollBusy as Boolean = false;
     private var _ticks as Number = 0;
     private var _timer as Timer.Timer?;
@@ -93,12 +97,46 @@ class ScoreView extends WatchUi.View {
 
     //! A newer (or the same) score from the server.
     function take(d as Dictionary) as Void {
+        if ((d["version"] as Number) > (s["version"] as Number)) {
+            alertFor(s, d);
+        }
         if ((d["version"] as Number) >= (s["version"] as Number)) {
             s = d;
         }
         var now = System.getTimer();
         lastOk = now;
         frozenUntil = now + (d["frozenMs"] as Number);
+    }
+
+    //! The interval (at 11) or a change of ends, between two scores: a green card and a buzz, unless
+    //! switched off in the menu. A change of ends with the next game shows too.
+    function alertFor(was as Dictionary, now as Dictionary) as Void {
+        if (!Api.isOn("alerts") || now["gameOver"] == true) {
+            return;
+        }
+        var ends = now["ends"] != was["ends"];
+        if (now["interval"] == true) {
+            alertTitle = "INTERVAL";
+            alertLine = ends ? "Change ends" : "60 seconds";
+        } else if (ends) {
+            alertTitle = "CHANGE ENDS";
+            alertLine = "Teams switch sides";
+        } else {
+            return;
+        }
+        alertUntil = System.getTimer() + 5000;
+        Look.buzzGame();
+    }
+
+    //! The team on top (and on UP): your own team when you play in the match and "My team on UP"
+    //! is on (menu), else team 1.
+    function top() as Number {
+        return Api.isOn("myUp") && s["mine"] == 1 ? 1 : 0;
+    }
+
+    //! A point for the team on top (UP) or at the bottom (DOWN).
+    function pointFor(onTop as Boolean) as Void {
+        press("point" + (onTop ? top() : 1 - top()).toString());
     }
 
     //! 'point0', 'point1', 'undo' or 'next'.
@@ -263,10 +301,10 @@ class ScoreView extends WatchUi.View {
 
         var th = (h * 0.21).toNumber();
         var font = tileFont(dc, th);
-        side(dc, 0, (h * 0.24).toNumber(), (h * 0.38).toNumber(), th, font);
+        side(dc, top(), (h * 0.24).toNumber(), (h * 0.38).toNumber(), th, font);
         dc.setColor(Look.LINE, Look.LINE);
         dc.fillRectangle((w * 0.25).toNumber(), (h * 0.52).toNumber(), (w * 0.5).toNumber(), 1);
-        side(dc, 1, (h * 0.80).toNumber(), (h * 0.66).toNumber(), th, font);
+        side(dc, 1 - top(), (h * 0.80).toNumber(), (h * 0.66).toNumber(), th, font);
         if (s["court"] != null) {
             Look.text(dc, w / 2, (h * 0.90).toNumber(), Graphics.FONT_XTINY, "COURT " + (s["court"] as Number).toString(), Look.FAINT);
         }
@@ -277,9 +315,11 @@ class ScoreView extends WatchUi.View {
     //! Not counted (orange), or scoring paused (grey), over whatever is on screen.
     function cards(dc as Graphics.Dc, now as Number) as Void {
         if (refusedText != null && now < refusedUntil) {
-            Look.card(dc, "NOT COUNTED", refusedText as String, true);
+            Look.card(dc, "NOT COUNTED", refusedText as String, Look.ORANGE);
+        } else if (alertTitle != null && now < alertUntil) {
+            Look.card(dc, alertTitle as String, alertLine, Look.GREEN);
         } else if (!live()) {
-            Look.card(dc, "SCORING PAUSED", "No connection: checking…", false);
+            Look.card(dc, "SCORING PAUSED", "No connection: checking…", Look.CARD);
         }
     }
 
@@ -380,8 +420,9 @@ class ScoreView extends WatchUi.View {
     }
 }
 
-//! UP: point team 1 · DOWN: point team 2 · BACK: undo · START: menu, or the next game when a game
-//! is over · a tap on the top or bottom half scores too, when touch scoring is on (menu).
+//! UP: point for the team on top · DOWN: for the team below · BACK: undo · START: menu, or the
+//! next game when a game is over · a tap on the top or bottom half scores too, when touch scoring
+//! is on (menu).
 class ScoreDelegate extends WatchUi.BehaviorDelegate {
     private var _view as ScoreView;
 
@@ -393,11 +434,11 @@ class ScoreDelegate extends WatchUi.BehaviorDelegate {
     function onKey(evt as WatchUi.KeyEvent) as Boolean {
         var key = evt.getKey();
         if (key == WatchUi.KEY_UP) {
-            _view.press("point0");
+            _view.pointFor(true);
             return true;
         }
         if (key == WatchUi.KEY_DOWN) {
-            _view.press("point1");
+            _view.pointFor(false);
             return true;
         }
         if (key == WatchUi.KEY_ESC) {
@@ -428,7 +469,7 @@ class ScoreDelegate extends WatchUi.BehaviorDelegate {
             return true;
         }
         var y = evt.getCoordinates()[1];
-        _view.press(y < System.getDeviceSettings().screenHeight / 2 ? "point0" : "point1");
+        _view.pointFor(y < System.getDeviceSettings().screenHeight / 2);
         return true;
     }
 

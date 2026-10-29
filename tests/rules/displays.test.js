@@ -77,6 +77,13 @@ describe('screens', () => {
     await assertSucceeds(deleteDoc(screen('owner')));
   });
 
+  test('a score keeper switches its beep, interval notices and sides from the match menu', async () => {
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'displays', 'screen1'), link('keeper', { code: 'OLDOLD' })));
+    await assertSucceeds(updateDoc(screen('keeper'), { beep: true, notices: false, flip: true, linkedBy: 'keeper' }));
+    await assertFails(updateDoc(screen('keeper'), { flip: 'left', linkedBy: 'keeper' }));
+    await assertFails(updateDoc(screen('member'), { beep: false, linkedBy: 'member' }));
+  });
+
   test('a linked screen reads its club, events and matches; not players, not other clubs', async () => {
     await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'displays', 'screen1'), link('keeper')));
     const s = as('screen1');

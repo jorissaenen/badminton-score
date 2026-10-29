@@ -638,6 +638,9 @@ input::placeholder, textarea::placeholder { color: #5a5a5a; }
 .screen.court .sides { flex: 1; display: flex; flex-direction: row; min-height: 0; --tile-h: min(46vh, 19vw); }
 .screen.court .team { --tile-h: inherit; }
 .screen.court .net { width: 1px; height: auto; background: var(--line); margin: 6vh 2vw; }
+.screen-notice { display: flex; align-items: center; justify-content: center; gap: 3vw; min-height: 9vh; border-radius: 2vh; background: var(--green); color: var(--on-green); animation: fade 0.4s ease-out; }
+.screen-notice b { font-family: var(--display); font-weight: 800; font-size: clamp(22px, 6vh, 84px); letter-spacing: 0.12em; line-height: 1; }
+.notice-clock { font-family: var(--display); font-weight: 800; font-size: clamp(22px, 6vh, 84px); font-variant-numeric: tabular-nums; line-height: 1; }
 .last-result { align-self: center; width: min(100%, 64vw); display: flex; flex-direction: column; gap: 1.2vh; }
 .lr-head, .lr-row { display: flex; align-items: center; gap: 1vw; }
 .lr-head { padding: 1vh 0 0.4vh; font-size: clamp(11px, 1.8vh, 24px); font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }

@@ -33,13 +33,14 @@ function receive(m, live) {
   sync.live = live && navigator.onLine;
   const version = m.version ?? 0;
   if (version > (link.version ?? 0)) {
+    const before = state.match;
     link.version = version;
     state.match = m.state;
     save();
     sync.lastBy = m.lastByName ?? '';
     if (m.lastAction?.startsWith('point')) sync.frozenUntil = Date.now() + Club.FREEZE_SECONDS * 1000;
     else if (m.lastAction === 'undo') sync.frozenUntil = 0;
-    onRemote(m);
+    onRemote(m, before);
   }
   onStatus();
 }

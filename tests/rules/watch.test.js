@@ -107,6 +107,17 @@ describe('scoring with a watch', () => {
     assert.equal(r.json.matches.length, 1);
     const m = r.json.matches[0];
     assert.deepEqual([m.home, m.away, m.court, m.tiles, m.server, m.version], ['Ann & Koen', 'Lies & Tom', 1, ['00', '00'], 0, 0]);
+    assert.deepEqual([m.mine, m.ends, m.interval], [null, false, false]);
+  });
+
+  test('the side you play on (for "My team on UP"), the interval and the change of ends', async () => {
+    const token = await linkWatch();
+    const rules = { sport: 'badminton', points: 21, cap: 30, bestOf: 3 };
+    await db.doc(`clubs/${C}/matches/m1`).set(match({ rules, away: [{ id: 'joris', name: 'Joris' }], state: { games: [{ firstServer: 0, rallies: Array(21).fill(0) }, { firstServer: 0, rallies: Array(21).fill(1) }, { firstServer: 0, rallies: Array(10).fill(0) }] } }));
+    const before = (await call('GET', '/watch/match', { token, query: { club: C, match: 'm1' } })).json;
+    assert.deepEqual([before.mine, before.ends, before.interval], [1, false, false]);
+    const r = await call('POST', '/watch/press', { token, body: { club: C, match: 'm1', basedOn: 0, action: 'point0' } });
+    assert.deepEqual([r.json.counted, r.json.ends, r.json.interval], [true, true, true], '11 in the decider: interval, change ends');
   });
 
   test('a press counts on the latest score; the same press on an older score doesn\'t', async () => {

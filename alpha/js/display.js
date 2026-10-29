@@ -2,14 +2,17 @@
 // change every minute, with a ring that empties until the next one. A score keeper, admin or owner
 // links it to an event with that key (Event → Screens, or by scanning the QR code). Linked, it shows
 // one court (or table) with its live match, or the overview of the event: every court, the
-// statistics, the latest results and the pinned message. It can announce the score of its court.
+// statistics, the latest results and the pinned message. It can announce the score of its court,
+// beep at every point and show the interval and change of ends; its teams change sides with the
+// players (and can be swapped once, for a screen on the other side of the court).
 // Not linked, it shows slides (advertising), with the key at the bottom.
 import { cloud } from './cloud.js';
 import * as Club from './club.js';
 import * as M from './match.js';
 import * as Audio from './audio.js';
 import qrcode from './vendor/qrcode.js';
-import { announcement } from './calls.js';
+import { announcement, notice as noticeFor } from './calls.js';
+import { formatClock } from './breaks.js';
 import { eventStats } from './stats.js';
 import { sportOf } from './sports.js';
 import { setLanguage, t } from './i18n.js';
@@ -44,6 +47,7 @@ let slide = 0;
 let loaded = { event: false, matches: false }; // what it follows has come in at least once
 let lastAnnounced = null; // { id, state } of the court's match, to know what changed
 let soundOn = false; // the browser lets this screen speak
+let notice = null; // { kind: 'interval' | 'intervalEnds' | 'ends', until } shown on the court screen
 
 // Score calls. Browsers only allow sound after someone used the screen once; many TVs and kiosk
 // setups allow it at once. So: try, and only when it's blocked show a small note in the top bar;
@@ -59,7 +63,8 @@ function trySound() {
   }, 400);
 }
 const soundHint = () => html`<span class="sound-hint">${raw('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4zM22 9l-6 6M16 9l6 6"/></svg>')}${t('screen.soundHint')}</span>`;
-['keydown', 'pointerdown'].forEach((type) => document.addEventListener(type, () => { if (!soundOn && link?.announce) trySound(); }));
+const wantsSound = () => Boolean(link?.announce || link?.beep);
+['keydown', 'pointerdown'].forEach((type) => document.addEventListener(type, () => { if (!soundOn && wantsSound()) trySound(); }));
 let lastNewest = null; // the newest result on the overview, to slide in the next one
 
 // ---------- the key ----------
@@ -166,9 +171,22 @@ function drawCourt() {
       <div class="tiles">${tiles(view.tiles[s], !over && srv === s)}</div>
       <span class="serves">${t('board.serves')}</span></section>`;
   const title = view.tiebreak ? t('board.tiebreak') : t(tennis ? 'board.setN' : 'board.gameN', { n: live.state.games.length });
-  root.innerHTML = html`${top(`${label} · ${title}`, html`${link.announce && !soundOn ? soundHint() : ''}${navigator.onLine && isLate(live) ? liveDot(live) : liveChip()}`)}
-    <div class="sides">${side(0)}<div class="net"></div>${side(1)}</div>
-    ${news().length ? html`<footer class="news" id="news">${newsItem()}</footer>` : ''}`.s;
+  // Each team on the side of the screen where it stands: swapped when the teams changed ends, and
+  // once more for a screen that looks at the court from the other side.
+  const swapped = Boolean(link.flip) !== M.endsChanged(live.state, live.rules);
+  const order = swapped ? [1, 0] : [0, 1];
+  const shownNotice = notice && link.notices !== false && Date.now() < notice.until ? notice : null;
+  root.innerHTML = html`${top(`${label} · ${title}`, html`${wantsSound() && !soundOn ? soundHint() : ''}${navigator.onLine && isLate(live) ? liveDot(live) : liveChip()}`)}
+    <div class="sides">${side(order[0])}<div class="net"></div>${side(order[1])}</div>
+    ${shownNotice ? noticeBar(shownNotice) : news().length ? html`<footer class="news" id="news">${newsItem()}</footer>` : ''}`.s;
+}
+
+// The interval (with its clock) or the change of ends, in green along the bottom, instead of the
+// news: from across the hall, players see they have to switch.
+function noticeBar(n) {
+  const left = Math.max(0, Math.ceil((n.until - Date.now()) / 1000));
+  const text = t(n.kind === 'intervalEnds' ? 'board.intervalChangeEnds' : n.kind === 'interval' ? 'board.interval' : 'board.changeEndsBanner');
+  return html`<footer class="screen-notice" role="status"><b>${text.toUpperCase()}</b>${n.kind === 'ends' ? '' : html`<span class="notice-clock" id="noticeClock">${formatClock(left)}</span>`}</footer>`;
 }
 
 // News along the bottom of a court screen, one item at a time, changing every 8 seconds (no
@@ -323,17 +341,37 @@ async function unlinkWhenOver() {
 }
 setInterval(unlinkWhenOver, 60_000);
 
-// Announces the score of its court, when the club switched that on for this screen.
+// A new score on its court: a beep (when switched on for this screen), the interval or change of
+// ends (shown unless switched off), and the score call (when switched on).
 function announce() {
   if (link?.mode !== 'court') return;
   const m = matches.filter((x) => x.court === link.court && x.status !== 'stopped').at(-1);
   if (!m) return;
   const before = lastAnnounced?.id === m.id ? lastAnnounced.state : null;
   lastAnnounced = { id: m.id, state: m.state };
-  if (!link.announce || !before) return;
+  if (!before) return;
+  const rallies = (s) => s.games.reduce((n, g) => n + g.rallies.length, 0);
+  const kind = noticeFor(before, m.state, m.rules);
+  if (kind) {
+    const seconds = kind === 'ends' ? 10 : sportOf(m.rules.sport).breaks?.interval ?? 60;
+    notice = { kind, until: Date.now() + seconds * 1000 };
+  } else if (rallies(m.state) !== rallies(before)) {
+    notice = null; // play goes on: the interval is over
+  }
+  if (link.beep && soundOn && rallies(m.state) > rallies(before)) Audio.beep(880);
+  if (!link.announce) return;
   const text = announcement(before, m.state, m.rules, names(m));
-  if (text) Audio.say(text);
+  const extra = { interval: [t('board.interval')], intervalEnds: [t('board.interval'), t('call.changeEndsShort')], ends: [t('call.changeEndsShort')] }[kind] ?? [];
+  if (text) Audio.say([text, ...extra].join('. '));
 }
+
+// The interval's clock counts down; when the notice is over, the news comes back.
+setInterval(() => {
+  if (!notice) return;
+  if (Date.now() >= notice.until) { notice = null; draw(); return; }
+  const clock = $('noticeClock');
+  if (clock) clock.textContent = formatClock(Math.max(0, Math.ceil((notice.until - Date.now()) / 1000)));
+}, 1000);
 
 // ---------- start ----------
 
@@ -356,7 +394,7 @@ async function start() {
       const next = d.exists() ? d.data() : null;
       const moved = JSON.stringify([next?.clubId, next?.eventId]) !== JSON.stringify([link?.clubId, link?.eventId]);
       link = next;
-      if (link?.announce) trySound();
+      if (wantsSound()) trySound();
       if (moved) follow();
       else draw();
     }, () => {});
