@@ -5,6 +5,8 @@ import { setLastClub } from '../links.js';
 import { html, icon, sheet, confirmSheet, attempt, toast, dayText, raw } from '../ui.js';
 import { clubScreen } from './clubview.js';
 import { t } from '../i18n.js';
+import { rulesFor, sportIcon } from '../sports.js';
+import { rulesFields, wireRules, sportName } from './rules.js';
 
 const fullDate = (iso) => dayText(iso, { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -16,9 +18,9 @@ export function show(el, [clubId], { go }) {
     if (document.activeElement?.matches?.('.view input')) return; // don't redraw under typing
     const now = Club.currentSeason(seasons);
     const d = club.defaults ?? {};
+    const sport = club.sport ?? 'badminton';
     const field = (key, label, value, placeholder) => html`<label class="field">${label}
       <input type="text" data-field="${key}" maxlength="60" value="${typed[key] ?? value ?? ''}" placeholder="${placeholder}" ${admin ? '' : 'disabled'}></label>`;
-    const chip = (key, value, label) => html`<button type="button" class="pick" data-default="${key}" data-value="${value}" aria-pressed="${(d[key] ?? (key === 'points' ? 21 : 3)) === value}" ${admin ? '' : 'disabled'}>${label}</button>`;
     el.innerHTML = html`<div class="page">
       <div class="top"><a class="back" href="#/club/${clubId}">${icon('back', 22)}${club.name}</a></div>
       <h1 class="title">${t('clubSettings.title')}</h1>
@@ -28,8 +30,8 @@ export function show(el, [clubId], { go }) {
         ${admin ? html`<button type="button" class="btn primary" data-save-club>${t('common.save')}</button>` : html`<p class="note" style="margin:0">${t('clubSettings.adminsChange')}</p>`}
       </div></section>
       <section><h2 class="h3">${t('clubSettings.matches')}</h2><div class="card pad" style="display:flex;flex-direction:column;gap:12px">
-        <div class="chips">${chip('points', 21, t('rules.nPoints', { n: 21 }))}${chip('points', 15, '15')}${chip('points', 11, '11')}</div>
-        <div class="chips">${chip('bestOf', 1, t('rules.oneGame'))}${chip('bestOf', 3, t('rules.bestOf', { n: 3 }))}${chip('bestOf', 5, t('rules.bestOf', { n: 5 }))}</div>
+        <div class="row" style="padding:0;min-height:0">${raw(sportIcon(sport, 22))}<span class="grow"><strong>${sportName(sport)}</strong><small>${t('clubSettings.oneSport')}</small></span></div>
+        ${rulesFields(sport, d, { disabled: !admin })}
       </div></section>
       <section><h2 class="h3">${t('season.seasons')}${admin ? html`<button type="button" data-add-season>${t('season.add')}</button>` : ''}</h2><div class="card">
         ${seasons.length ? seasons.map((s) => html`<button type="button" class="row" data-season="${s.id}" ${admin ? '' : raw(raw('disabled style="cursor:default"'))}>
@@ -48,9 +50,10 @@ export function show(el, [clubId], { go }) {
       i.addEventListener('blur', () => setTimeout(() => screen.redraw(), 0));
     });
     el.querySelector('[data-save-club]')?.addEventListener('click', () => saveClub(v));
-    el.querySelectorAll('[data-default]').forEach((b) => b.addEventListener('click', () => {
-      attempt(Club.updateClub(clubId, { defaults: { points: 21, bestOf: 3, ...d, [b.dataset.default]: Number(b.dataset.value) } }), t('common.saveFailed'));
-    }));
+    wireRules(el, (key, value) => {
+      const { sport: _sport, ...defaults } = rulesFor(sport, { ...d, [key]: value });
+      attempt(Club.updateClub(clubId, { defaults }), t('common.saveFailed'));
+    });
     el.querySelector('[data-add-season]')?.addEventListener('click', () => editSeason(v, null));
     el.querySelectorAll('[data-season]').forEach((b) => b.addEventListener('click', () => editSeason(v, seasons.find((s) => s.id === b.dataset.season))));
     el.querySelector('[data-leave]').addEventListener('click', () => leave(v));

@@ -8,6 +8,8 @@ import { DEFAULT_TIMING } from '../gesture.js';
 import { state, save, hasStarted } from '../state.js';
 import { html, icon, sheet, choose } from '../ui.js';
 import { t, LANGUAGES, language, setLanguage } from '../i18n.js';
+import { sportOf } from '../sports.js';
+import { sportName, rulesSummary } from './rules.js';
 
 const s = () => state.settings;
 
@@ -35,20 +37,19 @@ export const seconds = (ms) => `${(ms / 1000).toFixed(ms % 100 ? 2 : 1).replace(
 
 // ---------- the match menu ----------
 
-const pad2 = (n) => String(n).padStart(2, '0');
-const miniTiles = (n, on) => html`<span class="mini-tiles">${[...pad2(n)].map((d) => html`<span class="tile${on ? ' on' : ''}" style="--tile-h:46px"><span class="cap">${d}</span><span class="split"></span></span>`)}</span>`;
+const miniTiles = (text, on) => html`<span class="mini-tiles">${[...text].map((d) => html`<span class="tile${on ? ' on' : ''}" style="--tile-h:46px"><span class="cap">${d}</span><span class="split"></span></span>`)}</span>`;
 
 export function openMatchMenu({ go }) {
   const { match, rules } = state;
-  const g = M.currentGame(match);
-  const score = M.gameScore(g);
-  const srv = M.server(g);
+  const tiles = M.display(match, rules).tiles;
+  const srv = M.server(M.currentGame(match), rules, match);
   const over = M.isGameOver(match, rules);
-  const points = `${t('rules.nPoints', { n: rules.points })} · ${rules.bestOf === 1 ? t('rules.oneGame') : t('rules.bestOf', { n: rules.bestOf })}`;
+  const tennis = sportOf(rules.sport).scoring === 'tennis';
+  const points = `${sportName(rules.sport)} · ${rulesSummary(rules)}`;
   sheet(html`
     <div style="display:flex;align-items:center;gap:14px;padding:0 4px">
-      <span style="display:flex;gap:10px">${miniTiles(score[0], !over && srv === 0)}${miniTiles(score[1], !over && srv === 1)}</span>
-      <span><strong style="display:block;font-size:17px">${rules.bestOf > 1 ? t('board.gameN', { n: match.games.length }) : t('board.game')}</strong><small class="muted">${points}</small></span>
+      <span style="display:flex;gap:10px">${miniTiles(tiles[0], !over && srv === 0)}${miniTiles(tiles[1], !over && srv === 1)}</span>
+      <span><strong style="display:block;font-size:17px">${t(tennis ? 'board.setN' : 'board.gameN', { n: match.games.length })}</strong><small class="muted">${points}</small></span>
     </div>
     <div class="quick">
       <button type="button" data-quick="voice" aria-pressed="${s().voice}">${icon('sound')}${t('settings.voice')}</button>

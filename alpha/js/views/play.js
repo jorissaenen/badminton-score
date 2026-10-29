@@ -5,6 +5,7 @@ import { session, onSession } from '../session.js';
 import { state, hasStarted, isFinished, displayNames } from '../state.js';
 import { html, icon, initials, raw } from '../ui.js';
 import { t } from '../i18n.js';
+import { sportOf, sportIcon } from '../sports.js';
 import { EDITION } from '../edition.js';
 
 // The next event as last shown, so Play draws it at once next time (top to bottom, no jumping)
@@ -71,8 +72,8 @@ export function show(el, _params, { go }) {
 
   function options() {
     const started = hasStarted() && !isFinished();
-    const g = M.currentGame(state.match);
-    const sc = M.gameScore(g);
+    const tiles = M.display(state.match, state.rules).tiles;
+    const tennis = sportOf(state.rules.sport).scoring === 'tennis';
     const names = displayNames();
     const eventSoon = next ? t('play.duringEventNext', { day: dayName(next.event.date), time: next.event.start }) : t('play.duringEvent');
     const later = t('play.later');
@@ -80,8 +81,8 @@ export function show(el, _params, { go }) {
     const opt = (cls, ic, title, sub, to, off = '') => html`<button type="button" class="opt ${cls}" ${to && !off ? html`data-go="${to}"` : ''} ${off ? raw('aria-disabled="true"') : ''}>
         <span class="ic">${ic}</span><span class="grow"><strong>${title}</strong><small>${off || sub}</small></span>${off ? html`<span class="chip">${t('play.soon')}</span>` : ''}</button>`;
     return [
-      started ? opt('default', html`<span class="display" style="font-size:17px">${String(Math.max(...sc)).padStart(2, '0')}</span>`, t('play.continue'),
-        `${names[0]} ${sc[0]} – ${sc[1]} ${names[1]}${state.rules.bestOf > 1 ? ` · ${t('play.gameN', { n: state.match.games.length })}` : ''}`, '#/match') : '',
+      started ? opt('default', raw(sportIcon(state.rules.sport, 22)), t('play.continue'),
+        `${names[0]} ${tiles[0]} – ${tiles[1]} ${names[1]} · ${t(tennis ? 'play.setN' : 'play.gameN', { n: state.match.games.length })}`, '#/match') : '',
       opt('', icon('court'), t('play.clubMatch'), eventSoon, null, later),
       opt('', icon('screen'), t('play.followCourt'), eventSoon, null, later),
       opt(started ? '' : 'default', icon('quick'), t('play.quick'), t('play.quickSub'), '#/match/new'),

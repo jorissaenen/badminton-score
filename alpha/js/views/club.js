@@ -28,7 +28,7 @@ export function show(el, [clubId]) {
           ${admin ? html`<a class="round" href="#/club/${clubId}/invite" aria-label="${t('invite.title')}">${icon('invite', 20)}</a>` : ''}
           <a class="round" href="#/club/${clubId}/settings" aria-label="${t('clubSettings.title')}">${icon('settings', 20)}</a>
         </span></div>
-      <div style="display:flex;align-items:center;gap:14px">${mono(club.name, true)}
+      <div style="display:flex;align-items:center;gap:14px">${mono(club.name, true, club.sport ?? 'badminton')}
         <div><h1 class="title small">${club.name}</h1>
         <p class="sub" style="margin:4px 0 0">${t(`club.youAre.${myRole}`)} · ${t('club.nPlayers', { n: players.length })}</p></div></div>
       ${season ? html`<a class="card row" href="#/club/${clubId}/settings">${icon('calendar', 20)}<span class="grow"><strong>${t('season.named', { name: season.name })}</strong>

@@ -50,7 +50,8 @@ export function clubScreen(el, clubId, draw, { back = ['#/clubs', t('tab.clubs')
     else stop = unsubscribe;
     // Keep the name in your own club list up to date after a rename.
     const known = (await Club.myClubs(u).catch(() => [])).find((c) => c.id === clubId);
-    if (view?.club && known && known.name !== view.club.name) Club.rememberClub(u, clubId, view.club.name).catch(() => {});
+    const sport = view?.club?.sport ?? 'badminton';
+    if (view?.club && known && (known.name !== view.club.name || known.sport !== sport)) Club.rememberClub(u, clubId, view.club.name, sport).catch(() => {});
   }
 
   start();

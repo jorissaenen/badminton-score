@@ -3,12 +3,13 @@
 import * as M from './match.js';
 import { GestureRecognizer } from './gesture.js';
 import * as Audio from './audio.js';
-import { BreakTimer, INTERVAL_SECONDS, BETWEEN_GAMES_SECONDS, formatClock } from './breaks.js';
+import { BreakTimer, BETWEEN_GAMES_SECONDS, formatClock } from './breaks.js';
 import { createMediaRemote, createRepeatFilter } from './media.js';
 import { state, save, rulesFrom, displayNames } from './state.js';
 import { $, toast } from './ui.js';
 import { t, people } from './i18n.js';
 import { screenHeight } from './layout.js';
+import { sportOf } from './sports.js';
 
 const MODIFIER_KEYS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab']);
 const SLEEP_AFTER_MS = 30000;
@@ -53,18 +54,38 @@ function flash(team) {
   setTimeout(() => el?.classList.remove('flash'), 220);
 }
 
-// Badminton call: server's score first, then "game point" / "match point" when it applies, then
-// the receiver's score ("20, match point, 0", "29, game point, all").
+const sport = () => sportOf(state.rules.sport);
+const tennis = () => sport().scoring === 'tennis';
+// What one game is called: a game, or in tennis and padel a set.
+const unit = () => (tennis() ? 'set' : 'game');
+const serverNow = (match = state.match) => M.server(M.currentGame(match), state.rules, match);
+
+// The call after a point, server's score first. Rally sports: "20, match point, 0", "29 all".
+// Tennis: "15 love", "30 all", "deuce", "advantage Joris"; a tiebreak like a rally game.
 function scoreCall() {
-  const g = M.currentGame(state.match);
-  const sc = M.gameScore(g);
-  const srv = M.server(g);
+  const { match, rules } = state;
+  const srv = serverNow();
+  const call = M.pointCall(match, rules);
+  const point = call ? t(`call.${call}Point`) : '';
+  if (tennis() && !M.display(match, rules).tiebreak) {
+    const p = M.tennisPoints(match, rules);
+    const word = (x) => (x === '0' ? t('call.love') : x);
+    let text;
+    if (p[0] === '40' && p[1] === '40') text = t('call.deuce');
+    else if (p.includes('AD')) text = t('call.advantage', { name: names()[p[0] === 'AD' ? 0 : 1] });
+    else if (p[srv] === p[1 - srv]) text = t('call.all', { a: word(p[srv]) });
+    else text = t('call.score', { a: word(p[srv]), b: word(p[1 - srv]) });
+    return point ? `${text}. ${point}` : text;
+  }
+  const sc = tennis() ? M.display(match, rules).tiles.map(Number) : M.gameScore(M.currentGame(match), rules);
   const a = sc[srv];
   const b = sc[1 - srv];
-  const call = M.pointCall(state.match, state.rules);
-  if (call) return t(a === b ? 'call.pointAll' : 'call.point', { a, b, point: t(`call.${call}Point`) });
+  if (call) return t(a === b ? 'call.pointAll' : 'call.point', { a, b, point });
   return t(a === b ? 'call.all' : 'call.score', { a, b });
 }
+
+// "6 4, 6 3": the score of every game (set), winner's view.
+const results = (match) => M.gameScores(match, state.rules).map((x) => `${Math.max(...x)} ${Math.min(...x)}`).join(', ');
 
 // ---------- actions ----------
 
@@ -76,34 +97,48 @@ export function point(team) {
     return;
   }
   stopBreak();
-  const before = Math.max(...M.gameScore(M.currentGame(match)));
+  const endsBefore = M.endsChanged(match, rules);
+  const gamesBefore = tennis() ? M.display(match, rules).games : null;
+  const before = Math.max(...M.gameScore(M.currentGame(match), rules));
   state.match = M.addPoint(match, team, rules);
   save();
   render();
   flash(team);
+  const endsNow = settings().autoEnds && M.endsChanged(state.match, rules) !== endsBefore;
 
   if (M.isGameOver(state.match, rules)) {
-    const sc = M.gameScore(M.currentGame(state.match));
-    const result = `${Math.max(...sc)} ${Math.min(...sc)}`;
+    const result = tennis() ? results(state.match) : `${Math.max(...M.gameScore(M.currentGame(state.match), rules))} ${Math.min(...M.gameScore(M.currentGame(state.match), rules))}`;
+    const name = names()[team];
     if (M.matchWinner(state.match, rules) !== null) {
-      say(t('call.gameAndMatch', { name: names()[team], result }));
+      say(t(tennis() ? 'call.setAndMatch' : 'call.gameAndMatch', { name, result }));
     } else {
-      say(t('call.game', { name: names()[team], result }));
-      if (settings().intervals) startBreak('game', BETWEEN_GAMES_SECONDS);
+      say(t(tennis() ? 'call.set' : 'call.game', { name, result: tennis() ? M.gameScore(M.currentGame(state.match), rules).join(' ') : result }));
+      if (settings().intervals) startBreak('game', sport().breaks?.between ?? BETWEEN_GAMES_SECONDS);
     }
     return;
   }
 
-  const after = Math.max(...M.gameScore(M.currentGame(state.match)));
-  const mid = Math.ceil(rules.points / 2);
-  if (settings().intervals && before < mid && after === mid && rules.points >= 15) {
+  // Tennis: a game won within the set.
+  if (tennis()) {
+    const games = M.display(state.match, rules).games;
+    if (games[team] !== gamesBefore[team]) {
+      const text = t('call.tennisGame', { name: names()[team], a: games[team], b: games[1 - team] });
+      say(endsNow ? `${text}. ${t('call.changeEndsShort')}` : text);
+      return;
+    }
+  }
+
+  // Badminton's interval when the leader reaches 11.
+  const after = Math.max(...M.gameScore(M.currentGame(state.match), rules));
+  const mid = M.midpoint(state.match, rules);
+  if (settings().intervals && sport().breaks?.interval && mid && before < mid && after === mid && (M.currentGame(state.match).points ?? rules.points) >= 15) {
     const changeEnds = M.isDecidingGame(state.match, rules);
     $('intervalTitle').textContent = changeEnds ? t('board.intervalChangeEnds') : t('board.interval');
     say(t(changeEnds ? 'call.intervalChangeEnds' : 'call.interval', { score: scoreCall() }));
-    startBreak('interval', INTERVAL_SECONDS);
+    startBreak('interval', sport().breaks.interval);
     return;
   }
-  if (settings().autoEnds && before < mid && after === mid && M.isDecidingGame(state.match, rules)) {
+  if (endsNow) {
     say(t('call.changeEnds', { score: scoreCall() }));
     return;
   }
@@ -139,15 +174,17 @@ function continueAfterGame() {
   save();
   render();
   const n = state.match.games.length;
-  toast(t('board.gameN', { n }));
-  const server = names()[M.server(M.currentGame(state.match))];
-  say(t(settings().autoEnds ? 'call.nextGameEnds' : 'call.nextGame', { n, name: server, count: people(server) }));
+  toast(t(`board.${unit()}N`, { n }));
+  const server = names()[serverNow()];
+  const ends = settings().autoEnds && M.endsChanged(state.match, rules) !== M.endsChanged(match, rules);
+  say(t(`call.next${tennis() ? 'Set' : 'Game'}${ends ? 'Ends' : ''}`, { n, name: server, count: people(server) }));
 }
 
-// Starts a new match with the names, sides and first server chosen on the New match screen.
-export function startMatch({ names: n, namesKnown, firstServer, swapped, points, bestOf }) {
+// Starts a new match with the sport, names, sides, first server and rules chosen on New match.
+export function startMatch({ names: n, namesKnown, firstServer, swapped, sport: sportId, options }) {
   stopBreak();
-  state.settings = { ...state.settings, names: n, namesKnown, firstServer, swapped, points, bestOf };
+  const s = state.settings;
+  state.settings = { ...s, names: n, namesKnown, firstServer, swapped, sport: sportId, sportRules: { ...s.sportRules, [sportId]: options } };
   state.rules = rulesFrom(state.settings);
   state.match = M.newMatch(firstServer);
   save();
@@ -176,7 +213,7 @@ const breaks = new BreakTimer({
       say(t('call.play', { score: scoreCall() }));
     } else {
       $('breakClock').textContent = t('board.time');
-      say(t('call.time', { n: state.match.games.length + 1 }));
+      say(t(tennis() ? 'call.timeSet' : 'call.time', { n: state.match.games.length + 1 }));
     }
   },
 });
@@ -329,41 +366,45 @@ export function render() {
   const ends = M.endsChanged(match, rules);
   const endsChangedNow = lastEnds !== null && ends !== lastEnds;
   lastEnds = ends;
-  const g = M.currentGame(match);
-  const score = M.gameScore(g);
+  const view = M.display(match, rules);
   const won = M.gamesWon(match, rules);
-  const srv = M.server(g);
+  const srv = serverNow();
   const over = M.isGameOver(match, rules);
   const need = Math.ceil(rules.bestOf / 2);
 
   for (const side of [0, 1]) {
     $(`name${side}`).textContent = names()[side];
     const serving = !over && srv === side;
-    $(`tiles${side}`).innerHTML = [...pad2(score[side])].map((d) => tile(d, serving)).join('');
-    $(`games${side}`).innerHTML = rules.bestOf > 1 ? Array.from({ length: need }, (_, i) => `<i${i < won[side] ? ' class="won"' : ''}></i>`).join('') : '';
+    $(`tiles${side}`).innerHTML = [...view.tiles[side]].map((d) => tile(d, serving)).join('');
+    // Dots: games (sets) won. Tennis also shows the games in the current set.
+    const dots = rules.bestOf > 1 ? Array.from({ length: need }, (_, i) => `<i${i < won[side] ? ' class="won"' : ''}></i>`).join('') : '';
+    $(`games${side}`).innerHTML = dots + (view.games ? `<b class="set-games">${t('board.gamesInSet', { n: view.games[side] })}</b>` : '');
     const section = document.querySelector(`.team[data-team="${side}"]`);
     section.classList.toggle('serving', serving);
-    section.setAttribute('aria-label', t(serving ? 'board.sideServing' : 'board.side', { name: names()[side], score: score[side], n: won[side] }));
+    section.setAttribute('aria-label', t(serving ? 'board.sideServing' : 'board.side', { name: names()[side], score: view.tiles[side], n: won[side] }));
   }
 
   showSides(settings().swapped !== (settings().autoEnds && ends), endsChangedNow);
   const gameNo = match.games.length;
-  $('boardTitle').textContent = (rules.bestOf > 1 ? t('board.gameN', { n: gameNo }) : t('board.game')).toUpperCase();
-  $('boardSub').textContent = match.games.slice(0, -1).map((x, i) => t('board.gameScore', { n: i + 1, score: M.gameScore(x).join('–') })).join(' · ');
-  $('gameoverEnds').hidden = !over || !settings().autoEnds || M.matchWinner(match, rules) !== null;
-  mediaRemote.show(`${names()[0]} ${score[0]} – ${score[1]} ${names()[1]}`, rules.bestOf > 1 ? t('board.gameN', { n: gameNo }) : 'Skoor');
+  const title = view.tiebreak ? t('board.tiebreak') : rules.bestOf > 1 ? t(`board.${unit()}N`, { n: gameNo }) : t(`board.${unit()}`);
+  $('boardTitle').textContent = title.toUpperCase();
+  $('boardSub').textContent = M.gameScores(match, rules).slice(0, -1).map((x, i) => t(`board.${unit()}Score`, { n: i + 1, score: x.join('–') })).join(' · ');
+  $('gameoverEnds').hidden = !over || !settings().autoEnds || M.matchWinner(match, rules) !== null || M.endsChanged(M.nextGame(match, rules), rules) === ends;
+  mediaRemote.show(`${names()[0]} ${view.tiles[0]} – ${view.tiles[1]} ${names()[1]}`, title);
 
   $('gameover').hidden = !over;
   if (over) {
-    const winner = M.gameWinner(g, rules);
+    const winner = M.currentWinner(match, rules);
     const matchWinner = M.matchWinner(match, rules);
-    const name = names()[winner];
+    const w = winner ?? matchWinner ?? 0;
+    const name = names()[w];
     // "Joris wins", "Joris & Ann win": the verb follows the name.
     $('gameoverTitle').textContent = matchWinner !== null ? t('board.winsMatch', { name, count: people(name) })
-      : t('board.winsGame', { name, n: gameNo, count: people(name) });
-    $('gameoverSub').textContent = match.games.map((x) => M.gameScore(x).join('–')).join('   ');
-    $('gameoverHint').textContent = matchWinner !== null ? t('board.longPressFinish') : t('board.longPressNext', { n: gameNo + 1 });
-    $('nextBtn').textContent = matchWinner !== null ? t('board.finishMatch') : t('board.startGame', { n: gameNo + 1 });
+      : t(`board.wins${tennis() ? 'Set' : 'Game'}`, { name, n: gameNo, count: people(name) });
+    $('gameoverSub').textContent = M.gameScores(match, rules).map((x) => x.join('–')).join('   ');
+    const next = t(`board.${unit()}N`, { n: gameNo + 1 });
+    $('gameoverHint').textContent = matchWinner !== null ? t('board.longPressFinish') : t('board.longPressNext', { next });
+    $('nextBtn').textContent = matchWinner !== null ? t('board.finishMatch') : t('board.startNext', { next });
   }
   fitTiles();
 }

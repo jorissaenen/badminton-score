@@ -3,14 +3,15 @@ import * as M from './match.js';
 import { EDITION } from './edition.js';
 import { DEFAULT_TIMING } from './gesture.js';
 import { t } from './i18n.js';
+import { DEFAULT_SPORT, rulesFor } from './sports.js';
 
 const STORAGE_KEY = EDITION.storageKey;
 
 export const DEFAULT_SETTINGS = {
   names: ['Home', 'Away'],
   namesKnown: false, // true once players' names were typed or picked; otherwise HOME / AWAY
-  points: M.DEFAULT_RULES.points,
-  bestOf: M.DEFAULT_RULES.bestOf,
+  sport: DEFAULT_SPORT, // the sport of the last quick match
+  sportRules: {}, // per sport, the options last chosen: { tennis: { bestOf: 3, golden: true }, … }
   firstServer: 0,
   voice: true,
   beep: true,
@@ -28,19 +29,28 @@ export const DEFAULT_SETTINGS = {
 };
 
 export function rulesFrom(settings) {
-  return { points: settings.points, cap: M.capFor(settings.points), bestOf: settings.bestOf };
+  return rulesFor(settings.sport, settings.sportRules?.[settings.sport]);
+}
+
+// Saves from before there were several sports: badminton, with points and best of on their own.
+function migrate(settings) {
+  const s = { ...settings };
+  if ('points' in s && !s.sportRules?.badminton) s.sportRules = { ...s.sportRules, badminton: { points: s.points, bestOf: s.bestOf } };
+  delete s.points;
+  delete s.bestOf;
+  return s;
 }
 
 function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (saved?.match?.games?.length && saved.rules) {
-      const settings = { ...DEFAULT_SETTINGS, ...saved.settings };
+      const settings = migrate({ ...DEFAULT_SETTINGS, ...saved.settings });
       // Older saves had no namesKnown: names other than the defaults were typed in.
       if (saved.settings && !('namesKnown' in saved.settings)) {
         settings.namesKnown = settings.names[0] !== 'Home' || settings.names[1] !== 'Away';
       }
-      return { settings, rules: saved.rules, match: saved.match };
+      return { settings, rules: { sport: DEFAULT_SPORT, ...saved.rules }, match: saved.match };
     }
   } catch { /* fall through to defaults */ }
   // First start of this edition: take over production's settings (voice, remote timing), but start
@@ -49,7 +59,7 @@ function load() {
   try {
     fromProduction = JSON.parse(localStorage.getItem(EDITION.productionStorageKey))?.settings ?? {};
   } catch { /* nothing to copy */ }
-  const settings = { ...DEFAULT_SETTINGS, ...fromProduction, names: DEFAULT_SETTINGS.names, namesKnown: false };
+  const settings = migrate({ ...DEFAULT_SETTINGS, ...fromProduction, names: DEFAULT_SETTINGS.names, namesKnown: false });
   return { settings, rules: rulesFrom(settings), match: M.newMatch(settings.firstServer) };
 }
 

@@ -44,18 +44,19 @@ export async function myClubs(user) {
     .sort((a, b) => (b.joinedAt?.toMillis?.() ?? 0) - (a.joinedAt?.toMillis?.() ?? 0));
 }
 
-export async function createClub(user, name, defaults) {
+// A club plays one sport; `defaults` are the rules of its club matches (see rulesFor in sports.js).
+export async function createClub(user, name, sport, defaults) {
   const { db, F } = await cloud();
   const ref = F.doc(F.collection(db, 'clubs'));
   const batch = F.writeBatch(db);
   batch.set(ref, {
-    name, defaults, createdBy: user.uid, createdAt: F.serverTimestamp(), schemaVersion: 1,
+    name, sport, defaults, createdBy: user.uid, createdAt: F.serverTimestamp(), schemaVersion: 1,
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, // for reminders' "today"/"tomorrow"
   });
   batch.set(F.doc(db, 'clubs', ref.id, 'members', user.uid), {
     role: 'owner', ...profile(user), joinedAt: F.serverTimestamp(),
   });
-  batch.set(F.doc(db, 'users', user.uid, 'clubs', ref.id), { name, joinedAt: F.serverTimestamp() });
+  batch.set(F.doc(db, 'users', user.uid, 'clubs', ref.id), { name, sport, joinedAt: F.serverTimestamp() });
   await batch.commit();
   return ref.id;
 }
@@ -100,11 +101,11 @@ export async function watchClub(clubId, withInvites, on, onError) {
   return () => subs.forEach((unsubscribe) => unsubscribe());
 }
 
-export async function createInvite(user, clubId, clubName, role, days) {
+export async function createInvite(user, clubId, clubName, role, days, clubSport = 'badminton') {
   const { db, F } = await cloud();
   const token = newToken();
   await F.setDoc(F.doc(db, 'clubs', clubId, 'invites', token), {
-    role, clubName, createdBy: user.uid, createdAt: F.serverTimestamp(),
+    role, clubName, clubSport, createdBy: user.uid, createdAt: F.serverTimestamp(),
     expiresAt: F.Timestamp.fromMillis(Date.now() + days * 86400_000),
   });
   return token;
@@ -141,15 +142,15 @@ export async function join(user, clubId, token, invite) {
     role: invite.role, ...profile(user), invite: token, joinedAt: F.serverTimestamp(),
   });
   batch.set(F.doc(db, 'users', user.uid, 'clubs', clubId), {
-    name: invite.clubName, joinedAt: F.serverTimestamp(),
+    name: invite.clubName, sport: invite.clubSport ?? 'badminton', joinedAt: F.serverTimestamp(),
   });
   await batch.commit();
 }
 
 // Already a member (e.g. opened the invite twice): make sure the club is in the user's list.
-export async function rememberClub(user, clubId, name) {
+export async function rememberClub(user, clubId, name, sport = null) {
   const { db, F } = await cloud();
-  await F.setDoc(F.doc(db, 'users', user.uid, 'clubs', clubId), { name, joinedAt: F.serverTimestamp() }, { merge: true });
+  await F.setDoc(F.doc(db, 'users', user.uid, 'clubs', clubId), { name, ...(sport && { sport }), joinedAt: F.serverTimestamp() }, { merge: true });
 }
 
 export async function forgetClub(user, clubId) {

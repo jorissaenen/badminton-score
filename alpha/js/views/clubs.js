@@ -5,6 +5,8 @@ import { pendingJoin, setPendingJoin, setLastClub } from '../links.js';
 import { state } from '../state.js';
 import { html, icon, sheet, toast } from '../ui.js';
 import { t } from '../i18n.js';
+import { sportGrid, sportName } from './rules.js';
+import { rulesFor } from '../sports.js';
 import { backBar, mono, dayName, eventName, signInCard, spinner, noCloud } from './common.js';
 
 // Shown while the screen can't list clubs: no online version, loading, or signed out.
@@ -39,12 +41,12 @@ export function show(el, _params, { go }) {
   }
 
   function card(c, i) {
-    const sub = [c.role ? t(`role.${c.role}`) : null, c.players != null ? t('club.nPlayers', { n: c.players }) : null].filter(Boolean).join(' · ');
+    const sub = [sportName(c.sport ?? 'badminton'), c.role ? t(`role.${c.role}`) : null, c.players != null ? t('club.nPlayers', { n: c.players }) : null].filter(Boolean).join(' · ');
     const e = c.event;
     const answer = c.answer === 'going' ? html`<span class="chip going">${t('answer.going')}</span>`
       : c.answer === 'not going' ? html`<span class="chip notgoing">${t('answer.notGoing')}</span>` : e && c.hasPlayer ? html`<span class="chip">${t('answer.answer')}</span>` : '';
     return html`<a class="card" href="#/club/${c.id}" style="display:block">
-      <div class="row" style="min-height:72px">${mono(c.name, i === 0)}<span class="grow"><strong style="font-size:17px">${c.name}</strong><small>${sub}</small></span>${icon('chevron', 18)}</div>
+      <div class="row" style="min-height:72px">${mono(c.name, i === 0, c.sport ?? 'badminton')}<span class="grow"><strong style="font-size:17px">${c.name}</strong><small>${sub}</small></span>${icon('chevron', 18)}</div>
       ${e ? html`<div class="row" style="border-top:1px solid var(--line);min-height:64px">
         <span class="display" style="font-size:30px;line-height:1">${e.start}</span>
         <span class="grow"><strong>${dayName(e.date)}</strong><small>${eventName(e)}</small></span>${answer}</div>`
@@ -116,6 +118,7 @@ export const Create = {
   show(el, _params, { go }) {
     let busy = false;
     let name = '';
+    let sport = null; // one sport per club, picked here
     function draw() {
       const blocked = gate(t('create.signIn'));
       el.innerHTML = html`<div class="page">
@@ -129,22 +132,25 @@ export const Create = {
           <div class="radio-row" role="radio" aria-checked="false" aria-disabled="true" style="opacity:.42"><span class="radio"></span><span><strong>${t('create.teams')}</strong>
             <small>${t('create.teamsSub')}</small></span></div>
         </div></section>
-        <section><h2 class="h3">${t('create.sport')}</h2><div class="chips"><button type="button" class="pick" aria-pressed="true">${t('sport.badminton')}</button></div>
-          <p class="note">${t('create.sportLater')}</p></section>
+        <section><h2 class="h3">${t('create.sport')}</h2>${sportGrid(sport)}
+          <p class="note">${t('create.sportOne')}</p></section>
         <button type="button" class="btn primary block" data-start ${busy ? 'disabled' : ''}>${busy ? t('create.starting') : t('create.start')}</button>`}
       </div>`.s;
       const input = el.querySelector('[data-name]');
       input?.addEventListener('input', () => { name = input.value; });
       input?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); create(); } });
       el.querySelector('[data-start]')?.addEventListener('click', create);
+      el.querySelectorAll('[data-sport]').forEach((b) => b.addEventListener('click', () => { sport = b.dataset.sport; draw(); }));
     }
     async function create() {
       if (busy) return;
       if (!name.trim()) { toast(t('create.nameFirst')); el.querySelector('[data-name]')?.focus(); return; }
+      if (!sport) { toast(t('create.sportFirst')); return; }
       busy = true;
       draw();
       try {
-        const id = await Club.createClub(session.user, name.trim(), { points: state.settings.points, bestOf: state.settings.bestOf });
+        const { sport: _sport, ...defaults } = rulesFor(sport, state.settings.sportRules?.[sport]);
+        const id = await Club.createClub(session.user, name.trim(), sport, defaults);
         setLastClub(id);
         go(`#/club/${id}`, { replace: true });
       } catch (e) {

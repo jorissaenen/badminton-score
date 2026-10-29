@@ -109,6 +109,13 @@ tabs (Play, Clubs, You) and full screens instead of the settings window.
 - [x] Languages: every text in one file per language (alpha/js/lang/), English and Dutch; the
       device's language by default, or picked in You; score calls in that language with a
       matching voice
+- [x] Sports: badminton, table tennis, squash, pickleball, beach volleyball, tennis and padel
+      (alpha/js/sports.js). Rally sports share one engine (game length, who serves, ends,
+      breaks per sport); tennis and padel count 15-30-40, games, sets, tiebreak, with an
+      optional golden point and match tiebreak. A club plays one sport; a quick match starts
+      by picking the sport
+- [ ] Pickleball's traditional side-out scoring (only the serving side scores; doubles server
+      numbers); now rally scoring only
 - [ ] Reminder notifications (sent by the server) in each person's language
 - [ ] Club match and Follow a court on Play (need Phase 3: matches saved with players)
 - [ ] Player picker for a match (Fill in for me; here and not playing first, by waiting time;

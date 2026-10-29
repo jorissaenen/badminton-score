@@ -31,7 +31,7 @@ export function show(el, _params, { go }) {
       if (await Club.myRoleIn(u, join.clubId)) {
         // Already a member: make sure the club is in the list, and open it.
         const known = await Club.readInvite(join.clubId, join.token).catch(() => null);
-        await Club.rememberClub(u, join.clubId, known?.clubName ?? t('club.club')).catch(() => {});
+        await Club.rememberClub(u, join.clubId, known?.clubName ?? t('club.club'), known?.clubSport).catch(() => {});
         clear();
         toast(t('join.already'));
         go(`#/club/${join.clubId}`, { replace: true });
@@ -56,7 +56,7 @@ export function show(el, _params, { go }) {
     }
     const name = u.displayName || u.email;
     page(html`<div style="display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;margin-top:12px">
-        ${mono(invite.clubName, true)}
+        ${mono(invite.clubName, true, invite.clubSport ?? 'badminton')}
         <h1 class="title" style="margin:0">${t('join.joinClub', { club: invite.clubName })}</h1>
         <p class="sub" style="margin:0">${t('join.invitedAs', { role: t(`role.${invite.role}`) })}</p></div>
       <div class="card"><div class="row">${avatar(name, 'me')}<span class="grow"><strong>${t('join.signedInAs', { name })}</strong><small>${u.email ?? ''}</small></span></div></div>

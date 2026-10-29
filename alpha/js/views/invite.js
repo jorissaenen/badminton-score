@@ -67,7 +67,7 @@ export function show(el, [clubId]) {
     busy = true;
     draw(v);
     try {
-      const token = await Club.createInvite(session.user, clubId, v.club.name, pick.role, pick.days);
+      const token = await Club.createInvite(session.user, clubId, v.club.name, pick.role, pick.days, v.club.sport ?? 'badminton');
       const link = Club.inviteLink(clubId, token);
       const qr = qrcode(0, 'M');
       qr.addData(link);

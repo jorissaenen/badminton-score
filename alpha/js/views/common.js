@@ -2,7 +2,8 @@
 // (Going / Not going) and the card that asks to sign in.
 import * as Club from '../club.js';
 import { session } from '../session.js';
-import { html, icon, initials, dayText, longDay, toast } from '../ui.js';
+import { html, raw, icon, initials, dayText, longDay, toast } from '../ui.js';
+import { sportIcon } from '../sports.js';
 import { t } from '../i18n.js';
 
 export const backBar = (href, label, right = '') => html`<div class="top"><a class="back" href="${href}">${icon('back', 22)}${label}</a>${right}</div>`;
@@ -17,8 +18,8 @@ export function counts(regs = {}) {
   return { going: all.filter((r) => r.status === 'going').length, notGoing: all.filter((r) => r.status === 'not going').length };
 }
 
-// The monogram of a club: its initials, white for the first club.
-export const mono = (name, light = false) => html`<span class="mono${light ? ' light' : ''}" aria-hidden="true">${initials(name)}</span>`;
+// The monogram of a club: its initials, white for the first club, with its sport's icon.
+export const mono = (name, light = false, sport = null) => html`<span class="mono${light ? ' light' : ''}" aria-hidden="true">${initials(name)}${sport ? html`<span class="mono-sport">${raw(sportIcon(sport, 16))}</span>` : ''}</span>`;
 
 // Going / Not going. Tapping your answer again clears it. Disabled with the reason when you
 // can't answer yet.

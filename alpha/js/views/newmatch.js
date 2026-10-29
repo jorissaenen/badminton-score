@@ -1,12 +1,15 @@
-// New match: who serves first (tap a side's 00 tiles, or draw), the names, points and match length.
-// The remote works here too: one click switches who serves, two clicks draw, a long press starts.
+// New match: first the sport, then who serves first (tap a side's 00 tiles, or draw), the names and
+// the sport's rules. The remote works here too: on the sport grid one click moves to the next sport
+// and a long press picks it; then one click switches who serves, two clicks draw, a long press starts.
 import * as Board from '../scoreboard.js';
 import { secureCoinFlip } from '../random.js';
 import { state } from '../state.js';
-import { html, icon, sheet, toast } from '../ui.js';
+import { html, raw, icon, sheet, toast } from '../ui.js';
 import { t, people } from '../i18n.js';
 import { defaultNames } from '../state.js';
 import { backBar } from './common.js';
+import { sportGrid, sportName, rulesFields, wireRules } from './rules.js';
+import { SPORTS, sportIcon } from '../sports.js';
 
 const zeros = (on) => html`<span class="mini-tiles">${[0, 0].map(() => html`<span class="tile${on ? ' on' : ''}"><span class="cap">0</span><span class="split"></span></span>`)}</span>`;
 
@@ -16,38 +19,53 @@ export function show(el, _params, { go }) {
     names: [...s.names],
     namesKnown: s.namesKnown,
     server: s.firstServer,
-    points: s.points,
-    bestOf: s.bestOf,
+    sport: null, // picked first, every time
+    options: {},
   };
   let drawing = false;
+  let highlight = SPORTS.findIndex((x) => x.id === s.sport); // for the remote on the sport grid
+
+  function pickSport(id) {
+    setup.sport = id;
+    setup.options = { ...state.settings.sportRules?.[id] };
+    draw();
+  }
+
+  function drawSports() {
+    el.innerHTML = html`<div class="page">
+      ${backBar('#/play', t('play.title'))}
+      <h1 class="title">${t('newMatch.whichSport')}</h1>
+      ${sportGrid(SPORTS[Math.max(0, highlight)].id)}
+      <p class="note" style="text-align:center">${t('newMatch.sportRemoteHint')}</p>
+    </div>`.s;
+    el.querySelectorAll('[data-sport]').forEach((b) => b.addEventListener('click', () => pickSport(b.dataset.sport)));
+  }
 
   const shown = (side) => (setup.namesKnown ? setup.names[side] : defaultNames()[side]);
 
   function draw() {
+    if (!setup.sport) { drawSports(); return; }
     const side = (n) => html`<button type="button" class="serve-side" data-side="${n}" aria-pressed="${setup.server === n}">
         ${zeros(setup.server === n)}
         <span class="serve-name">${shown(n)}</span>
         <span class="serve-hint">${setup.server === n ? t('newMatch.servesFirst') : t('newMatch.tapToServe')}</span></button>`;
-    const chip = (key, value, label) => html`<button type="button" class="pick" data-${key}="${value}" aria-pressed="${setup[key] === value}">${label}</button>`;
     el.innerHTML = html`<div class="page">
       ${backBar('#/play', t('play.title'))}
       <h1 class="title">${t('newMatch.title')}</h1>
+      <div class="card"><button type="button" class="row" data-change-sport>${raw(sportIcon(setup.sport, 24))}<span class="grow"><strong>${sportName(setup.sport)}</strong></span><span class="val">${t('common.change')}</span></button></div>
       <div class="serve-pick">${side(0)}${side(1)}</div>
       <button type="button" class="btn" data-draw ${drawing ? 'disabled' : ''}>${icon('dice', 20)}${t('newMatch.draw')}</button>
       <div class="card">
         <button type="button" class="row" data-names>${icon('pencil', 20)}<span class="grow"><strong>${setup.namesKnown ? t('newMatch.versus', { a: setup.names[0], b: setup.names[1] }) : t('newMatch.names')}</strong>
           <small>${setup.namesKnown ? t('newMatch.namesShown') : t('newMatch.namesAdd')}</small></span><span class="val">${t('common.change')}</span></button>
       </div>
-      <section><h2 class="h3" style="justify-content:center">${t('rules.pointsPerGame')}</h2>
-        <div class="chips center">${chip('points', 21, '21')}${chip('points', 15, '15')}${chip('points', 11, '11')}</div></section>
-      <section><h2 class="h3" style="justify-content:center">${t('rules.match')}</h2>
-        <div class="chips center">${chip('bestOf', 1, t('rules.oneGame'))}${chip('bestOf', 3, t('rules.bestOf', { n: 3 }))}${chip('bestOf', 5, t('rules.bestOf', { n: 5 }))}</div></section>
+      ${rulesFields(setup.sport, setup.options, { center: true })}
       <p class="note" style="text-align:center">${t('newMatch.remoteHint')}</p>
       <button type="button" class="btn primary block" data-start>${t('newMatch.start')}</button>
     </div>`.s;
     el.querySelectorAll('[data-side]').forEach((b) => b.addEventListener('click', () => { if (!drawing) { setup.server = Number(b.dataset.side); draw(); } }));
-    el.querySelectorAll('[data-points]').forEach((b) => b.addEventListener('click', () => { setup.points = Number(b.dataset.points); draw(); }));
-    el.querySelectorAll('[data-bestof]').forEach((b) => b.addEventListener('click', () => { setup.bestOf = Number(b.dataset.bestof); draw(); }));
+    wireRules(el, (key, value) => { setup.options = { ...setup.options, [key]: value }; draw(); });
+    el.querySelector('[data-change-sport]').addEventListener('click', () => { highlight = SPORTS.findIndex((x) => x.id === setup.sport); setup.sport = null; draw(); });
     el.querySelector('[data-draw]').addEventListener('click', drawServer);
     el.querySelector('[data-names]').addEventListener('click', editNames);
     el.querySelector('[data-start]').addEventListener('click', startNow);
@@ -109,16 +127,21 @@ export function show(el, _params, { go }) {
   }
 
   function startNow() {
-    if (drawing) return;
+    if (drawing || !setup.sport) return;
     Board.startMatch({
       names: setup.names, namesKnown: setup.namesKnown, firstServer: setup.server,
-      swapped: state.settings.swapped, points: setup.points, bestOf: setup.bestOf,
+      swapped: state.settings.swapped, sport: setup.sport, options: setup.options,
     });
     go('#/match', { replace: true });
   }
 
   Board.setGestureHandler((gesture) => {
     if (document.querySelector('.sheet-host')) return;
+    if (!setup.sport) {
+      if (gesture === 'single') { highlight = (highlight + 1) % SPORTS.length; draw(); }
+      else if (gesture === 'long') pickSport(SPORTS[Math.max(0, highlight)].id);
+      return;
+    }
     if (gesture === 'single' && !drawing) { setup.server = 1 - setup.server; draw(); }
     else if (gesture === 'double') drawServer();
     else if (gesture === 'long') startNow();
