@@ -10,6 +10,12 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // A person with an account (Google or e-mail). Screens on /link sign in anonymously: they only
+    // get keys and show what a club linked them to, and never create clubs, join or write profiles.
+    function isPerson() {
+      return signedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous';
+    }
+
     function isMe(uid) {
       return signedIn() && request.auth.uid == uid;
     }
@@ -35,18 +41,20 @@ service cloud.firestore {
     // Own profile (name, photo; no e-mail address), and the list of clubs the user belongs to.
     match /users/{uid} {
       allow read, delete: if isMe(uid);
-      allow create, update: if isMe(uid) && (request.resource.data.get('photo', null) == null
+      allow create, update: if isMe(uid) && isPerson() && (request.resource.data.get('photo', null) == null
         || (request.resource.data.photo is string && request.resource.data.photo.size() <= 100000
           && request.resource.data.photo.matches('^data:image/jpeg;base64,.*')));
 
       match /clubs/{clubId} {
-        allow read, write: if isMe(uid);
+        allow read, delete: if isMe(uid);
+        allow create, update: if isMe(uid) && isPerson();
       }
 
       // Devices that get reminders: a push token per app installation (written by the app,
       // read by the reminder function, which bypasses these rules).
       match /devices/{deviceId} {
-        allow read, write: if isMe(uid);
+        allow read, delete: if isMe(uid);
+        allow create, update: if isMe(uid) && isPerson();
       }
     }
 
@@ -141,7 +149,7 @@ service cloud.firestore {
       // Read by members. Created by anyone signed in, who becomes its owner in the same write
       // (see members). Changed by admins; the creator never changes. Deleted by owners.
       allow read: if isMember() || isLinkedDisplay();
-      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid
+      allow create: if isPerson() && request.resource.data.createdBy == request.auth.uid
         && validClub(request.resource.data);
       allow update: if isAdmin() && validClub(request.resource.data)
         && request.resource.data.createdBy == resource.data.createdBy;
@@ -176,7 +184,7 @@ service cloud.firestore {
 
         allow read: if isMember();
 
-        allow create: if isMe(uid) && validMember(request.resource.data)
+        allow create: if isMe(uid) && isPerson() && validMember(request.resource.data)
           && (createsOwnClub(request.resource.data) || joinsWithInvite(request.resource.data));
 
         // Everyone updates their own name and photo. Admins change roles of non-owners, up to
@@ -209,7 +217,7 @@ service cloud.firestore {
 
         // Anyone signed in who has the link may read that one invite (to see the club's name
         // and join). Listing invites is for admins only, so tokens can't be collected.
-        allow get: if signedIn();
+        allow get: if isPerson();
         allow list: if isAdmin();
         allow create: if isAdmin() && validInvite(request.resource.data);
         allow delete: if isAdmin();

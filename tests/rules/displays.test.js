@@ -96,3 +96,28 @@ describe('screens', () => {
     await assertFails(getDoc(screen('stranger')));
   });
 });
+
+describe('anonymous sign-in (screens) can do nothing else', () => {
+  const anon = (uid) => env.authenticatedContext(uid, { firebase: { sign_in_provider: 'anonymous' } }).firestore();
+
+  test('a screen still publishes its keys and reads the one it is linked to', async () => {
+    await assertSucceeds(setDoc(doc(anon('screen1'), 'displayCodes', 'XYZ234'), { display: 'screen1', expiresAt: soon() }));
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'displays', 'screen1'), link('keeper')));
+    await assertSucceeds(getDoc(doc(anon('screen1'), 'clubs', C)));
+  });
+
+  test('no clubs, no joining, no invites, no profile', async () => {
+    const db = anon('anon1');
+    await assertFails(setDoc(doc(db, 'clubs', 'spam'), { name: 'Spam', createdBy: 'anon1', schemaVersion: 1 }));
+    await env.withSecurityRulesDisabled((ctx) => setDoc(doc(ctx.firestore(), 'clubs', C, 'invites', 'tok_0123456789abcdefghij'), { role: 'member', expiresAt: Timestamp.fromMillis(Date.now() + 86400_000), createdBy: 'admin', clubName: 'BC Smash' }));
+    await assertFails(getDoc(doc(db, 'clubs', C, 'invites', 'tok_0123456789abcdefghij')));
+    await assertFails(setDoc(doc(db, 'clubs', C, 'members', 'anon1'), { role: 'member', name: 'X', invite: 'tok_0123456789abcdefghij' }));
+    await assertFails(setDoc(doc(db, 'users', 'anon1'), { name: 'X' }));
+    await assertFails(setDoc(doc(db, 'users', 'anon1', 'clubs', C), { name: 'X' }));
+    await assertFails(setDoc(doc(db, 'users', 'anon1', 'devices', 'd1'), { token: 'x' }));
+  });
+
+  test('people with an account still can', async () => {
+    await assertSucceeds(setDoc(doc(as('alice'), 'users', 'alice'), { name: 'Alice' }));
+  });
+});

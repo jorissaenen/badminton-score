@@ -38,7 +38,8 @@ payment card.
    - **Email/Password** → enable **Email link (passwordless sign-in)** → **Save**. (The plain
      e-mail/password option can stay off.)
    - **Anonymous** → enable → **Save**. Screens at the venue (the /link page) use it: they sign
-     in without an account, and only see the event a score keeper links them to.
+     in without an account, and only see the event a score keeper links them to. The database
+     rules give an anonymous login nothing else: no clubs, no joining, no profile.
 3. Tab **Settings → Authorized domains** → **Add domain** → `jorissaenen.github.io`.
    (`localhost` is already listed; that's for testing.)
 
@@ -103,6 +104,14 @@ into GitHub, by you; it never passes through the chat.
 1. Firebase console → gear icon → **Project settings** → tab **Cloud Messaging**.
 2. Under **Web configuration** → **Web Push certificates** → **Generate key pair**.
 3. Copy the long text under **Key pair** and send it to me. It's a *public* key, not secret.
+
+## 7b. Clean up old screen keys automatically
+
+Each screen on /link stores a new key every minute and removes the old one itself. Keys of a screen
+that was switched off mid-minute stay behind; this lets Google delete them for free.
+
+1. Open <https://console.cloud.google.com/firestore/databases/-default-/ttl> and pick the project.
+2. **Create policy** → Collection group: `displayCodes` → Timestamp field: `expiresAt` → **Create**.
 
 ## 8. Let GitHub deploy the rules and the reminder function
 

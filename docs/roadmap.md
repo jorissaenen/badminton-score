@@ -134,6 +134,10 @@ tabs (Play, Clubs, You) and full screens instead of the settings window.
       shown everywhere in your clubs. Badges on pictures for owner, admin and score keeper, with a
       key under the list on People and the event
 - [ ] Team admin badge, once there are teams within a club
+- [x] Anonymous logins (screens) can't create clubs, join, read invites or write a profile (rules)
+- [ ] **You:** automatic clean-up of old screen keys (firebase-setup.md, step 7b)
+- [ ] App Check before the public release: only the real app may use the database, which stops
+      scripts creating anonymous logins and screen keys in bulk
 - [ ] Slides from venues and sponsors (advertising, a new source of income): who books them, the
       images or video, when they show (not linked, or a free court), and reporting
 - [ ] Tournament planning on the overview (with tournaments, Phase 4)
