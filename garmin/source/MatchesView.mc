@@ -99,7 +99,7 @@ class MatchesView extends WatchUi.View {
                 dc.drawRoundedRectangle(x, y, rw, rowH - 6, 12);
             }
             var tiles = m["tiles"] as Array;
-            var court = m["court"] == null ? "" : "COURT " + m["court"].toString() + "  ";
+            var court = m["court"] == null ? "" : "COURT " + (m["court"] as Number).toString() + "  ";
             Look.text(dc, w / 2, y + (rowH - 6) * 0.32, Graphics.FONT_TINY, court + Score.plain(tiles[0] as String) + "–" + Score.plain(tiles[1] as String), Look.WHITE);
             Look.text(dc, w / 2, y + (rowH - 6) * 0.72, Graphics.FONT_XTINY, (m["home"] as String) + " – " + (m["away"] as String), Look.MUTED);
             y += rowH;

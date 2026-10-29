@@ -7,8 +7,8 @@ import Toybox.WatchUi;
 module Score {
     //! "14" stays "14", "07" becomes "7" (the flip tiles show 07; a text shows 7). "AD" stays.
     function plain(tile as String) as String {
-        if (tile.length() == 2 && tile.substring(0, 1).equals("0")) {
-            return tile.substring(1, 2);
+        if (tile.length() == 2 && "0".equals(tile.substring(0, 1))) {
+            return tile.substring(1, 2) as String;
         }
         return tile;
     }
@@ -256,7 +256,7 @@ class ScoreView extends WatchUi.View {
         dc.fillRectangle((w * 0.25).toNumber(), (h * 0.52).toNumber(), (w * 0.5).toNumber(), 1);
         side(dc, 1, (h * 0.80).toNumber(), (h * 0.66).toNumber(), th, font);
         if (s["court"] != null) {
-            Look.text(dc, w / 2, (h * 0.90).toNumber(), Graphics.FONT_XTINY, "COURT " + s["court"].toString(), Look.FAINT);
+            Look.text(dc, w / 2, (h * 0.90).toNumber(), Graphics.FONT_XTINY, "COURT " + (s["court"] as Number).toString(), Look.FAINT);
         }
 
         // A game or the match won.
@@ -303,7 +303,7 @@ class ScoreView extends WatchUi.View {
                 var mine = g[team];
                 var theirs = g[1 - team];
                 var won = mine != null && theirs != null && (mine as Number) > (theirs as Number);
-                Look.text(dc, x0 + i * col, ry, Graphics.FONT_TINY, mine == null ? "–" : mine.toString(), won ? Look.WHITE : Look.FAINT);
+                Look.text(dc, x0 + i * col, ry, Graphics.FONT_TINY, mine == null ? "–" : (mine as Number).toString(), won ? Look.WHITE : Look.FAINT);
             }
         }
         Look.text(dc, w / 2, y + ch * 0.84, Graphics.FONT_XTINY, matchWinner != null ? "START: done · BACK: undo" : "START: next game", Look.GREEN);

@@ -64,7 +64,7 @@ class LinkView extends WatchUi.View {
 
     function onPoll(code as Number, data as Dictionary or String or Null) as Void {
         _busy = false;
-        if (code == 200 && data instanceof Dictionary && "linked".equals(data["status"])) {
+        if (code == 200 && data instanceof Dictionary && "linked".equals(data["status"] as String?)) {
             Api.setToken(data["token"] as String);
             Look.buzzDone();
             var list = new MatchesView();

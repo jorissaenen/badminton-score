@@ -58,7 +58,15 @@ if [ ! -f "$key" ]; then
 fi
 
 mkdir -p build
-"${bin}monkeyc$ext" -f monkey.jungle -d "$device" -y "$key" -o "build/skoor-$device.prg" -w -l 2
+# Built from a copy of the manifest with only this watch in it: the SDK warns about every watch in
+# the list it doesn't have, and this build needs none of them.
+grep -v '<iq:product ' manifest.xml | sed "s#<iq:products>#<iq:products>\\
+            <iq:product id=\"$device\"/>#" > build/manifest.xml
+{ echo 'project.manifest = manifest.xml'; echo 'base.sourcePath = ../source'; echo 'base.resourcePath = ../resources'
+  # The Fenix 6 series shows 40×40 app icons (the others 60–70, scaled from the default).
+  case "$device" in fenix6*) echo "$device.resourcePath = \$(base.resourcePath);../resources-icon40" ;; esac
+} > build/monkey.jungle
+"${bin}monkeyc$ext" -f build/monkey.jungle -d "$device" -y "$key" -o "build/skoor-$device.prg" -w -l 2
 echo "Built build/skoor-$device.prg"
 
 if [ "${2:-}" = run ]; then

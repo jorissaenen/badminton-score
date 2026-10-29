@@ -58,7 +58,7 @@ module Api {
     }
 
     function get(path as String, params as Dictionary?, callback as Method(code as Number, data as Dictionary or String or Null) as Void) as Void {
-        Communications.makeWebRequest(BASE + path, params, {
+        Communications.makeWebRequest(BASE + path, params as Dictionary<Object, Object>?, {
             :method => Communications.HTTP_REQUEST_METHOD_GET,
             :headers => headers(false),
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
@@ -66,7 +66,7 @@ module Api {
     }
 
     function post(path as String, body as Dictionary, callback as Method(code as Number, data as Dictionary or String or Null) as Void) as Void {
-        Communications.makeWebRequest(BASE + path, body, {
+        Communications.makeWebRequest(BASE + path, body as Dictionary<Object, Object>, {
             :method => Communications.HTTP_REQUEST_METHOD_POST,
             :headers => headers(true),
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
