@@ -10,6 +10,7 @@ class SkoorApp extends Application.AppBase {
     }
 
     function getInitialView() as [Views] or [Views, InputDelegates] {
+        Look.setup();
         if (Api.token() == null) {
             return [new LinkView(), new LinkDelegate()];
         }

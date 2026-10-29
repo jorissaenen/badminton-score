@@ -1,17 +1,34 @@
 import Toybox.Attention;
 import Toybox.Graphics;
 import Toybox.Lang;
+import Toybox.System;
 
 //! Skoor's colours and the buzzes, the same on every screen of the app.
 module Look {
-    const GREEN = 0x22C55E;
-    const ORANGE = 0xF59E0B;
-    const CARD = 0x1A1A1A;
-    const LINE = 0x262626;
-    const MUTED = 0x8A8A8A;
-    const FAINT = 0x5A5A5A;
-    const WHITE = 0xFAFAFA;
+    // For AMOLED screens. MIP screens (Fenix 6, Forerunner 255/955, Instinct…) show only 64
+    // colours, where these dark greys would turn black: setup() swaps in the nearest of those.
+    var GREEN as Number = 0x22C55E;
+    var ORANGE as Number = 0xF59E0B;
+    var CARD as Number = 0x1A1A1A;
+    var LINE as Number = 0x262626;
+    var MUTED as Number = 0x8A8A8A;
+    var FAINT as Number = 0x5A5A5A;
+    var WHITE as Number = 0xFAFAFA;
     const BLACK = 0x000000;
+
+    function setup() as Void {
+        var settings = System.getDeviceSettings();
+        if ((settings has :requiresBurnInProtection) && settings.requiresBurnInProtection) {
+            return; // AMOLED
+        }
+        GREEN = 0x00AA55;
+        ORANGE = 0xFFAA00;
+        CARD = 0x555555;
+        LINE = 0x555555;
+        MUTED = 0xAAAAAA;
+        FAINT = 0xAAAAAA; // 0x555555 would vanish on a card
+        WHITE = 0xFFFFFF;
+    }
 
     function vibrate(pattern as Array<Number>) as Void {
         if (!(Attention has :vibrate)) {

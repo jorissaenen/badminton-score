@@ -37,6 +37,12 @@ else keeps it on a phone or another watch.
 4. **On the watch:** connect it by USB, copy `build/skoor-fr265.prg` to `GARMIN/APPS/`, unplug.
    Skoor is then in the list of apps. (Later: through the Connect IQ Store.)
 
+**Fenix 6X** (Pro, Sapphire, Solar): its id is `fenix6xpro`, so `./build.sh fenix6xpro`. It has no
+touch screen, so you score with the buttons only: UP (left, middle) and DOWN (left, bottom) for
+the points, BACK (right, bottom) undoes, START (right, top) for the menu; holding UP opens the
+menu too. Its screen shows 64 colours, so Skoor uses brighter greys there to keep the cards
+visible.
+
 Is your watch missing from `manifest.xml`? Add `<iq:product id="…"/>` with its id from the SDK
 Manager. The app needs API level 3.2 (most watches since 2019).
 
