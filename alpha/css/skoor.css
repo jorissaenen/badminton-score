@@ -393,6 +393,9 @@ input::placeholder { color: #5a5a5a; }
 .board-info { display: flex; flex-direction: column; align-items: center; gap: calc(4px * var(--u)); padding-top: calc(13px * var(--u)); min-width: 0; text-align: center; }
 .board-title { font-family: var(--display); font-weight: 800; font-size: calc(17px * var(--u)); letter-spacing: 0.16em; margin-right: -0.16em; /* trailing spacing would push it off-centre */ line-height: 1; }
 .board-sub { font-size: calc(12px * var(--u)); color: var(--faint); font-variant-numeric: tabular-nums; }
+/* Changing ends mid-game: a calm line under the title, while the sides slide across. */
+.board-ends { font-family: var(--display); font-weight: 800; font-size: calc(15px * var(--u)); letter-spacing: 0.16em; margin-right: -0.16em; line-height: 1; color: var(--green); animation: fade 0.3s ease-out; }
+.board-ends:not([hidden]) ~ * { display: none; }
 .board-buttons { display: flex; gap: calc(8px * var(--u)); justify-self: end; }
 .board .round { width: calc(44px * var(--u)); height: calc(44px * var(--u)); }
 .board .round .i { width: calc(20px * var(--u)); height: calc(20px * var(--u)); }
@@ -428,7 +431,6 @@ input::placeholder { color: #5a5a5a; }
 .break-timer { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .break-label { font-family: var(--display); font-weight: 800; letter-spacing: 0.16em; color: var(--muted); font-size: 15px; }
 .break-clock { font-family: var(--display); font-weight: 800; font-size: 64px; line-height: 1; font-variant-numeric: tabular-nums; }
-.change-ends { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 4; padding: 14px 24px; border-radius: 999px; background: var(--green); color: #000; font-family: var(--display); font-weight: 800; font-size: calc(26px * var(--u)); letter-spacing: 0.14em; pointer-events: none; }
 
 /* ---------- sheets ---------- */
 

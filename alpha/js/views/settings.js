@@ -153,3 +153,34 @@ function range(lo, hi, step, key) {
   const now = s()[key];
   return list.includes(now) ? list : [...list, now].sort((a, b) => a - b);
 }
+
+// ---------- sound check ----------
+
+// Shows what the sound does on this device, with a beep and a score call to try.
+export function soundCheck() {
+  let timer = null;
+  const info = () => {
+    const list = Audio.voices();
+    const voice = list.find((v) => v.voiceURI === s().voiceURI) ?? Audio.bestVoice(list);
+    return [
+      `Score calls: ${s().voice ? 'on' : 'off'} · Beeps: ${s().beep ? 'on' : 'off'}`,
+      `Audio: ${Audio.audioState()}`,
+      `Speech: ${Audio.speechSupported() ? `${list.length} voices · ${voice ? `${voice.name} (${voice.lang})` : 'no voice'}` : 'not available'}`,
+      '',
+      ...(Audio.soundLog().length ? Audio.soundLog() : ['Nothing played yet']),
+    ].join('\n');
+  };
+  sheet(html`<h2 class="sheet-title">Sound check</h2>
+    <p class="sheet-text">Try both buttons. If you hear nothing, make a screenshot of this and send it.</p>
+    <div class="btns"><button type="button" class="btn" data-beep>${icon('music', 20)}Beep</button>
+      <button type="button" class="btn" data-say>${icon('sound', 20)}Say “11 9”</button></div>
+    <output class="tester" data-info style="white-space:pre-line;font-size:12px">${info()}</output>
+    <p class="note" style="margin:0">On iPhone, the switch on the side mutes beeps when it’s on silent.</p>
+    <button type="button" class="btn primary block" data-done>Done</button>`.s, (el, close) => {
+    const out = el.querySelector('[data-info]');
+    el.querySelector('[data-beep]').addEventListener('click', () => Audio.beep(880));
+    el.querySelector('[data-say]').addEventListener('click', () => Audio.say('11 9', { voiceURI: s().voiceURI, rate: s().speechRate }));
+    el.querySelector('[data-done]').addEventListener('click', close);
+    timer = setInterval(() => { out.textContent = info(); }, 400);
+  }, { onClose: () => clearInterval(timer) });
+}

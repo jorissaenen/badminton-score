@@ -148,6 +148,8 @@ export function startMatch({ names: n, namesKnown, firstServer, swapped, points,
   state.rules = rulesFrom(state.settings);
   state.match = M.newMatch(firstServer);
   save();
+  lastEnds = null; // a new match is no change of ends
+  $('changeEnds').hidden = true;
   render();
   say(`New match. ${displayNames()[firstServer]} to serve`);
 }
@@ -310,7 +312,9 @@ function showSides(swapped, endsChangedNow) {
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (document.startViewTransition && !calm && shown) document.startViewTransition(() => board.classList.toggle('swapped', swapped));
   else board.classList.toggle('swapped', swapped);
-  if (settings().autoEnds && endsChangedNow) {
+  // Only mid-game (at 11 in the decider): after a game the game-over card already said so.
+  const midGame = M.currentGame(state.match).rallies.length > 0;
+  if (settings().autoEnds && endsChangedNow && midGame) {
     $('changeEnds').hidden = false;
     clearTimeout(endsTimer);
     endsTimer = setTimeout(() => { $('changeEnds').hidden = true; }, 3500);

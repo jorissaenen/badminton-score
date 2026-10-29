@@ -7,7 +7,7 @@ import { state } from '../state.js';
 import { mediaControlsSupported } from '../media.js';
 import { speechSupported, onVoicesChanged } from '../audio.js';
 import { $, html, icon, initials, toast, confirmSheet } from '../ui.js';
-import { toggle, wireToggles, voiceSheet, remoteSheet, voiceName, seconds } from './settings.js';
+import { toggle, wireToggles, voiceSheet, remoteSheet, voiceName, seconds, soundCheck } from './settings.js';
 import { spinner } from './common.js';
 
 const REMINDER_TEXT = {
@@ -65,6 +65,7 @@ export function show(el) {
         ${toggle('voice', 'Score calls', '“11 9”, “Game, Home”')}
         ${toggle('beep', 'Beeps for remote presses')}
         ${s.voice && speechSupported() ? html`<button type="button" class="row" data-voice><span class="grow">Voice</span><span class="val">${voiceName()}</span>${icon('chevron', 18)}</button>` : ''}
+        <button type="button" class="row" data-soundcheck><span class="grow">Sound check</span>${icon('chevron', 18)}</button>
       </div></section>
       <section><h2 class="h3">Remote control</h2><div class="card">
         ${mediaControlsSupported() ? toggle('headphones', 'Headphone controls', 'Earbuds or a watch as the remote') : ''}
@@ -87,6 +88,7 @@ export function show(el) {
     wireToggles(el);
     el.querySelectorAll('input[data-set="voice"]').forEach((i) => i.addEventListener('change', draw));
     el.querySelector('[data-voice]')?.addEventListener('click', () => voiceSheet(draw));
+    el.querySelector('[data-soundcheck]').addEventListener('click', soundCheck);
     el.querySelector('[data-remote]').addEventListener('click', () => remoteSheet(draw));
     el.querySelector('[data-install]')?.addEventListener('click', () => { if (canInstall) $('installTrigger').click(); });
     el.querySelector('[data-signout]')?.addEventListener('click', async () => {

@@ -21,7 +21,11 @@ let current = null; // keeps the playing utterance referenced
 let pending = null;
 
 function audioContext() {
-  ctx ??= new (window.AudioContext || window.webkitAudioContext)();
+  if (!ctx) {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    note(`audio created: ${ctx.state}`);
+    ctx.onstatechange = () => note(`audio: ${ctx.state}`);
+  }
   // Not only 'suspended': after a call, Siri or another app, iOS leaves it 'interrupted'.
   if (ctx.state !== 'running' && ctx.state !== 'closed') ctx.resume().catch(() => {});
   return ctx;
@@ -32,6 +36,15 @@ function audioContext() {
 // output with an inaudible sound and unlocks speech with an empty utterance, so beeps and score
 // calls work later, also when they come from the remote.
 let speechUnlocked = false;
+
+// What the sound did lately, for the Sound check in You.
+const events = [];
+function note(text) {
+  events.push(`${new Date().toTimeString().slice(0, 8)}  ${text}`);
+  if (events.length > 10) events.shift();
+}
+export const soundLog = () => events.slice();
+
 export function unlock() {
   try {
     const c = audioContext();
@@ -42,6 +55,7 @@ export function unlock() {
   } catch { /* no Web Audio */ }
   if (!speechUnlocked && speechSupported() && !speechSynthesis.speaking) {
     speechUnlocked = true;
+    note(`unlock (audio ${ctx?.state})`);
     const u = new SpeechSynthesisUtterance(' ');
     u.volume = 0;
     speechSynthesis.speak(u);
@@ -141,11 +155,16 @@ export function beep(freq, count = 1) {
       osc.stop(t + 0.12);
     }
     beepEndsAt = performance.now() + 30 + count * 140;
-  } catch { /* no audio available */ }
+    note(`beep ${freq} Hz (audio ${c.state})`);
+  } catch (e) {
+    note(`beep failed: ${e.message}`);
+  }
 }
 
 export function say(text, { voiceURI = '', rate = 1 } = {}) {
-  if (!speechSupported()) return;
+  if (!speechSupported()) { note('no speech in this browser'); return; }
+  note(`say “${text}”`);
+  if (speechSynthesis.paused) speechSynthesis.resume(); // iOS can leave speech paused after an interruption
   clearTimeout(pending);
   const busy = speechSynthesis.speaking || speechSynthesis.pending;
   if (busy) speechSynthesis.cancel();
@@ -163,7 +182,12 @@ export function say(text, { voiceURI = '', rate = 1 } = {}) {
     u.rate = rate;
     u.pitch = 1;
     u.volume = 1;
-    u.onend = u.onerror = () => { if (current === u) current = null; };
+    u.onstart = () => note(`speaking (${u.voice?.name ?? u.lang})`);
+    u.onend = () => { if (current === u) current = null; };
+    u.onerror = (e) => {
+      note(`speech error: ${e.error}`);
+      if (current === u) current = null;
+    };
     current = u;
     speechSynthesis.speak(u);
   }, delay);
