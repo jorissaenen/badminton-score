@@ -654,8 +654,10 @@ input::placeholder { color: #5a5a5a; }
 .ov-court-top { display: flex; align-items: center; justify-content: space-between; gap: 1vw; }
 .ov-state { display: inline-flex; align-items: center; gap: 0.6vw; font-size: clamp(12px, 1.8vh, 24px); color: var(--muted); }
 .ov-state.late { color: #f59e0b; }
-.ov-last { display: flex; flex-direction: column; gap: 0.2vh; margin-top: auto; }
-.ov-last-label { font-size: clamp(11px, 1.6vh, 20px); color: var(--faint); }
+.ov-free { flex: 1; display: grid; place-items: center; font-size: clamp(16px, 3vh, 40px); color: var(--muted); }
+.ov-which { color: var(--faint); }
+.ov-side .ov-name { flex: 1; min-width: 0; }
+.ov-side .ov-g { font-size: clamp(14px, 2.4vh, 32px); }
 /* Live: a green dot, softly blinking; late (no points for a while) or no connection: orange, still */
 .dot { width: clamp(8px, 1.4vh, 18px); height: clamp(8px, 1.4vh, 18px); border-radius: 50%; flex: none; display: inline-block; }
 .dot.live { background: var(--green); animation: blink 2s ease-in-out infinite; }

@@ -192,22 +192,21 @@ function drawOverview() {
   const word = (c) => (c ? t(sport.id === 'tabletennis' ? 'screen.tableN' : 'screen.courtN', { n: c }) : '');
   const at = (ts) => (ts?.toDate ? ts.toDate().toTimeString().slice(0, 5) : '');
   // Every court the same size. Being played: a green dot (orange when no point came in for a few
-  // minutes). Free: the last match played there, in grey.
+  // minutes), and in a match of more games the games so far before the score. Free: just that (the
+  // last results are on the right; a planned next match comes with tournaments).
   const court = (c) => {
     const m = live.filter((x) => x.court === c).at(-1);
     const label = word(c);
-    if (!m) {
-      const last = done.filter((x) => x.court === c).sort((a, b) => (b.finishedAt?.toMillis?.() ?? 0) - (a.finishedAt?.toMillis?.() ?? 0))[0];
-      const games = last ? M.gameScores(last.state, last.rules) : [];
-      return html`<div class="ov-court free"><div class="ov-court-top"><span class="ov-label">${label}</span><span class="ov-state">${t('screen.free')}</span></div>
-        ${last ? html`<div class="ov-last"><span class="ov-last-label">${t('screen.lastMatchAt', { time: at(last.finishedAt) })}</span>
-          ${[0, 1].map((s) => html`<div class="ov-r-row${last.winner === s ? ' won' : ''}"><span class="ov-who">${names(last)[s]}</span>${games.map((g) => html`<span class="ov-g${g[s] > g[1 - s] ? ' won' : ''}">${g[s]}</span>`)}</div>`)}</div>` : ''}</div>`;
-    }
+    if (!m) return html`<div class="ov-court free"><div class="ov-court-top"><span class="ov-label">${label}</span></div><span class="ov-free">${t('screen.free')}</span></div>`;
     const v = M.display(m.state, m.rules);
     const srv = M.server(M.currentGame(m.state), m.rules, m.state);
     const n = names(m);
-    return html`<div class="ov-court"><div class="ov-court-top"><span class="ov-label">${label}</span>${liveDot(m)}</div>
-      ${[0, 1].map((s) => html`<div class="ov-side"><span class="ov-name${srv === s ? ' serving' : ''}">${n[s]}</span><span class="ov-tiles">${tiles(v.tiles[s], srv === s)}</span></div>`)}</div>`;
+    const past = M.gameScores(m.state, m.rules).slice(0, -1);
+    const tennis = sportOf(m.rules.sport).scoring === 'tennis';
+    const which = m.rules.bestOf > 1 ? t(tennis ? 'board.setN' : 'board.gameN', { n: m.state.games.length }) : '';
+    return html`<div class="ov-court"><div class="ov-court-top"><span class="ov-label">${label}${which ? html`<span class="ov-which"> · ${which}</span>` : ''}</span>${liveDot(m)}</div>
+      ${[0, 1].map((s) => html`<div class="ov-side"><span class="ov-name${srv === s ? ' serving' : ''}">${n[s]}</span>
+        ${past.map((g) => html`<span class="ov-g${g[s] > g[1 - s] ? ' won' : ''}">${g[s]}</span>`)}<span class="ov-tiles">${tiles(v.tiles[s], srv === s)}</span></div>`)}</div>`;
   };
   const noCourt = live.filter((m) => !m.court || m.court > courts);
   root.className = 'screen overview';

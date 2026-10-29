@@ -137,7 +137,7 @@ tabs (Play, Clubs, You) and full screens instead of the settings window.
 - [ ] Slides from venues and sponsors (advertising, a new source of income): who books them, the
       images or video, when they show (not linked, or a free court), and reporting
 - [ ] Tournament planning on the overview (with tournaments, Phase 4)
-- [ ] "Next on this court" at the bottom of a court screen, once matches are planned ahead (tournaments; design board, board 26)
+- [ ] "Next on this court" at the bottom of a court screen and on free courts in the overview ("Next · 21:10"), once matches are planned ahead (tournaments; design board, boards 26 and 28)
 - [ ] The top of the screens by plan: Free shows the Skoor logo (done), a paid Club plan the
       club's logo and name with a small Skoor logo, the highest Organiser plan the organiser's
       logo and event name without Skoor (design board, board 31); plans and prices to decide
