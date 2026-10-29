@@ -502,16 +502,34 @@ export function render() {
     const matchWinner = M.matchWinner(match, rules);
     const w = winner ?? matchWinner ?? 0;
     const name = names()[w];
-    // "Joris wins", "Joris & Ann win": the verb follows the name.
-    $('gameoverTitle').textContent = matchWinner !== null ? t('board.winsMatch', { name, count: people(name) })
-      : t(`board.wins${tennis() ? 'Set' : 'Game'}`, { name, n: gameNo, count: people(name) });
-    $('gameoverSub').textContent = M.gameScores(match, rules).map((x) => x.join('–')).join('   ');
+    // "GAME 1" (or "MATCH WON") over "Joris & Ann win": the verb follows the name.
+    $('gameoverLabel').textContent = matchWinner !== null ? t('board.matchWon') : title;
+    $('gameoverTitle').textContent = t('board.wins', { name, count: people(name) });
+    gamesTable($('gameoverGames'), M.gameScores(match, rules), w);
     const next = t(`board.${unit()}N`, { n: gameNo + 1 });
     $('gameoverHint').textContent = matchWinner !== null ? t('board.longPressFinish') : t('board.longPressNext', { next });
     $('nextBtn').textContent = matchWinner !== null ? t('board.finishMatch') : t('board.startNext', { next });
   }
   renderSync();
   fitTiles();
+}
+
+// The games so far as columns, a row per side (as on the watch): each game's winner in white, the
+// side that won this game or the match in bold.
+function gamesTable(table, scores, winner) {
+  table.replaceChildren(...[0, 1].map((side) => {
+    const tr = document.createElement('tr');
+    if (side === winner) tr.className = 'won';
+    const name = document.createElement('th');
+    name.textContent = names()[side];
+    tr.append(name, ...scores.map((g) => {
+      const td = document.createElement('td');
+      td.textContent = g[side];
+      if (g[side] > g[1 - side]) td.className = 'won';
+      return td;
+    }));
+    return tr;
+  }));
 }
 
 // The tiles take the space they have, with room around them, on any screen from a phone to a TV.

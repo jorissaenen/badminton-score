@@ -83,8 +83,9 @@
     <div id="paused" class="status-card paused" role="status" hidden><b data-t="board.paused">Scoring paused</b><span data-t="board.pausedText">No connection: checking for the latest score…</span></div>
     <div id="gameover" class="overlay" hidden>
       <div class="overlay-card">
+        <div class="overlay-label" id="gameoverLabel"></div>
         <div class="overlay-title" id="gameoverTitle"></div>
-        <div class="overlay-sub" id="gameoverSub"></div>
+        <table class="overlay-games" id="gameoverGames"></table>
         <div class="break-timer" id="breakTimer" hidden><span class="break-label" data-t="board.break">BREAK</span><span class="break-clock" id="breakClock">2:00</span></div>
         <div class="overlay-ends" id="gameoverEnds" hidden data-t="board.teamsChangeEnds">Teams change ends</div>
         <div class="overlay-hint" id="gameoverHint"></div>

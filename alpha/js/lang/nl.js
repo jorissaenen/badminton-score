@@ -106,6 +106,8 @@ export default {
   'board.teamsChangeEnds': 'De teams wisselen van kant',
   'board.winsGame': { one: '{name} wint game {n}', other: '{name} winnen game {n}' },
   'board.winsSet': { one: '{name} wint set {n}', other: '{name} winnen set {n}' },
+  'board.wins': { one: '{name} wint', other: '{name} winnen' },
+  'board.matchWon': 'Wedstrijd gewonnen',
   'board.winsMatch': { one: '{name} wint de wedstrijd', other: '{name} winnen de wedstrijd' },
   'board.longPressNext': 'Druk lang op de afstandsbediening om {next} te starten',
   'board.longPressFinish': 'Druk lang op de afstandsbediening om de wedstrijd af te sluiten',

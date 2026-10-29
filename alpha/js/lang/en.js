@@ -108,6 +108,8 @@ export default {
   'board.teamsChangeEnds': 'Teams change ends',
   'board.winsGame': { one: '{name} wins game {n}', other: '{name} win game {n}' },
   'board.winsSet': { one: '{name} wins set {n}', other: '{name} win set {n}' },
+  'board.wins': { one: '{name} wins', other: '{name} win' },
+  'board.matchWon': 'Match won',
   'board.winsMatch': { one: '{name} wins the match', other: '{name} win the match' },
   'board.longPressNext': 'Long press the remote to start {next}',
   'board.longPressFinish': 'Long press the remote to finish the match',
