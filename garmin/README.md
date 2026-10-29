@@ -27,7 +27,9 @@ else keeps it on a phone or another watch.
 1. Install the **Connect IQ SDK Manager** from developer.garmin.com/connect-iq/sdk, sign in with
    your own Garmin account, download the latest SDK and **your watch** under Devices.
 2. Make a developer key once (the command is printed by `./build.sh` when it's missing).
-3. Build for your watch, with its id from `manifest.xml` (for example `fr265`, `fenix7`,
+3. The script finds the SDK the SDK Manager installed by itself (no PATH to set up). If it
+   doesn't, point it there: `CIQ_SDK="/path/to/connectiq-sdk-…" ./build.sh fenix6xpro`.
+   Build for your watch, with its id from `manifest.xml` (for example `fr265`, `fenix7`,
    `venu3`):
 
    ```
