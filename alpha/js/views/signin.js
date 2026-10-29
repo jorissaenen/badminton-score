@@ -62,6 +62,7 @@ export function show(el, _params, { go }) {
     el.innerHTML = html`<div class="page">
       ${backBar('#/you', t('tab.you'))}
       <img class="logo" src="icons/skoor-logo.svg" alt="Skoor" style="height:44px;margin:12px 4px 0">
+      <p class="display" style="font-size:30px;line-height:1;margin:4px 4px 0;text-transform:uppercase;letter-spacing:.02em">${t('signin.slogan')}</p>
       <p class="sub" style="font-size:16px;line-height:1.45">${t('signin.intro')}</p>
       <button type="button" class="btn primary block" data-google>${raw(GOOGLE)}${t('signin.google')}</button>
       ${emailOpen ? html`<div class="card pad" style="display:flex;flex-direction:column;gap:12px">

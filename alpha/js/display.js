@@ -25,7 +25,9 @@ const appUrl = location.href.replace(/link\/?(index\.html)?(\?.*)?(#.*)?$/, '');
 // Slides while the screen isn't linked (or its court is free). Venues and sponsors can have their
 // own later; for now Skoor's.
 const SLIDES = [
+  { title: 'slides.skoorItTitle', text: 'slides.skoorItText' },
   { title: 'slides.oneClickTitle', text: 'slides.oneClickText' },
+  { title: 'slides.lessTitle', text: 'slides.lessText' },
   { title: 'slides.statsTitle', text: 'slides.statsText' },
   { title: 'slides.clubTitle', text: 'slides.clubText' },
 ];

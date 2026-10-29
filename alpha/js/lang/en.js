@@ -256,6 +256,7 @@ export default {
 
   // ---------- signing in ----------
   'signin.button': 'Sign in',
+  'signin.slogan': 'Play it. Skoor it.',
   'signin.intro': 'Keep score with one click: a camera remote, earbuds or a tap on the screen. Sign in to plan training with your club, see who’s coming and follow your results.',
   'signin.google': 'Continue with Google',
   'signin.withEmail': 'Sign in with e-mail',
@@ -623,7 +624,7 @@ export default {
   'eventMatch.busy': 'busy',
   'screen.screens': 'Screens',
   'screen.link': 'Link a screen',
-  'screen.linkSub': 'A TV or tablet at the venue: open skoor.io/link on it',
+  'screen.linkSub': 'A TV or tablet at the venue: open skoor.it/link on it',
   'screen.linkButton': 'Link',
   'screen.linked': 'Screen linked',
   'screen.unlink': 'Unlink this screen',
@@ -669,12 +670,16 @@ export default {
   'screen.notSetUp': 'Screens aren’t switched on for this app yet: Anonymous sign-in is off in Firebase (Authentication → Sign-in method).',
   'screen.cantStart': 'This screen can’t connect right now. Check the internet connection and reload.',
   'screen.overviewFoot': 'Scores live from the courts',
+  'slides.skoorItTitle': 'Play it. Skoor it.',
+  'slides.skoorItText': 'Every point, every match, every club night. skoor.it',
+  'slides.lessTitle': 'Less counting. More playing.',
+  'slides.lessText': 'Skoor keeps the score and calls it out, so your eyes stay on the game.',
   'slides.oneClickTitle': 'Keep score with one click',
   'slides.oneClickText': 'A camera remote, earbuds or a tap on your phone. Every point on this screen, live.',
   'slides.statsTitle': 'Every point counts',
   'slides.statsText': 'Statistics for every player after every match: who’s on form, who’s next.',
   'slides.clubTitle': 'Your club on Skoor',
-  'slides.clubText': 'Plan training, see who’s coming, play and follow the results. skoor.io',
+  'slides.clubText': 'Plan training, see who’s coming, play and follow the results. skoor.it',
 
   // ---------- installing ----------
   'install.title': 'Install Skoor',

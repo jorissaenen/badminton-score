@@ -254,6 +254,7 @@ export default {
 
   // ---------- signing in ----------
   'signin.button': 'Aanmelden',
+  'signin.slogan': 'Speel het. Skoor het.',
   'signin.intro': 'Hou de score bij met één klik: een camera-afstandsbediening, oortjes of een tik op het scherm. Meld je aan om trainingen te plannen met je club, te zien wie komt en je resultaten te volgen.',
   'signin.google': 'Doorgaan met Google',
   'signin.withEmail': 'Aanmelden met e-mail',
@@ -621,7 +622,7 @@ export default {
   'eventMatch.busy': 'bezet',
   'screen.screens': 'Schermen',
   'screen.link': 'Een scherm koppelen',
-  'screen.linkSub': 'Een tv of tablet in de zaal: open daarop skoor.io/link',
+  'screen.linkSub': 'Een tv of tablet in de zaal: open daarop skoor.it/link',
   'screen.linkButton': 'Koppelen',
   'screen.linked': 'Scherm gekoppeld',
   'screen.unlink': 'Dit scherm ontkoppelen',
@@ -667,12 +668,16 @@ export default {
   'screen.notSetUp': 'Schermen staan nog niet aan voor deze app: anoniem aanmelden staat uit in Firebase (Authentication → Sign-in method).',
   'screen.cantStart': 'Dit scherm kan nu geen verbinding maken. Controleer het internet en laad opnieuw.',
   'screen.overviewFoot': 'Scores live van de velden',
+  'slides.skoorItTitle': 'Speel het. Skoor het.',
+  'slides.skoorItText': 'Elk punt, elke wedstrijd, elke clubavond. skoor.it',
+  'slides.lessTitle': 'Minder tellen. Meer spelen.',
+  'slides.lessText': 'Skoor houdt de score bij en roept ze om, zodat je ogen bij het spel blijven.',
   'slides.oneClickTitle': 'Score bijhouden met één klik',
   'slides.oneClickText': 'Een camera-afstandsbediening, oortjes of een tik op je telefoon. Elk punt live op dit scherm.',
   'slides.statsTitle': 'Elk punt telt',
   'slides.statsText': 'Statistieken voor elke speler na elke wedstrijd: wie in vorm is, wie de volgende is.',
   'slides.clubTitle': 'Je club op Skoor',
-  'slides.clubText': 'Plan trainingen, zie wie komt, speel en volg de resultaten. skoor.io',
+  'slides.clubText': 'Plan trainingen, zie wie komt, speel en volg de resultaten. skoor.it',
 
   // ---------- installing ----------
   'install.title': 'Skoor installeren',

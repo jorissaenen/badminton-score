@@ -15,7 +15,8 @@ domain and move the app there **before** the club starts using it. GitHub Pages 
 work with an own domain.
 
 - **Name: Skoor.** Short, sounds like "score" in every language, fits every sport.
-- **Domain: `skoor.io`** (free on 28 Oct 2026; `skoor.com`, `skoor.app` and `skoor.be` are taken).
+- **Domain: `skoor.it`** (bought on 29 Oct 2026; `skoor.com`, `skoor.app` and `skoor.be` are taken). The
+  `.it` doubles as the slogan: *Play it. Skoor it.* (see brand/slogans.md).
 - **Logo:** "SK00R": the two o's are two green flip tiles showing 0–0, the score every match starts
   with. Letters in Barlow Condensed ExtraBold with 12 % letter spacing; tiles green `#22c55e`
   with a black 0 and a black split line. The app icon is the same two green tiles on black, so
