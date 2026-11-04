@@ -118,6 +118,20 @@ module Look {
         return cut(dc, upper ? first.toUpper() : first, font, maxW);
     }
 
+    //! The white outline of the row or button that is selected.
+    function outline(dc as Graphics.Dc, x as Numeric, y as Numeric, w as Numeric, h as Numeric, r as Numeric) as Void {
+        dc.setColor(WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(2);
+        dc.drawRoundedRectangle(x.toNumber(), y.toNumber(), w.toNumber(), h.toNumber(), r.toNumber());
+        dc.setPenWidth(1);
+    }
+
+    //! "07:42" from milliseconds (rounded up, so 0:00 shows only when the time is up).
+    function clock(ms as Number) as String {
+        var s = (ms + 999) / 1000;
+        return (s / 60).format("%02d") + ":" + (s % 60).format("%02d");
+    }
+
     //! Marks on the edge next to the START (top right) and BACK (bottom right) buttons, so the
     //! hints on screen point at the button to press. Round screens only.
     function buttonMarks(dc as Graphics.Dc, startColor as Number?, backColor as Number?) as Void {

@@ -144,6 +144,8 @@ clubs/{clubId}                    name, created by, defaults (points, match leng
   keepers/{keeperId}              name, uid (optional: a keeper without an account has none)
   stats/…                         derived per player, pair, event, season and all-time
 devices/{deviceId}                paired watch: owner uid, club, allowed courts, token hash
+users/{uid}/games/{gameId}        a game started on a watch (D24): sport, rules, home, away, state
+                                  (points; timed games: a log of start, pause, point, next, end)
 pushTokens/{uid}/{deviceId}       for reminders (web push), per device
 ```
 

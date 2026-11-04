@@ -11,7 +11,22 @@ else keeps it on a phone or another watch.
 - **No phone app needed for scoring.** The watch talks to Skoor itself (the Cloud Function
   `watch`, see `functions/watch.js`), through Garmin Connect on the phone's Bluetooth or the
   watch's Wi-Fi/LTE. Garmin Connect only passes the requests on.
-- **Matches.** The list shows the matches being played now in your clubs, by court.
+- **The start.** *New game*, *Matches now* (with how many) and *Settings*. UP / DOWN choose,
+  START opens, BACK closes the app.
+- **New game.** Choose the sport (its icon; a clock for timed sports: basketball, football), then
+  the quick setup: HOME and AWAY with their players (START opens a team: the people you played
+  with lately, START ticks or unticks, *+ Guest* for someone without the app, BACK when done), the
+  game length (START shows the next) and *Start*. You start in HOME. The game is your own, not a
+  club's: the server keeps every point, and in timed games every start and pause of the clock.
+  Point games are scored as below (no 5-second freeze: you're the only keeper).
+- **Timed games.** The clock counts the period down in the middle; HOME and AWAY with their score
+  under it. UP: point for HOME, DOWN: for AWAY (basketball: choose +1, +2 or +3; +2 counts by
+  itself after 2 s), START: stop or start the clock (points still count while it's stopped),
+  BACK: undo the last point. When the time is up: a buzz and a screen with the score per period
+  and START for the next; after the last, who won. The clock runs on the watch, so it asks the
+  server only every 20 s (30 s while stopped).
+- **Matches.** The list shows your own games still being played first, then the matches being
+  played now in your clubs, by court.
 - **Scoring.** UP: point for the top team · DOWN: point for the bottom team · BACK: undo ·
   START: the menu, or the next game when a game is over. Touch scoring (tap the top or bottom
   half) can be switched on in the menu; it's off by default because sleeves and sweat tap too.
@@ -35,7 +50,7 @@ else keeps it on a phone or another watch.
 - **Live or not.** With a recent answer the watch shows LIVE in green; otherwise OFFLINE in orange
   and a grey *Scoring paused* card. Without a connection a press is refused at once, with why.
 - **Leaving.** As in Garmin's own activities, BACK is a button of the match (undo, like LAP), and you
-  leave through START → *Other match* (the list) or *Close Skoor*; on the list, BACK closes it.
+  leave through START → *Leave this match* or *Close Skoor*; on the start screen, BACK closes it.
   The match goes on for the others. The watch's app list then shows Skoor first, as the last app
   used: it isn't running in the background (Connect IQ apps can't).
 
@@ -69,12 +84,15 @@ Manager. The app needs API level 3.2 (most watches since 2019).
 
 | File | What |
 |---|---|
-| `source/SkoorApp.mc` | Starts with linking or the list of matches |
+| `source/SkoorApp.mc` | Starts with linking or the start screen |
+| `source/HomeView.mc` | The start: New game, Matches now, Settings |
+| `source/NewGame.mc` | New game: the sport, the quick setup, the players of a team |
+| `source/TimedView.mc` | Timed games: the clock, the end of a period, +1/+2/+3 |
 | `source/Api.mc` | Requests to Skoor, the watch's key, the settings |
 | `source/LinkView.mc` | The QR code and key, waits for the confirmation |
 | `source/MatchesView.mc` | The matches being played now |
 | `source/ScoreView.mc` | Scoring: flip tiles, LIVE/OFFLINE, frozen bar, cards, the buttons |
-| `source/Menus.mc` | The menus (undo, touch scoring, other match, unlink) |
+| `source/Menus.mc` | The menus (undo, touch scoring, leave the match, unlink) |
 | `source/Look.mc` | Colours, buzzes and the cards, as in the watch designs |
 
 The server it talks to is set in `Api.mc` (`BASE`): the alpha's Firebase project for now.

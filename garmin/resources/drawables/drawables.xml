@@ -1,3 +1,13 @@
 <drawables>
     <bitmap id="LauncherIcon" filename="launcher_icon.png" />
+    <bitmap id="Clock" filename="clock.png" />
+    <bitmap id="Sport_badminton" filename="sport_badminton.png" />
+    <bitmap id="Sport_tabletennis" filename="sport_tabletennis.png" />
+    <bitmap id="Sport_squash" filename="sport_squash.png" />
+    <bitmap id="Sport_pickleball" filename="sport_pickleball.png" />
+    <bitmap id="Sport_beachvolleyball" filename="sport_beachvolleyball.png" />
+    <bitmap id="Sport_tennis" filename="sport_tennis.png" />
+    <bitmap id="Sport_padel" filename="sport_padel.png" />
+    <bitmap id="Sport_basketball" filename="sport_basketball.png" />
+    <bitmap id="Sport_football" filename="sport_football.png" />
 </drawables>

@@ -33,7 +33,7 @@ fun MenuScreen(store: Store, inMatch: Boolean, onUndo: () -> Unit, onOtherMatch:
             item { Toggle("Interval alerts", "Interval and change ends", store.alerts) { store.alerts = it } }
             item { Toggle("Screen on", "While scoring a match", store.keepOn) { store.keepOn = it } }
             if (inMatch) {
-                item { MenuChip("Other match", onOtherMatch) }
+                item { MenuChip("Leave this match", onOtherMatch, "It goes on without you") }
                 item { MenuChip("Close Skoor", onClose, "The match goes on") }
             }
             item { MenuChip("Unlink watch", onUnlink) }

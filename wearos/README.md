@@ -11,7 +11,20 @@ on a phone or another watch. Same server, same linking and the same screens as t
   The watch then has its own key for your account. Unlink it there any time.
 - **No phone app needed.** The watch talks to Skoor itself (`functions/watch.js`), through the
   phone's Bluetooth, Wi-Fi or LTE.
-- **Matches.** The list shows the matches being played now in your clubs, by court.
+- **The start.** *New game*, *Matches now* (with how many) and *Settings*.
+- **New game.** Choose the sport (its icon; a clock for timed sports: basketball, football), then
+  HOME and AWAY with their players (tap a team: the people you played with lately, tap to tick,
+  *+ Guest* for someone without the app), the game length and *Start*. You start in HOME. The
+  game is your own, not a club's: the server keeps every point, and in timed games every start
+  and pause of the clock.
+- **Timed games.** The clock counts the period down; tap it to stop or start it (points still
+  count while it's stopped). Tap HOME or AWAY, or the top / bottom button, for a point
+  (basketball: +1, +2 or +3, turn the crown or bezel to choose; +2 counts by itself after 2 s).
+  Hold a button to undo. When the time is up: a buzz, the score per period and the next period;
+  after the last, who won. The clock runs on the watch: it asks the server every 20 s (30 s while
+  stopped).
+- **Matches.** The list shows your own games still being played first, then the matches being
+  played now in your clubs, by court.
 - **Scoring.**
   - Touch (on by default): tap the top half for the team on top, the bottom half for the other.
   - Buttons, on watches with extra buttons: top button for the team on top, bottom button for the
@@ -28,7 +41,7 @@ on a phone or another watch. Same server, same linking and the same screens as t
 - **Battery.** The watch asks for the score when a change is likely (it learns how long a point
   takes in this match), calmly in breaks, and not at all when the app isn't on screen. The screen
   stays on while scoring (menu: *Screen on*).
-- **Leaving.** Menu → *Other match* or *Close Skoor*; the match goes on for the others.
+- **Leaving.** Menu → *Leave this match* or *Close Skoor*; the match goes on for the others.
 
 ## Build and install it yourself
 

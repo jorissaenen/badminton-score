@@ -62,7 +62,7 @@ fun MatchesContent(matches: List<Summary>?, message: String, onOpen: (Summary) -
             when {
                 list == null -> item { Text(message, color = Look.white, textAlign = TextAlign.Center) }
                 list.isEmpty() -> item {
-                    Text("No match being played. Start one on your phone, then choose it here.", color = Look.white, fontSize = 13.sp, textAlign = TextAlign.Center)
+                    Text("No match being played. Start one with New game, or on your phone.", color = Look.white, fontSize = 13.sp, textAlign = TextAlign.Center)
                 }
                 else -> items(list) { m ->
                     Chip(

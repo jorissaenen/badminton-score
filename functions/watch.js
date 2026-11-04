@@ -10,6 +10,8 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import * as M from './engine/match.js';
+import * as T from './engine/timed.js';
+import { SPORTS, sportOf, rulesFor } from './engine/sports.js';
 import qrcode from './engine/qrcode.js';
 import { pointMs, pollIn, endsAt } from './pace.js';
 
@@ -93,15 +95,16 @@ const side = (players) => players.map((p) => p.name).join(' & ');
 // how long the score is still frozen, the side the watch's owner plays on (mine: 0, 1 or null),
 // whether the teams stand on the other ends (ends) and whether it's the interval (at 11).
 export function summary(id, clubId, m, now, uid = null) {
+  if (T.isTimed(m.rules?.sport)) return timedSummary(id, clubId, m, now, uid);
   const { rules, state } = m;
   const d = M.display(state, rules);
   const over = M.isGameOver(state, rules);
-  const mine = uid ? [m.home, m.away].findIndex((players) => players.some((p) => p.id === uid)) : -1;
+  const mine = mineOf(m, uid);
   const frozen = m.lastPointAt ? Math.max(0, m.lastPointAt.toMillis() + FREEZE_MS - now) : 0;
   return {
     club: clubId, match: id, version: m.version ?? 0, status: m.status, court: m.court ?? null,
     sport: rules.sport, bestOf: rules.bestOf,
-    home: side(m.home), away: side(m.away),
+    home: side(m.home) || 'Home', away: side(m.away) || 'Away',
     tiles: d.tiles, games: d.games ?? null,
     server: over ? -1 : M.server(M.currentGame(state), rules, state),
     won: M.gamesWon(state, rules),
@@ -115,6 +118,26 @@ export function summary(id, clubId, m, now, uid = null) {
   };
 }
 
+const mineOf = (m, uid) => (uid ? [m.home, m.away].findIndex((players) => players.some((p) => p.id === uid)) : -1);
+
+// A timed game (basketball, football): the score, the period and the clock. The watch runs the
+// clock itself from elapsedMs and running; past: the score of each period played before this one.
+function timedSummary(id, clubId, m, now, uid) {
+  const v = T.timedView(m.state, m.rules, now);
+  const sport = T.timedOf(m.rules.sport);
+  const mine = mineOf(m, uid);
+  return {
+    kind: 'timed', club: clubId, match: id, version: m.version ?? 0, status: m.status, court: m.court ?? null,
+    sport: m.rules.sport, home: side(m.home) || 'Home', away: side(m.away) || 'Away',
+    tiles: v.score.map(String), score: v.score, values: sport.values, usual: sport.usual,
+    period: v.period, periods: v.periods, lengthMs: v.lengthMs, elapsedMs: v.elapsedMs, leftMs: v.leftMs,
+    running: v.running, periodOver: v.periodOver, finished: v.finished, winner: v.winner,
+    past: v.byPeriod.slice(0, -1),
+    frozenMs: 0, lastBy: m.lastByName ?? '', lastAction: m.lastAction ?? '',
+    mine: mine === -1 ? null : mine,
+  };
+}
+
 async function isMember(db, clubId, uid) {
   return (await db.doc(`clubs/${clubId}/members/${uid}`).get()).exists;
 }
@@ -123,7 +146,8 @@ async function isMember(db, clubId, uid) {
 const today = (timeZone, now) => new Intl.DateTimeFormat('en-CA', { timeZone: timeZone || 'Europe/Brussels' }).format(new Date(now));
 
 // The matches being played now in the account's clubs, by court, and when to ask again (pollIn,
-// in seconds: see pace.js).
+// in seconds: see pace.js). The account's own games started on a watch, still being played (in
+// the last 12 hours), come first.
 async function listMatches(db, me, now) {
   const clubs = await db.collection(`users/${me.uid}/clubs`).get();
   const out = [];
@@ -145,60 +169,171 @@ async function listMatches(db, me, now) {
     }
   }
   out.sort((a, b) => (a.court ?? 99) - (b.court ?? 99));
-  return ok({ matches: out.slice(0, 20), pollIn: pollIn(raw, events, now) });
+  const own = (await db.collection(`users/${me.uid}/games`).where('status', '==', 'live').get()).docs
+    .filter((d) => (d.data().updatedAt?.toMillis?.() ?? 0) > now - 12 * 3600_000)
+    .map((d) => ({ ...summary(d.id, '', d.data(), now, me.uid), clubName: '' }));
+  return ok({ matches: [...own, ...out].slice(0, 20), pollIn: pollIn(raw, events, now) });
+}
+
+// Where a match is: a club's match (for its members), or with club '' one of the account's own games.
+async function matchRef(db, me, club, match) {
+  if (!match || typeof match !== 'string' || match.includes('/')) return null;
+  if (!club) return db.doc(`users/${me.uid}/games/${match}`);
+  if (typeof club !== 'string' || club.includes('/') || !(await isMember(db, club, me.uid))) return null;
+  return db.doc(`clubs/${club}/matches/${match}`);
 }
 
 async function getMatch(db, me, query, now) {
-  const { club, match } = query;
-  if (!club || !match || !(await isMember(db, club, me.uid))) return fail(404, 'not found');
-  const d = await db.doc(`clubs/${club}/matches/${match}`).get();
-  if (!d.exists) return fail(404, 'not found');
-  // pace=1 (when the watch opens the match): the same players' earlier matches of the event too.
+  const { club = '', match } = query;
+  const ref = await matchRef(db, me, club, match);
+  const d = ref && (await ref.get());
+  if (!d?.exists) return fail(404, 'not found');
   const m = d.data();
-  const history = query.pace ? (await db.collection(`clubs/${club}/matches`).where('eventId', '==', m.eventId).get()).docs.map((x) => x.data()) : [];
+  if (T.isTimed(m.rules?.sport)) return ok(summary(d.id, club, m, now, me.uid));
+  // pace=1 (when the watch opens the match): the same players' earlier matches of the event too.
+  const history = query.pace && m.eventId ? (await db.collection(`clubs/${club}/matches`).where('eventId', '==', m.eventId).get()).docs.map((x) => x.data()) : [];
   return ok({ ...summary(d.id, club, m, now, me.uid), pointMs: pointMs(m, history, now) });
 }
 
-// One press: 'point0', 'point1', 'undo' or 'next' (the next game), on version `basedOn`. Answers
-// { counted: true, ...score } or { counted: false, reason, by, ...score } with the score that stands.
+const POINT_ACTIONS = ['point0', 'point1', 'undo', 'next'];
+const TIMED_ACTIONS = ['point0', 'point1', 'undo', 'next', 'start', 'pause'];
+
+// One press: 'point0', 'point1', 'undo' or 'next' (the next game), on version `basedOn`; in a timed
+// game also 'start' and 'pause' (the clock), with `n` points for a point. Answers { counted: true,
+// ...score } or { counted: false, reason, by, ...score } with the score that stands. Only a club's
+// match, scored by several people, freezes for 5 seconds after a point.
 async function press(db, me, body, now) {
-  const { club, match, action } = body ?? {};
+  const { club = '', match, action } = body ?? {};
   const basedOn = Number(body?.basedOn);
-  if (!['point0', 'point1', 'undo', 'next'].includes(action)) return fail(400, 'unknown action');
-  if (!club || !match || !(await isMember(db, club, me.uid))) return fail(404, 'not found');
-  const ref = db.doc(`clubs/${club}/matches/${match}`);
+  if (!TIMED_ACTIONS.includes(action)) return fail(400, 'unknown action');
+  const ref = await matchRef(db, me, club, match);
+  if (!ref) return fail(404, 'not found');
   return db.runTransaction(async (tx) => {
     const d = await tx.get(ref);
     if (!d.exists) return fail(404, 'not found');
     const m = d.data();
     const { rules, state } = m;
+    const timed = T.isTimed(rules?.sport);
     const refuse = (reason) => ok({ counted: false, reason, by: m.lastBy !== me.uid ? m.lastByName ?? '' : '', ...summary(d.id, club, m, now, me.uid) });
+    if (!timed && !POINT_ACTIONS.includes(action)) return fail(400, 'unknown action');
     // A finished match takes one thing: undoing its last point, which reopens it (as on the phone).
     if (m.status !== 'live' && !(m.status === 'finished' && action === 'undo')) return refuse('over');
     if ((m.version ?? 0) !== basedOn) return refuse('stale');
     const point = action.startsWith('point');
-    if (point && m.lastPointAt && now < m.lastPointAt.toMillis() + FREEZE_MS) return refuse('frozen');
     let next;
-    if (point) {
-      if (M.isGameOver(state, rules)) return refuse('gameover');
-      next = M.addPoint(state, Number(action.slice(-1)), rules);
-    } else if (action === 'undo') {
-      if (state.games.length === 1 && M.currentGame(state).rallies.length === 0) return refuse('nothing');
-      next = M.undo(state);
+    let status;
+    let winner = null;
+    if (timed) {
+      const r = T.timedPress(state, rules, action, now, body?.n);
+      if (r.refused) return refuse(r.refused);
+      next = r.state;
+      const v = T.timedView(next, rules, now);
+      status = v.finished ? 'finished' : 'live';
+      winner = v.winner;
     } else {
-      if (!M.isGameOver(state, rules) || M.matchWinner(state, rules) !== null) return refuse('notover');
-      next = M.nextGame(state, rules);
+      if (point && club && m.lastPointAt && now < m.lastPointAt.toMillis() + FREEZE_MS) return refuse('frozen');
+      if (point) {
+        if (M.isGameOver(state, rules)) return refuse('gameover');
+        next = M.addPoint(state, Number(action.slice(-1)), rules);
+      } else if (action === 'undo') {
+        if (state.games.length === 1 && M.currentGame(state).rallies.length === 0) return refuse('nothing');
+        next = M.undo(state);
+      } else {
+        if (!M.isGameOver(state, rules) || M.matchWinner(state, rules) !== null) return refuse('notover');
+        next = M.nextGame(state, rules);
+      }
+      winner = M.isGameOver(next, rules) ? M.matchWinner(next, rules) : null;
+      status = winner !== null ? 'finished' : 'live';
     }
-    const winner = M.isGameOver(next, rules) ? M.matchWinner(next, rules) : null;
     const changes = {
       state: next, version: (m.version ?? 0) + 1, lastAction: action, lastBy: me.uid, lastByName: me.name.slice(0, 60),
-      lastPointAt: point ? Timestamp.fromMillis(now) : null, updatedAt: FieldValue.serverTimestamp(),
-      status: winner !== null ? 'finished' : 'live', winner,
-      ...(winner !== null && { finishedAt: FieldValue.serverTimestamp() }),
+      lastPointAt: point && club ? Timestamp.fromMillis(now) : null, updatedAt: FieldValue.serverTimestamp(),
+      status, winner,
+      ...(status === 'finished' && { finishedAt: FieldValue.serverTimestamp() }),
     };
     tx.update(ref, changes);
     return ok({ counted: true, ...summary(d.id, club, { ...m, ...changes }, now, me.uid) });
   });
+}
+
+// ---------- games started on a watch ----------
+
+const SPORT_NAMES = {
+  badminton: 'Badminton', padel: 'Padel', basketball: 'Basketball', football: 'Football', tennis: 'Tennis',
+  tabletennis: 'Table tennis', squash: 'Squash', pickleball: 'Pickleball', beachvolleyball: 'Beach volleyball',
+};
+const SPORT_ORDER = Object.keys(SPORT_NAMES);
+
+// The ways to play a point sport, the usual one first: other game lengths, and a single game.
+function pointOptions(s) {
+  if (s.scoring === 'tennis') {
+    const order = [s.defaults.bestOf, ...s.bestOf.filter((b) => b !== s.defaults.bestOf)];
+    return order.map((b) => ({ label: b === 1 ? 'One set' : `Best of ${b} sets`, bestOf: b }));
+  }
+  const { points, bestOf } = s.defaults;
+  const out = [{ points, bestOf }];
+  for (const p of s.points) if (p !== points) out.push({ points: p, bestOf });
+  if (s.bestOf.includes(1) && bestOf !== 1) out.push({ points, bestOf: 1 });
+  return out.slice(0, 4).map((o) => ({ label: o.bestOf === 1 ? `To ${o.points} · 1 game` : `To ${o.points} · best of ${o.bestOf}`, ...o }));
+}
+
+// Every sport a game can be started in from a watch, with its ways to play (options[0] = usual).
+export function sportList() {
+  const list = [
+    ...SPORTS.map((s) => ({ id: s.id, timed: false, options: pointOptions(s) })),
+    ...T.TIMED.map((s) => ({ id: s.id, timed: true, values: s.values, usual: s.usual, options: s.lengths.map((l) => ({ label: `${l.periods} × ${l.minutes} min`, ...l })) })),
+  ];
+  return list.map((s) => ({ name: SPORT_NAMES[s.id] ?? s.id, ...s }))
+    .sort((a, b) => SPORT_ORDER.indexOf(a.id) - SPORT_ORDER.indexOf(b.id));
+}
+
+// The people a game can be started with: you first, then who you played with lately in your
+// clubs (most often first), then the other members of your clubs. Up to 20.
+async function people(db, me) {
+  const names = new Map();
+  const together = new Map();
+  const clubs = await db.collection(`users/${me.uid}/clubs`).get();
+  for (const c of clubs.docs) {
+    if (!(await isMember(db, c.id, me.uid))) continue;
+    const [members, recent] = await Promise.all([
+      db.collection(`clubs/${c.id}/members`).limit(200).get(),
+      db.collection(`clubs/${c.id}/matches`).orderBy('updatedAt', 'desc').limit(40).get(),
+    ]);
+    for (const d of members.docs) names.set(d.id, String(d.data().name ?? '').slice(0, 60));
+    for (const d of recent.docs) {
+      const all = [...(d.data().home ?? []), ...(d.data().away ?? [])];
+      if (!all.some((p) => p.id === me.uid)) continue;
+      for (const p of all) if (p.id && p.id !== me.uid) together.set(p.id, (together.get(p.id) ?? 0) + 1);
+    }
+  }
+  names.delete(me.uid);
+  const others = [...names.keys()].sort((a, b) => (together.get(b) ?? 0) - (together.get(a) ?? 0) || names.get(a).localeCompare(names.get(b)));
+  return [{ id: me.uid, name: me.name, me: true }, ...others.map((id) => ({ id, name: names.get(id) }))].slice(0, 20);
+}
+
+// A new game of the account's own, started on the watch: a sport, one of its options (index),
+// the players of both teams (ids from /people) and how many guests each team has.
+async function startGame(db, me, body, now) {
+  const sport = sportList().find((s) => s.id === body?.sport);
+  if (!sport) return fail(400, 'unknown sport');
+  const opt = sport.options[Number(body?.option) || 0] ?? sport.options[0];
+  const known = new Map((await people(db, me)).map((p) => [p.id, p.name]));
+  const team = (ids, guests) => {
+    const picked = [...new Set(Array.isArray(ids) ? ids : [])].filter((id) => known.has(id)).slice(0, 6).map((id) => ({ id, name: known.get(id) }));
+    const g = Math.max(0, Math.min(6 - picked.length, Number(guests) || 0));
+    return [...picked, ...Array.from({ length: g }, (_, i) => ({ id: null, name: g > 1 ? `Guest ${i + 1}` : 'Guest' }))];
+  };
+  const home = team(body?.home, body?.guests?.[0]);
+  const away = team((body?.away ?? []).filter((id) => !home.some((p) => p.id === id)), body?.guests?.[1]);
+  const rules = sport.timed ? T.timedRules(sport.id, opt.periods, opt.minutes) : rulesFor(sport.id, opt);
+  const game = {
+    sport: sport.id, rules, home, away, state: sport.timed ? T.newTimed() : M.newMatch(0),
+    status: 'live', version: 0, lastPointAt: null, winner: null, startedOn: 'watch',
+    createdAt: Timestamp.fromMillis(now), startedAt: Timestamp.fromMillis(now), updatedAt: FieldValue.serverTimestamp(), schemaVersion: 1,
+  };
+  const ref = db.collection(`users/${me.uid}/games`).doc();
+  await ref.set(game);
+  return ok(summary(ref.id, '', { ...game, updatedAt: null }, now, me.uid));
 }
 
 // ---------- the requests ----------
@@ -214,5 +349,8 @@ export async function handle(db, req, now = Date.now()) {
   if (route === 'GET /matches') return listMatches(db, me, now);
   if (route === 'GET /match') return getMatch(db, me, req.query ?? {}, now);
   if (route === 'POST /press') return press(db, me, req.body, now);
+  if (route === 'GET /sports') return ok({ sports: sportList() });
+  if (route === 'GET /people') return ok({ people: await people(db, me) });
+  if (route === 'POST /game/start') return startGame(db, me, req.body, now);
   return fail(404, 'unknown');
 }

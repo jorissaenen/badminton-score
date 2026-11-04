@@ -128,7 +128,7 @@ private fun MatchWon(s: Summary, onDone: () -> Unit, onUndo: () -> Unit) {
             }
             if (team == 0) Box(Modifier.fillMaxWidth().height(1.dp).background(Look.line))
         }
-        Text("Saved to the club", color = Look.muted, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
+        Text(if (s.club.isEmpty()) "Saved to your games" else "Saved to the club", color = Look.muted, fontSize = 10.sp, modifier = Modifier.padding(top = 4.dp))
         Button(onClick = onDone, colors = ButtonDefaults.outlinedButtonColors(), border = ButtonDefaults.outlinedButtonBorder(borderColor = Look.white), modifier = Modifier.fillMaxWidth(0.55f).height(32.dp), shape = RoundedCornerShape(16.dp)) {
             Text("Done", color = Look.white, fontWeight = FontWeight.Bold)
         }

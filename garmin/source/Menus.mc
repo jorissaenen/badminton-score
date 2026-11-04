@@ -10,7 +10,7 @@ module Menus {
         menu.addItem(touchItem());
         menu.addItem(new WatchUi.ToggleMenuItem("My team on UP", "When you play in the match", :myUp, Api.isOn("myUp"), null));
         menu.addItem(new WatchUi.ToggleMenuItem("Interval alerts", "Interval and change ends", :alerts, Api.isOn("alerts"), null));
-        menu.addItem(new WatchUi.MenuItem("Other match", null, :other, null));
+        menu.addItem(new WatchUi.MenuItem("Leave this match", "It goes on without you", :other, null));
         menu.addItem(new WatchUi.MenuItem("Close Skoor", "The match goes on", :close, null));
         menu.addItem(new WatchUi.MenuItem("Unlink watch", null, :unlink, null));
         WatchUi.pushView(menu, new MatchMenuDelegate(view), WatchUi.SLIDE_UP);
@@ -23,6 +23,16 @@ module Menus {
             return new WatchUi.MenuItem("Touch scoring", "No touch screen: buttons only", :notouch, null);
         }
         return new WatchUi.ToggleMenuItem("Touch scoring", "Tap top or bottom half", :touch, Api.touchScoring(), null);
+    }
+
+    //! During a timed game: undo, stop the app (the game waits), touch scoring, unlink.
+    function showTimed(view as TimedView) as Void {
+        var menu = new WatchUi.Menu2({ :title => "Skoor" });
+        menu.addItem(new WatchUi.MenuItem("Undo last point", null, :undo, null));
+        menu.addItem(touchItem());
+        menu.addItem(new WatchUi.MenuItem("Back to start", "The game waits", :home, null));
+        menu.addItem(new WatchUi.MenuItem("Close Skoor", "The game waits", :close, null));
+        WatchUi.pushView(menu, new TimedMenuDelegate(view), WatchUi.SLIDE_UP);
     }
 
     function showLinked() as Void {
@@ -65,6 +75,34 @@ class MatchMenuDelegate extends WatchUi.Menu2InputDelegate {
             System.exit(); // as Save or Discard ends an activity; the others keep scoring
         } else if (id == :unlink) {
             unlinked();
+        }
+    }
+}
+
+class TimedMenuDelegate extends WatchUi.Menu2InputDelegate {
+    private var _view as TimedView;
+
+    function initialize(view as TimedView) {
+        Menu2InputDelegate.initialize();
+        _view = view;
+    }
+
+    function onSelect(item as WatchUi.MenuItem) as Void {
+        var id = item.getId();
+        if (id == :touch) {
+            Api.setTouchScoring((item as WatchUi.ToggleMenuItem).isEnabled());
+            return;
+        }
+        if (id == :notouch) {
+            return;
+        }
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
+        if (id == :undo) {
+            _view.press("undo", 0);
+        } else if (id == :home) {
+            WatchUi.popView(WatchUi.SLIDE_RIGHT);
+        } else if (id == :close) {
+            System.exit();
         }
     }
 }

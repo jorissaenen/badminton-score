@@ -232,6 +232,17 @@ their place in the club ranking to the club (D3), and every match they played wi
 someone, to that person, because it is their match too. A profile hidden from you therefore still
 shows "you and them", built only from your shared matches.
 
+### D24. Starting a game on a watch, and timed sports — decided
+A game can be started on a Garmin or Wear OS watch, not only joined: the sport, the players of
+both teams (the people you played with lately, or guests), the game length, Start. Such a game
+belongs to the account that started it (`users/{uid}/games`), not to a club, and only that
+account sees it; the server keeps every point, and for timed games every start and pause of the
+clock, so a game can be replayed later. Timed sports (basketball: 4 × 10 min, +1/+2/+3;
+football: 2 × 45 min) count with a clock per period instead of points to win (`alpha/js/timed.js`);
+points still count while the clock is stopped. The watch runs the clock itself and asks the
+server rarely (every 20–30 s). Not yet on the phone: showing these games and starting timed
+sports there.
+
 ## Open questions
 
 - **O2.** One season per club, or per team (youth teams may follow other calendars)?

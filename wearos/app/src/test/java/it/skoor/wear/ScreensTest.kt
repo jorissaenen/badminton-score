@@ -46,5 +46,37 @@ class ScreensTest {
         shot("6-game-won") { ScoreScreen(session(summary().copy(tiles = listOf("21", "15"), gameOver = true, gameWinner = 0, won = listOf(1, 1), gameNo = 2)), true, {}, {}) }
         shot("7-match-won") { ScoreScreen(session(summary().copy(tiles = listOf("21", "18"), past = listOf(listOf(21, 17), listOf(19, 21)), gameOver = true, gameWinner = 0, matchWinner = 0, gameNo = 3)), true, {}, {}) }
         shot("8-menu") { MenuScreen(Store(context), inMatch = true, {}, {}, {}, {}) }
+
+        // Starting a game on the watch.
+        shot("9-home") { HomeContent(2, {}, {}, {}) }
+        val sports = listOf(
+            Sport("badminton", "Badminton", false, listOf("To 21 · best of 3")), Sport("padel", "Padel", false, listOf("Best of 3 sets")),
+            Sport("basketball", "Basketball", true, listOf("4 × 10 min", "2 × 20 min", "4 × 12 min")), Sport("football", "Football", true, listOf("2 × 45 min")),
+        )
+        shot("10-sport") { SportContent(sports, "", {}) }
+        val game = GameSetup(sports[2]).also {
+            it.takePeople(listOf(Person("joris", "Joris Saenen", true), Person("ann", "Ann V.", false), Person("tom", "Tom P.", false), Person("lien", "Lien P.", false)))
+            it.toggle(0, "ann")
+        }
+        shot("11-setup") { SetupContent(game, busy = false, problem = null, onTeam = {}, onStart = {}) }
+        shot("12-team") { TeamScreen(game, 0) }
+
+        // A timed game.
+        shot("13-timed") { TimedScreen(timed(""), {}, {}, {}) }
+        shot("14-paused") { TimedScreen(timed(""", "running": false"""), {}, {}, {}) }
+        shot("15-points") { PointsScreen(timed("").g, 0, 1, {}, {}) }
+        shot("16-half-time") { TimedScreen(timed(""", "running": false, "periodOver": true, "leftMs": 0"""), {}, {}, {}) }
+        shot("17-finished") { TimedScreen(timed(""", "running": false, "finished": true, "winner": 0, "period": 4, "past": [[22, 18], [26, 27], [20, 15]], "score": [88, 78]"""), {}, {}, {}) }
+    }
+
+    private fun timed(extra: String): TimedSession {
+        val j = JSONObject("""{ "kind": "timed", "club": "", "match": "g1", "version": 9, "home": "Home", "away": "Away",
+            "score": [48, 45], "values": [1, 2, 3], "usual": 2, "period": 2, "periods": 4, "leftMs": 462000,
+            "running": true, "periodOver": false, "finished": false, "winner": null, "past": [[22, 18]] }""")
+        val more = JSONObject("{" + extra.trimStart(',', ' ') + "}")
+        more.keys().forEach { j.put(it, more.get(it)) }
+        val store = Store(context)
+        val api = object : Api(context, store) { override fun connected() = true }
+        return TimedSession(api, Haptics(context), TimedGame.from(j), onUnlinked = {}, onGone = {})
     }
 }

@@ -6,7 +6,7 @@ import Toybox.Timer;
 import Toybox.WatchUi;
 
 //! The matches being played now in your clubs, by court. UP and DOWN choose, START opens one (or tap
-//! it). Refreshes every 10 seconds. Matches are started on a phone; then anyone can score them here.
+//! it). Your own games started on this watch come first. BACK goes back to the start.
 class MatchesView extends WatchUi.View {
     var matches as Array? = null; // null: loading
     var selected as Number = 0;
@@ -97,8 +97,8 @@ class MatchesView extends WatchUi.View {
         var list = matches as Array;
         if (list.size() == 0) {
             Look.text(dc, w / 2, (h * 0.42).toNumber(), Graphics.FONT_TINY, "No match being played", Look.WHITE);
-            Look.text(dc, w / 2, (h * 0.56).toNumber(), Graphics.FONT_XTINY, "Start one on your phone,", Look.MUTED);
-            Look.text(dc, w / 2, (h * 0.64).toNumber(), Graphics.FONT_XTINY, "then choose it here", Look.MUTED);
+            Look.text(dc, w / 2, (h * 0.56).toNumber(), Graphics.FONT_XTINY, "Start one: New game,", Look.MUTED);
+            Look.text(dc, w / 2, (h * 0.64).toNumber(), Graphics.FONT_XTINY, "or on your phone", Look.MUTED);
             return;
         }
         // Up to three rows, the selected one in the middle with a white outline.
@@ -181,8 +181,7 @@ class MatchesDelegate extends WatchUi.BehaviorDelegate {
         if (m == null) {
             return;
         }
-        var view = new ScoreView(m["club"] as String, m["match"] as String, m);
-        WatchUi.pushView(view, new ScoreDelegate(view), WatchUi.SLIDE_LEFT);
+        openGame(m, false);
     }
 }
 

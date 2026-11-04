@@ -496,7 +496,7 @@ class ScoreView extends WatchUi.View {
         }
         dc.setColor(Look.LINE, Look.LINE);
         dc.fillRectangle(x0, (h * 0.48).toNumber(), tableW, 1);
-        Look.text(dc, w / 2, h * 0.66, Graphics.FONT_XTINY, "Saved to the club", Look.MUTED);
+        Look.text(dc, w / 2, h * 0.66, Graphics.FONT_XTINY, club.equals("") ? "Saved to your games" : "Saved to the club", Look.MUTED);
         // START: done (outlined); BACK: undo the last point.
         var bw = (w * 0.44).toNumber();
         var by = (h * 0.74).toNumber();

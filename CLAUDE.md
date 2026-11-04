@@ -12,7 +12,7 @@ apps. The owner is a Belgian club player; replies to him go in plain English, wi
 | `beta/` | v29 beta edition | Don't change unless asked |
 | `alpha/` | The app being built: vanilla ES-module PWA, no framework, no build step | Main work happens here |
 | `alpha/link/` + `alpha/js/display.js` | Screens at the venue (TV) | |
-| `functions/` | Cloud Functions v2 (europe-west1): reminders, `watch.js` API, `pace.js`; `functions/engine/` = copies of `alpha/js/match.js`, `sports.js`, `vendor/qrcode.js` (`npm run engine`; a test checks they are identical) | |
+| `functions/` | Cloud Functions v2 (europe-west1): reminders, `watch.js` API, `pace.js`; `functions/engine/` = copies of `alpha/js/match.js`, `sports.js`, `timed.js`, `vendor/qrcode.js` (`npm run engine`; a test checks they are identical) | |
 | `firestore.rules`, `firestore.indexes.json` | Database rules | Change together with `tests/rules/` |
 | `garmin/` | Connect IQ watch app (Monkey C) | skill `skoor-watch-builds` |
 | `wearos/` | Wear OS app (Kotlin, Compose) | skill `skoor-watch-builds` |

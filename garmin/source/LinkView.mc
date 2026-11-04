@@ -67,8 +67,8 @@ class LinkView extends WatchUi.View {
         if (code == 200 && data instanceof Dictionary && "linked".equals(data["status"] as String?)) {
             Api.setToken(data["token"] as String);
             Look.buzzDone();
-            var list = new MatchesView();
-            WatchUi.switchToView(list, new MatchesDelegate(list), WatchUi.SLIDE_LEFT);
+            var home = new HomeView();
+            WatchUi.switchToView(home, new HomeDelegate(home), WatchUi.SLIDE_LEFT);
         } else if (code == 410) {
             _key = null; // too old: ask for a new key
             _qr = null;

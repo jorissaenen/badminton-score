@@ -181,3 +181,64 @@ describe('scoring with a watch', () => {
     assert.equal(r.status, 404);
   });
 });
+
+describe('a game started on a watch', () => {
+  test('the sports, with their ways to play; the people: you, then who you played with', async () => {
+    const token = await linkWatch();
+    const sports = (await call('GET', '/watch/sports', { token })).json.sports;
+    assert.deepEqual(sports.slice(0, 4).map((s) => s.id), ['badminton', 'padel', 'basketball', 'football']);
+    const bb = sports.find((s) => s.id === 'basketball');
+    assert.deepEqual([bb.timed, bb.values, bb.options[0].label], [true, [1, 2, 3], '4 × 10 min']);
+    await db.doc(`clubs/${C}/members/ann`).set({ role: 'member', name: 'Ann' });
+    await db.doc(`clubs/${C}/members/zoe`).set({ role: 'member', name: 'Zoë' });
+    await db.doc(`clubs/${C}/matches/m2`).set(match({ home: [{ id: 'joris', name: 'Joris' }], away: [{ id: 'zoe', name: 'Zoë' }], updatedAt: Timestamp.now() }));
+    const people = (await call('GET', '/watch/people', { token })).json.people;
+    assert.deepEqual(people.map((p) => p.id), ['joris', 'zoe', 'ann']);
+    assert.equal(people[0].me, true);
+  });
+
+  test('a point game: your own, scored at once (no freeze), in the list of matches', async () => {
+    const token = await linkWatch();
+    await db.doc(`clubs/${C}/members/ann`).set({ role: 'member', name: 'Ann' });
+    const g = (await call('POST', '/watch/game/start', { token, body: { sport: 'badminton', option: 1, home: ['joris', 'stranger'], away: ['ann'], guests: [1, 0] } })).json;
+    assert.deepEqual([g.club, g.home, g.away, g.mine, g.tiles], ['', 'Joris & Guest', 'Ann', 0, ['00', '00']]);
+    const saved = (await db.doc(`users/joris/games/${g.match}`).get()).data();
+    assert.equal(saved.rules.points, 15);
+    const t0 = Date.now();
+    const a = await call('POST', '/watch/press', { token, now: t0, body: { club: '', match: g.match, basedOn: 0, action: 'point0' } });
+    const b = await call('POST', '/watch/press', { token, now: t0 + 500, body: { club: '', match: g.match, basedOn: 1, action: 'point1' } });
+    assert.deepEqual([a.json.counted, b.json.counted, b.json.tiles], [true, true, ['01', '01']]);
+    const list = (await call('GET', '/watch/matches', { token })).json.matches;
+    assert.equal(list[0].match, g.match, 'your own game first');
+    assert.equal((await call('GET', '/watch/match', { token, query: { match: g.match } })).json.version, 2);
+  });
+
+  test('a timed game: the clock starts and pauses, points of 1, 2 or 3, the next period', async () => {
+    const token = await linkWatch();
+    const g = (await call('POST', '/watch/game/start', { token, body: { sport: 'basketball', option: 1 } })).json;
+    assert.deepEqual([g.kind, g.home, g.away, g.periods, g.lengthMs, g.running], ['timed', 'Home', 'Away', 2, 20 * 60_000, false]);
+    const t0 = Date.now();
+    const at = (dt, action, basedOn, n) => call('POST', '/watch/press', { token, now: t0 + dt, body: { club: '', match: g.match, basedOn, action, n } });
+    assert.equal((await at(0, 'start', 0)).json.running, true);
+    assert.deepEqual((await at(1000, 'point0', 1, 3)).json.score, [3, 0]);
+    const paused = (await at(60_000, 'pause', 2)).json;
+    assert.deepEqual([paused.running, paused.elapsedMs], [false, 60_000]);
+    assert.deepEqual((await at(61_000, 'point1', 3)).json.score, [3, 2], 'the usual 2 while paused');
+    const ended = (await at(62_000, 'next', 4)).json;
+    assert.deepEqual([ended.period, ended.past, ended.elapsedMs], [2, [[3, 2]], 0]);
+    assert.equal((await at(63_000, 'pause', 5)).json.reason, 'nothing');
+    const end = (await at(64_000, 'next', 5)).json;
+    assert.equal(end.reason, 'notstarted');
+    await at(65_000, 'start', 5);
+    await at(66_000, 'pause', 6);
+    const fin = (await at(67_000, 'next', 7)).json;
+    assert.deepEqual([fin.finished, fin.winner, fin.status], [true, 0, 'finished']);
+  });
+
+  test('your games: only you read them, nobody writes them', async () => {
+    await db.doc('users/joris/games/g1').set({ sport: 'football' });
+    await assertSucceeds(getDoc(doc(as('joris'), 'users/joris/games/g1')));
+    await assertFails(getDoc(doc(as('ann'), 'users/joris/games/g1')));
+    await assertFails(updateDoc(doc(as('joris'), 'users/joris/games/g1'), { sport: 'basketball' }));
+  });
+});

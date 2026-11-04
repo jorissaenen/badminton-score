@@ -56,6 +56,12 @@ service cloud.firestore {
         allow read, delete: if isMe(uid);
       }
 
+      // Games started on a watch (written by the server, functions/watch.js): every point, and for
+      // timed games every start and pause of the clock. Only the account sees or deletes them.
+      match /games/{gameId} {
+        allow read, delete: if isMe(uid);
+      }
+
       // Devices that get reminders: a push token per app installation (written by the app,
       // read by the reminder function, which bypasses these rules).
       match /devices/{deviceId} {

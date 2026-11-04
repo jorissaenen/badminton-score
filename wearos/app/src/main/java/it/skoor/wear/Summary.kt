@@ -28,6 +28,8 @@ data class Summary(
     val ends: Boolean,
     val interval: Boolean,
     val pointMs: Long?,
+    val kind: String = "",
+    val raw: JSONObject? = null, // the whole answer (a timed game is read from it)
 ) {
     fun name(team: Int) = if (team == 0) home else away
 
@@ -61,6 +63,8 @@ data class Summary(
             ends = j.optBoolean("ends"),
             interval = j.optBoolean("interval"),
             pointMs = if (j.has("pointMs") && !j.isNull("pointMs")) j.getLong("pointMs") else null,
+            kind = j.optString("kind"),
+            raw = j,
         )
     }
 }
