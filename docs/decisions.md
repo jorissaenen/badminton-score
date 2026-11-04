@@ -243,6 +243,24 @@ points still count while the clock is stopped. The watch runs the clock itself a
 server rarely (every 20–30 s). Not yet on the phone: showing these games and starting timed
 sports there.
 
+### D25. Sport wishes, and where Skoor is used — decided
+The sport pickers end with **"Your sport isn't here?"** (app, website; the watches point to
+them). Anyone, also without an account, types the sport they want; the server
+(`functions/sportwish.js`) cleans the name, fixes typos (a few letters off, never the first one,
+so hurling isn't curling) and puts names of one sport together: UK and US English (football =
+soccer, American football apart), Dutch, French and German names, short forms (ping pong). A new
+sport gets its own entry, and its later typos join it. The owner's dashboard shows the most
+wished sports, the wishes per day, week and month, and where they come from.
+
+**Where** is never more precise than a region: the device's time zone (Europe/Brussels → Belgium,
+around Brussels), no GPS, no IP address kept. The same goes for the map of where games are
+played: a club's time zone (later its town), a device's time zone for games of one's own.
+
+**Against abuse**: names are 2–40 characters of plain words (no links, no code), one wish per
+sport per device per 30 days, at most 20 wishes per connection per day (counted with a code
+that changes daily), and a hidden form field that only robots fill in. Nobody reads or writes
+the wishes from the app; only the server and the dashboard do.
+
 ## Open questions
 
 - **O2.** One season per club, or per team (youth teams may follow other calendars)?

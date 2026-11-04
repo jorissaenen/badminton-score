@@ -7,6 +7,7 @@ import { onRequest } from 'firebase-functions/v2/https';
 import { logger } from 'firebase-functions';
 import { reminderDue, reminderText } from './reminders.js';
 import { handle as handleWatch } from './watch.js';
+import { wish } from './sportwish.js';
 
 initializeApp();
 const db = getFirestore();
@@ -19,6 +20,24 @@ export const watch = onRequest({ region: 'europe-west1', invoker: 'public', cors
     res.status(r.status).json(r.json);
   } catch (e) {
     logger.error('watch request failed', req.path, e);
+    res.status(500).json({ error: 'server' });
+  }
+});
+
+// "Your sport isn't here?": a wish for a sport, from the app or the website (see sportwish.js).
+// Public, as people without an account can wish too; only the app's and the website's pages may
+// call it from a browser.
+export const sportWish = onRequest({
+  region: 'europe-west1', invoker: 'public', maxInstances: 5,
+  cors: [/^https:\/\/jorissaenen\.github\.io$/, /^https:\/\/(www\.)?skoor\.it$/, /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/],
+}, async (req, res) => {
+  if (req.method !== 'POST') { res.status(405).json({ error: 'post only' }); return; }
+  try {
+    const ip = String(req.headers['x-forwarded-for'] ?? req.ip ?? '').split(',')[0].trim();
+    const r = await wish(db, req.body, ip);
+    res.status(r.status).json(r.json);
+  } catch (e) {
+    logger.error('sport wish failed', e);
     res.status(500).json({ error: 'server' });
   }
 });

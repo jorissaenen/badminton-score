@@ -1,14 +1,16 @@
 // The sport picker and the rules a sport offers (points per game and match length; for tennis
 // and padel: sets, deuce and the final set), shared by New match and the club screens.
 import { SPORTS, sportOf, sportIcon, rulesFor } from '../sports.js';
-import { html, raw } from '../ui.js';
+import { html, raw, icon } from '../ui.js';
 import { t } from '../i18n.js';
 
 export const sportName = (id) => t(`sport.${sportOf(id).id}`);
 
-// A grid of the sports; `picked` is marked. Each tile has data-sport.
+// A grid of the sports; `picked` is marked. Each tile has data-sport. The last tile asks for a
+// sport that isn't there yet (#/sport-wish).
 export const sportGrid = (picked) => html`<div class="sport-grid">${SPORTS.map((s) => html`
-  <button type="button" class="sport-tile" data-sport="${s.id}" aria-pressed="${s.id === picked}">${raw(sportIcon(s.id, 30))}<span>${sportName(s.id)}</span></button>`)}</div>`;
+  <button type="button" class="sport-tile" data-sport="${s.id}" aria-pressed="${s.id === picked}">${raw(sportIcon(s.id, 30))}<span>${sportName(s.id)}</span></button>`)}
+  <a class="sport-tile wish" href="#/sport-wish">${icon('plus', 26)}<span>${t('wish.tile')}</span></a></div>`;
 
 // The rule chips for a sport, filled in from `options` (see rulesFor). `center` centres them.
 export function rulesFields(sportId, options, { center = false, disabled = false } = {}) {

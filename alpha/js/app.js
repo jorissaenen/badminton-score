@@ -24,6 +24,7 @@ import * as Join from './views/join.js';
 import * as EventMatch from './views/eventmatch.js';
 import * as LinkScreen from './views/linkscreen.js';
 import * as LinkWatch from './views/linkwatch.js';
+import * as SportWish from './views/sportwish.js';
 import { unlink } from './clubmatch.js';
 
 watchLayout();
@@ -37,6 +38,7 @@ translatePage();
 const ROUTES = [
   [/^\/play$/, Play, 'play'],
   [/^\/match\/new$/, NewMatch],
+  [/^\/sport-wish$/, SportWish],
   [/^\/match$/, null],
   [/^\/clubs$/, Clubs, 'clubs'],
   [/^\/clubs\/new$/, Clubs.Create],

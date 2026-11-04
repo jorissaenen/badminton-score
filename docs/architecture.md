@@ -144,6 +144,9 @@ clubs/{clubId}                    name, created by, defaults (points, match leng
   keepers/{keeperId}              name, uid (optional: a keeper without an account has none)
   stats/…                         derived per player, pair, event, season and all-time
 devices/{deviceId}                paired watch: owner uid, club, allowed courts, token hash
+sportWishes/{id}                  one wish (D25): key, typed, source, lang, at, tz, country, lat, lng
+sportWishTotals/{key}             per sport: label {en, nl}, count, firstAt, lastAt, known, names
+sportWishOnce/{hash}, sportWishLimits/{hash}   one wish per sport per device; today's limit
 users/{uid}/games/{gameId}        a game started on a watch (D24): sport, rules, home, away, state
                                   (points; timed games: a log of start, pause, point, next, end)
 pushTokens/{uid}/{deviceId}       for reminders (web push), per device

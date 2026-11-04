@@ -745,3 +745,9 @@ input::placeholder, textarea::placeholder { color: #5a5a5a; }
 .screen .status-card b { font-size: clamp(24px, 5vh, 64px); }
 .screen .status-card span { font-size: clamp(14px, 2.6vh, 34px); }
 .screen.is-paused > :not(.status-card):not(.screen-top) { opacity: 0.35; }
+
+/* "Your sport isn't here?": the last tile of the sport picker, dashed (it asks, it doesn't pick). */
+.sport-tile.wish { background: transparent; border: 1px dashed var(--line-strong, #3a3a3a); color: var(--fg); text-decoration: none; }
+.wish-done { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.wish-done strong { font-size: 18px; }
+.wish-done .sheet-text { margin: 0; }

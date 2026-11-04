@@ -142,10 +142,15 @@ class SportView extends WatchUi.View {
             Look.text(dc, w / 2, h / 2, Graphics.FONT_TINY, _message, Look.WHITE);
             return;
         }
-        drawRows(dc, (sports as Array).size(), selected, 4, (h * 0.21).toNumber(), (h * 0.165).toNumber(), (w * 0.80).toNumber(), method(:drawSport));
+        drawRows(dc, (sports as Array).size() + 1, selected, 4, (h * 0.21).toNumber(), (h * 0.165).toNumber(), (w * 0.80).toNumber(), method(:drawSport));
     }
 
     function drawSport(dc as Graphics.Dc, i as Number, x as Number, y as Number, rw as Number, rh as Number) as Void {
+        if (i == (sports as Array).size()) {
+            // The last row: a sport that isn't there yet (wished on the phone or the website).
+            Look.text(dc, x + rw / 2, y + rh / 2, Graphics.FONT_XTINY, "+ Your sport isn't here?", Look.MUTED);
+            return;
+        }
         var s = (sports as Array)[i] as Dictionary;
         var icon = sportIcon(s["id"] as String);
         if (icon != null) {
@@ -174,7 +179,7 @@ class SportDelegate extends WatchUi.BehaviorDelegate {
         }
         var key = evt.getKey();
         if (key == WatchUi.KEY_UP || key == WatchUi.KEY_DOWN) {
-            var n = (list as Array).size();
+            var n = (list as Array).size() + 1;
             _view.selected = (_view.selected + (key == WatchUi.KEY_DOWN ? 1 : n - 1)) % n;
             WatchUi.requestUpdate();
             return true;
@@ -195,8 +200,33 @@ class SportDelegate extends WatchUi.BehaviorDelegate {
         if (_view.sports == null) {
             return;
         }
+        if (_view.selected == (_view.sports as Array).size()) {
+            var wish = new WishView();
+            WatchUi.pushView(wish, new WatchUi.BehaviorDelegate(), WatchUi.SLIDE_LEFT);
+            return;
+        }
         var setup = new SetupView(new GameSetup((_view.sports as Array)[_view.selected] as Dictionary));
         WatchUi.pushView(setup, new SetupDelegate(setup), WatchUi.SLIDE_LEFT);
+    }
+}
+
+//! "Your sport isn't here?": where to wish for it (typing a name on a watch is no fun). BACK returns.
+class WishView extends WatchUi.View {
+    function initialize() {
+        View.initialize();
+    }
+
+    function onUpdate(dc as Graphics.Dc) as Void {
+        var w = dc.getWidth();
+        var h = dc.getHeight();
+        dc.setColor(Look.BLACK, Look.BLACK);
+        dc.clear();
+        Look.text(dc, w / 2, h * 0.24, Graphics.FONT_XTINY, "YOUR SPORT ISN'T HERE?", Look.MUTED);
+        Look.text(dc, w / 2, h * 0.40, Graphics.FONT_TINY, "Tell us on your phone:", Look.WHITE);
+        Look.text(dc, w / 2, h * 0.52, Graphics.FONT_XTINY, "New match > Your sport", Look.WHITE);
+        Look.text(dc, w / 2, h * 0.60, Graphics.FONT_XTINY, "isn't here?, or on skoor.it", Look.WHITE);
+        Look.text(dc, w / 2, h * 0.76, Graphics.FONT_XTINY, "The sports wished most", Look.MUTED);
+        Look.text(dc, w / 2, h * 0.84, Graphics.FONT_XTINY, "come first", Look.MUTED);
     }
 }
 

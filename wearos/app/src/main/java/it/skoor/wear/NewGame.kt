@@ -184,6 +184,14 @@ fun SportContent(sports: List<Sport>?, message: String, onChoose: (Sport) -> Uni
                     },
                 )
             }
+            // A sport that isn't there yet: wished on the phone or the website (typing a name on a
+            // watch is no fun).
+            if (sports != null) item {
+                Text(
+                    "Your sport isn't here? Tell us on your phone: New match › Your sport isn't here?, or on skoor.it.",
+                    color = Look.muted, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                )
+            }
         }
     }
 }
