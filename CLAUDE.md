@@ -38,6 +38,8 @@ a real project.
   "leading". Orange = refused or late, grey card = paused/offline.
 - On the phone no grey cards over the score (game won etc. are full screens).
 - Every text in the app exists in English **and** Dutch (`alpha/js/lang/en.js`, `nl.js`).
+- English is always **UK English** (colour, centre, cancelled, organise), in the app, the watches, the
+  website, docs and replies.
 - Every change to app files bumps `VERSION` in `alpha/sw.js`; new files go in its `ASSETS`.
 
 ## Checks before saying something works

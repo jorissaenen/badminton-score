@@ -22,6 +22,7 @@ visible text in code or HTML (except the English fallback inside a `data-t` elem
 
 ## House style
 
+- English is UK English: colour, centre, cancelled, organise, programme (a TV programme).
 - Plain words a club player uses; no technical terms ("No connection", not "Network error 503";
   "Link a screen", not "Pair device"). Short: screens are read in a sports hall.
 - Positive and concrete; say what to do next ("Start one on your phone, then choose it here").
