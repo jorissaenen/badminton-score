@@ -13,7 +13,7 @@ process.env.GCLOUD_PROJECT = PROJECT;
 const require = createRequire(new URL('../../functions/package.json', import.meta.url));
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
-const { wish, PER_DAY } = await import('../../functions/sportwish.js');
+const { wish, PER_DAY, forgetNames } = await import('../../functions/sportwish.js');
 
 let env;
 let db;
@@ -22,7 +22,7 @@ before(async () => {
   db = getFirestore(initializeApp({ projectId: PROJECT }, 'wish-test'));
 });
 after(() => env.cleanup());
-beforeEach(() => env.clearFirestore());
+beforeEach(async () => { forgetNames(); await env.clearFirestore(); });
 
 const send = (sport, extra = {}, ip = '1.2.3.4') => wish(db, { sport, device: extra.device ?? `d-${Math.random()}`, tz: 'Europe/Brussels', source: 'web', ...extra }, ip);
 

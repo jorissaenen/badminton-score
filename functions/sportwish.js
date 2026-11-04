@@ -173,6 +173,20 @@ export function place(tz) {
 
 const hash = (s) => createHash('sha256').update(s).digest('hex').slice(0, 32);
 
+// The names of sports wished before that Skoor doesn't know (so that typos of a new sport end up
+// together), read at most once every 10 minutes per server, not for every wish.
+const CACHE_MS = 10 * 60_000;
+let cache = { at: -Infinity, names: new Map() };
+async function otherNames(db, now) {
+  if (now - cache.at < CACHE_MS) return cache.names;
+  const names = new Map();
+  const custom = await db.collection('sportWishTotals').where('known', '==', false).limit(500).get();
+  for (const d of custom.docs) for (const n of d.data().names ?? []) names.set(n, d.id);
+  cache = { at: now, names };
+  return names;
+}
+export const forgetNames = () => { cache = { at: -Infinity, names: new Map() }; };
+
 // One wish. body: { sport (the typed name), device (a random id the app keeps), tz, lang,
 // source ('app', 'web', 'watch'), website (the hidden field: empty for people) }. ip: the
 // connection's address, only for today's limit. Answers { counted, key, label: { en, nl },
@@ -185,10 +199,9 @@ export async function wish(db, body, ip, now = Date.now()) {
 
   const day = new Date(now).toISOString().slice(0, 10);
   const limitRef = db.doc(`sportWishLimits/${hash(`${ip}|${day}|skoor-wish`)}`);
-  // Sports wished before, by their names, so that typos of a new sport end up together.
-  const others = new Map();
-  const custom = await db.collection('sportWishTotals').where('known', '==', false).limit(500).get();
-  for (const d of custom.docs) for (const n of d.data().names ?? []) others.set(n, d.id);
+  // The cheapest check first: one read. Someone over today's limit costs nothing more.
+  if (((await limitRef.get()).data()?.n ?? 0) >= PER_DAY) return { status: 429, json: { counted: false, reason: 'limit' } };
+  const others = await otherNames(db, now);
   const m = match(typed, others);
   const label = m.known ? labelOf(m.key) : null;
   const device = String(body?.device ?? '').slice(0, 64);
@@ -214,6 +227,7 @@ export async function wish(db, body, ip, now = Date.now()) {
       key: m.key, typed: shown, known: m.known, source, lang, at, ...where,
     });
     const squashed = squash(clean(typed));
+    if (!m.known) cache.names.set(squashed, m.key); // this server knows the new name at once
     const names = total.data()?.names ?? [];
     tx.set(db.doc(`sportWishTotals/${m.key}`), {
       key: m.key, known: m.known, label: name, count: FieldValue.increment(1), lastAt: at,

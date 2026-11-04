@@ -28,7 +28,9 @@ export const watch = onRequest({ region: 'europe-west1', invoker: 'public', cors
 // Public, as people without an account can wish too; only the app's and the website's pages may
 // call it from a browser.
 export const sportWish = onRequest({
-  region: 'europe-west1', invoker: 'public', maxInstances: 5,
+  // At most 2 servers of 20 wishes at a time: a flood of fake wishes gets "too busy" answers
+  // instead of more servers (and a bigger bill). Scoring runs on its own function: never slowed.
+  region: 'europe-west1', invoker: 'public', maxInstances: 2, concurrency: 20, memory: '256MiB', timeoutSeconds: 10,
   cors: [/^https:\/\/jorissaenen\.github\.io$/, /^https:\/\/(www\.)?skoor\.it$/, /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/],
 }, async (req, res) => {
   if (req.method !== 'POST') { res.status(405).json({ error: 'post only' }); return; }
