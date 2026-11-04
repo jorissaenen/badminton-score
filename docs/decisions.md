@@ -261,6 +261,13 @@ sport per device per 30 days, at most 20 wishes per connection per day (counted 
 that changes daily), and a hidden form field that only robots fill in. Nobody reads or writes
 the wishes from the app; only the server and the dashboard do.
 
+**Against a big bill**: the cheapest checks come first (the text, then today's limit: one read);
+names of new sports are read once every 10 minutes per server, not per wish; the function runs on
+at most 2 small servers, and each takes at most 300 wishes an hour, beyond which it answers
+"busy" without touching the database. Scoring runs on its own function and is never slowed.
+Still to decide: counting only signed-in accounts as votes, and App Check (D16) so only the real
+app and website can send wishes.
+
 ## Open questions
 
 - **O2.** One season per club, or per team (youth teams may follow other calendars)?

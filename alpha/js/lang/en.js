@@ -693,6 +693,7 @@ export default {
   'wish.startGame': 'Start a game',
   'wish.another': 'Wish another sport',
   'wish.limit': 'That’s a lot of wishes from here today. Try again tomorrow.',
+  'wish.busy': 'Many wishes are coming in right now. Try again in an hour.',
   'wish.invalid': 'Only the name of a sport, please: no links or other text.',
   'wish.offline': 'No connection. Try again when you’re online.',
   'wish.failed': 'Your wish couldn’t be sent. Try again in a moment.',

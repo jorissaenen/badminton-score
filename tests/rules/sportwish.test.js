@@ -13,7 +13,7 @@ process.env.GCLOUD_PROJECT = PROJECT;
 const require = createRequire(new URL('../../functions/package.json', import.meta.url));
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
-const { wish, PER_DAY, forgetNames } = await import('../../functions/sportwish.js');
+const { wish, PER_DAY, forgetNames, limits } = await import('../../functions/sportwish.js');
 
 let env;
 let db;
@@ -53,6 +53,15 @@ describe('sport wishes', () => {
     const r = await send('rugby', { device: 'last' });
     assert.deepEqual([r.status, r.json.reason], [429, 'limit']);
     assert.equal((await send('rugby', { device: 'other' }, '5.6.7.8')).json.counted, true, 'another connection');
+  });
+
+  test('a flood from many addresses: past the hourly brake, nothing is read or written', async () => {
+    limits.perHourPerServer = 3;
+    for (let i = 0; i < 3; i += 1) await send('rugby', {}, `10.0.0.${i}`);
+    const r = await send('rugby', {}, '10.0.0.99');
+    limits.perHourPerServer = 300;
+    assert.deepEqual([r.status, r.json.reason], [429, 'busy']);
+    assert.equal((await db.doc('sportWishTotals/rugby').get()).data().count, 3);
   });
 
   test('links, code and robots are not counted', async () => {

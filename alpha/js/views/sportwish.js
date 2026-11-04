@@ -80,7 +80,7 @@ export function show(el) {
       });
       const j = await r.json().catch(() => ({}));
       if (r.ok && j.label) answer = j;
-      else problem = j.reason === 'limit' ? t('wish.limit') : j.reason === 'invalid' ? t('wish.invalid') : t('wish.failed');
+      else problem = j.reason === 'busy' ? t('wish.busy') : j.reason === 'limit' ? t('wish.limit') : j.reason === 'invalid' ? t('wish.invalid') : t('wish.failed');
     } catch {
       problem = navigator.onLine === false ? t('wish.offline') : t('wish.failed');
     }

@@ -691,6 +691,7 @@ export default {
   'wish.startGame': 'Start een wedstrijd',
   'wish.another': 'Nog een sport wensen',
   'wish.limit': 'Dat zijn veel wensen van hier vandaag. Probeer het morgen opnieuw.',
+  'wish.busy': 'Er komen nu heel veel wensen binnen. Probeer het over een uur opnieuw.',
   'wish.invalid': 'Alleen de naam van een sport graag: geen links of andere tekst.',
   'wish.offline': 'Geen verbinding. Probeer opnieuw als je online bent.',
   'wish.failed': 'Je wens kon niet verstuurd worden. Probeer het zo meteen opnieuw.',

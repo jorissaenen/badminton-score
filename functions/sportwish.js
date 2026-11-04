@@ -22,6 +22,11 @@ Object.assign(ZONE_ALIASES, {
 });
 
 export const PER_DAY = 20;
+// A brake for the whole world: each server takes at most this many wishes per hour (at most 2
+// servers run). Beyond it, wishes get "busy" without any database work, so a flood from many
+// addresses can't run up the bill. Real wishes are far fewer.
+export const limits = { perHourPerServer: 300 };
+let hour = { at: '', n: 0 };
 const ONCE_DAYS = 30;
 
 // The sports people are likely to ask for, each with its names: English (UK and US), Dutch,
@@ -185,7 +190,7 @@ async function otherNames(db, now) {
   cache = { at: now, names };
   return names;
 }
-export const forgetNames = () => { cache = { at: -Infinity, names: new Map() }; };
+export const forgetNames = () => { cache = { at: -Infinity, names: new Map() }; hour = { at: '', n: 0 }; };
 
 // One wish. body: { sport (the typed name), device (a random id the app keeps), tz, lang,
 // source ('app', 'web', 'watch'), website (the hidden field: empty for people) }. ip: the
@@ -197,6 +202,10 @@ export async function wish(db, body, ip, now = Date.now()) {
   // A robot filled in the hidden field: it looks counted, but isn't.
   if (body?.website) return { status: 200, json: { counted: true, key: 'x', label: { en: typed, nl: typed }, supported: false } };
 
+  const thisHour = new Date(now).toISOString().slice(0, 13);
+  if (hour.at !== thisHour) hour = { at: thisHour, n: 0 };
+  if (hour.n >= limits.perHourPerServer) return { status: 429, json: { counted: false, reason: 'busy' } };
+  hour.n += 1;
   const day = new Date(now).toISOString().slice(0, 10);
   const limitRef = db.doc(`sportWishLimits/${hash(`${ip}|${day}|skoor-wish`)}`);
   // The cheapest check first: one read. Someone over today's limit costs nothing more.
