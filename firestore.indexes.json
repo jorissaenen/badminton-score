@@ -18,6 +18,18 @@
           "queryScope": "COLLECTION_GROUP"
         }
       ]
+    },
+    {
+      "collectionGroup": "sportWishLimits",
+      "fieldPath": "expiresAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "sportWishOnce",
+      "fieldPath": "until",
+      "ttl": true,
+      "indexes": []
     }
   ]
 }
